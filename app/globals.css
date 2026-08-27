@@ -20,6 +20,7 @@
 @media(max-width:720px){.checkout-card{padding:28px 18px}.reveal-grid{gap:8px}.flip-card{height:240px}.flip-front strong{font-size:15px}.flip-front b{font-size:48px}.flip-front em{font-size:8px}.result-cards article{grid-template-columns:1fr;gap:30px}.result-card-art{width:min(260px,100%);height:390px;margin:auto}.downloads{grid-template-columns:1fr;gap:30px}.reading-header{height:64px;padding:0 16px}.reading-header>span:last-child{display:none}}
 
 /* Direção visual premium — assets originais Chama Sofia */
+.brand-logo,.brand-mark{display:block;width:38px;height:38px;flex:0 0 auto;object-fit:contain;border:0;border-radius:0;background:transparent url('/assets/brand/chama-sofia-logo.png') center/contain no-repeat;color:transparent;font-size:0;filter:drop-shadow(0 2px 9px rgba(215,181,109,.3))}.brand-logo{background:none}.admin-login form>.brand-mark{width:84px;height:84px;margin:auto;filter:drop-shadow(0 5px 18px rgba(215,181,109,.28))}
 .hero{min-height:900px;background:#0b0610;isolation:isolate}
 .hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;z-index:0;filter:saturate(.88) contrast(1.04)}
 .hero::after{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,3,12,.18),rgba(14,5,19,.23) 42%,rgba(8,3,11,.1) 72%,rgba(8,3,11,.58)),radial-gradient(ellipse at 50% 37%,rgba(16,5,22,.58),rgba(10,4,14,.08) 54%)}
