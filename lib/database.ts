@@ -26,11 +26,27 @@ async function initialize() {
       id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, event_name TEXT NOT NULL, anonymous_id TEXT,
       metadata_json TEXT, created_at TEXT NOT NULL, FOREIGN KEY(order_id) REFERENCES orders(id))`),
     db.prepare(`CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_started_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS admin_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, order_id INTEGER, metadata_json TEXT, created_at TEXT NOT NULL)`),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_events_name_created ON analytics_events(event_name, created_at)'),
   ]);
+  const columns = await db.prepare('PRAGMA table_info(orders)').all<{name:string}>();
+  const names = new Set(columns.results.map((column) => column.name));
+  const additions: Array<[string,string]> = [
+    ['gateway_name','TEXT'], ['gateway_transaction_id','TEXT'], ['notification_status','TEXT'],
+    ['notification_error','TEXT'], ['privacy_consent_at','TEXT'], ['terms_version','TEXT'],
+  ];
+  for (const [name, type] of additions) if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_gateway_transaction ON orders(gateway_transaction_id)').run();
   await db.prepare('PRAGMA optimize').run();
+}
+
+export async function addAdminAudit(action: string, orderId?: number | null, metadata?: unknown) {
+  await ensureSchema();
+  await getD1().prepare('INSERT INTO admin_audit (action,order_id,metadata_json,created_at) VALUES (?,?,?,?)')
+    .bind(action.slice(0, 60), orderId ?? null, metadata ? JSON.stringify(metadata).slice(0, 2000) : null, new Date().toISOString()).run();
 }
 
 export async function getCurrentPrice() {

@@ -8,6 +8,17 @@ declare namespace Cloudflare {
     PIX_RECEIVER_CITY?: string;
     WHATSAPP_NUMBER?: string;
     META_PIXEL_ID?: string;
+    META_CAPI_TOKEN?: string;
+    META_GRAPH_VERSION?: string;
+    PAYMENT_WEBHOOK_SECRET?: string;
+    PAYMENT_GATEWAY?: string;
+    BREVO_API_KEY?: string;
+    EMAIL_FROM?: string;
+    WHATSAPP_ACCESS_TOKEN?: string;
+    WHATSAPP_PHONE_NUMBER_ID?: string;
+    WHATSAPP_GRAPH_VERSION?: string;
+    AI_PROVIDER?: string;
+    AI_API_KEY?: string;
     ADMIN_EMAIL?: string;
     ADMIN_PASSWORD?: string;
     ADMIN_SESSION_SECRET?: string;

@@ -1,12 +1,232 @@
-'use client';
-import { useCallback,useEffect,useState } from 'react';
-type Order={id:number;order_number:string;customer_name:string;customer_email?:string;customer_whatsapp?:string;category:string;question:string;price:number;payment_status:string;reading_status:string;cards_json?:string;created_at:string;paid_at?:string;utm_source?:string;utm_campaign?:string};
-type Data={orders:Order[];dashboard:{salesToday:number;totalSales:number;revenue:number;averageTicket:number;pending:number;generated:number;conversion:number;pricing:{formatted:string;remaining:number|null}}};
-const money=(c:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(c/100);
-export default function AdminClient(){const[data,setData]=useState<Data|null>(null);const[login,setLogin]=useState(true);const[email,setEmail]=useState('');const[password,setPassword]=useState('');const[error,setError]=useState('');const[busy,setBusy]=useState('');
-  const load=useCallback(async()=>{const r=await fetch('/api/admin/orders',{cache:'no-store'});if(r.status===401){setLogin(true);return}const d=await r.json();setData(d);setLogin(false)},[]);useEffect(()=>{void load()},[load]);
-  async function signIn(e:React.FormEvent){e.preventDefault();setError('');const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){setError(d.error);return}setLogin(false);void load()}
-  async function action(orderNumber:string,action:string){setBusy(orderNumber+action);const r=await fetch('/api/admin/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderNumber,action})});const d=await r.json();if(!r.ok)alert(d.error);setBusy('');void load()}
-  if(login)return <main className="admin-login"><form onSubmit={signIn}><span className="brand-mark">✦</span><p className="eyebrow">Chama Sofia</p><h1>Acesso à gestão</h1><label>E-mail<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Senha<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<p className="form-error">{error}</p>}<button className="primary-button">ENTRAR</button></form></main>;
-  if(!data)return <main className="admin-login">Carregando...</main>;
-  const d=data.dashboard;return <main className="admin-shell"><header><div><p className="eyebrow">Painel administrativo</p><h1>Tarot Chama Sofia</h1></div><button onClick={()=>void load()}>Atualizar</button></header><section className="metrics">{[['Vendas hoje',d.salesToday],['Vendas totais',d.totalSales],['Faturamento',money(d.revenue)],['Ticket médio',money(d.averageTicket)],['Preço atual',d.pricing.formatted],['Restam na faixa',d.pricing.remaining??'∞'],['Conversão',`${(d.conversion*100).toFixed(1)}%`],['Pendentes',d.pending],['Leituras geradas',d.generated]].map(([label,value])=><article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section><section className="orders-panel"><div className="panel-title"><h2>Pedidos recentes</h2><span>{data.orders.length} exibidos</span></div><div className="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente / Pergunta</th><th>Origem</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody>{data.orders.map(order=><tr key={order.id}><td><strong>{order.order_number}</strong><small>{new Date(order.created_at).toLocaleString('pt-BR')}</small></td><td><strong>{order.customer_name}</strong><small>{order.customer_email||order.customer_whatsapp}</small><p><b>{order.category}:</b> {order.question}</p></td><td>{order.utm_source||'direto'}<small>{order.utm_campaign}</small></td><td>{money(order.price)}</td><td><span className={`status status-${order.payment_status}`}>{order.payment_status}</span><small>{order.reading_status}</small></td><td><div className="row-actions">{order.payment_status==='pending'&&<button disabled={busy!==''} onClick={()=>void action(order.order_number,'mark_paid')}>Confirmar Pix</button>}{order.reading_status==='reading_generated'&&<button disabled={busy!==''} onClick={()=>void action(order.order_number,'deliver')}>Entregue</button>}{order.payment_status==='paid'&&<button disabled={busy!==''} onClick={()=>void action(order.order_number,'regenerate')}>Gerar novamente</button>}</div></td></tr>)}</tbody></table></div></section></main>}
+"use client";
+import { useCallback, useEffect, useState } from "react";
+type Order = {
+  id: number;
+  order_number: string;
+  customer_name: string;
+  customer_email?: string;
+  customer_whatsapp?: string;
+  category: string;
+  question: string;
+  price: number;
+  payment_status: string;
+  reading_status: string;
+  cards_json?: string;
+  created_at: string;
+  paid_at?: string;
+  utm_source?: string;
+  utm_campaign?: string;
+};
+type Data = {
+  orders: Order[];
+  dashboard: {
+    salesToday: number;
+    totalSales: number;
+    revenue: number;
+    averageTicket: number;
+    pending: number;
+    generated: number;
+    conversion: number;
+    pricing: { formatted: string; remaining: number | null };
+  };
+};
+const money = (c: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    c / 100,
+  );
+export default function AdminClient() {
+  const [data, setData] = useState<Data | null>(null);
+  const [login, setLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const load = useCallback(async () => {
+    const r = await fetch("/api/admin/orders", { cache: "no-store" });
+    if (r.status === 401) {
+      setLogin(true);
+      return;
+    }
+    const d = await r.json();
+    setData(d);
+    setLogin(false);
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  async function signIn(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    const r = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      setError(d.error);
+      return;
+    }
+    setLogin(false);
+    void load();
+  }
+  async function action(orderNumber: string, action: string) {
+    setBusy(orderNumber + action);
+    const r = await fetch("/api/admin/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderNumber, action }),
+    });
+    const d = await r.json();
+    if (!r.ok) alert(d.error);
+    setBusy("");
+    void load();
+  }
+  if (login)
+    return (
+      <main className="admin-login">
+        <form onSubmit={signIn}>
+          <span className="brand-mark">✦</span>
+          <p className="eyebrow">Chama Sofia</p>
+          <h1>Acesso à gestão</h1>
+          <label>
+            E-mail
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label>
+            Senha
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          {error && <p className="form-error">{error}</p>}
+          <button className="primary-button">ENTRAR</button>
+        </form>
+      </main>
+    );
+  if (!data) return <main className="admin-login">Carregando...</main>;
+  const d = data.dashboard;
+  return (
+    <main className="admin-shell">
+      <header>
+        <div>
+          <p className="eyebrow">Painel administrativo</p>
+          <h1>Tarot Chama Sofia</h1>
+        </div>
+        <button onClick={() => void load()}>Atualizar</button>
+      </header>
+      <section className="metrics">
+        {[
+          ["Vendas hoje", d.salesToday],
+          ["Vendas totais", d.totalSales],
+          ["Faturamento", money(d.revenue)],
+          ["Ticket médio", money(d.averageTicket)],
+          ["Preço atual", d.pricing.formatted],
+          ["Restam na faixa", d.pricing.remaining ?? "∞"],
+          ["Conversão", `${(d.conversion * 100).toFixed(1)}%`],
+          ["Pendentes", d.pending],
+          ["Leituras geradas", d.generated],
+        ].map(([label, value]) => (
+          <article key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </article>
+        ))}
+      </section>
+      <section className="orders-panel">
+        <div className="panel-title">
+          <h2>Pedidos recentes</h2>
+          <span>{data.orders.length} exibidos</span>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Cliente / Pergunta</th>
+                <th>Origem</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.orders.map((order) => (
+                <tr key={order.id}>
+                  <td>
+                    <strong>{order.order_number}</strong>
+                    <small>
+                      {new Date(order.created_at).toLocaleString("pt-BR")}
+                    </small>
+                  </td>
+                  <td>
+                    <strong>{order.customer_name}</strong>
+                    <small>
+                      {order.customer_email || order.customer_whatsapp}
+                    </small>
+                    <p>
+                      <b>{order.category}:</b> {order.question}
+                    </p>
+                  </td>
+                  <td>
+                    {order.utm_source || "direto"}
+                    <small>{order.utm_campaign}</small>
+                  </td>
+                  <td>{money(order.price)}</td>
+                  <td>
+                    <span className={`status status-${order.payment_status}`}>
+                      {order.payment_status}
+                    </span>
+                    <small>{order.reading_status}</small>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      {order.payment_status === "pending" && (
+                        <button
+                          disabled={busy !== ""}
+                          onClick={() =>
+                            void action(order.order_number, "mark_paid")
+                          }
+                        >
+                          Confirmar Pix
+                        </button>
+                      )}
+                      {order.reading_status === "reading_generated" && (
+                        <button
+                          disabled={busy !== ""}
+                          onClick={() =>
+                            void action(order.order_number, "deliver")
+                          }
+                        >
+                          Entregue
+                        </button>
+                      )}
+                      {order.payment_status === "paid" && (
+                        <button
+                          disabled={busy !== ""}
+                          onClick={() =>
+                            void action(order.order_number, "regenerate")
+                          }
+                        >
+                          Gerar novamente
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}
