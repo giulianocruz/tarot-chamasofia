@@ -326,7 +326,7 @@ export default function LandingClient() {
           ) : (
             <div id="dados-entrega">
           <div className="offer-includes">
-            <strong>Sua leitura inclui</strong>
+            <strong>Sua compra inclui</strong>
             <span>✓ livro Tarot para Iniciantes, 276 páginas</span>
             <span>✓ leitura bônus com 3 cartas e interpretação</span>
             <span>✓ PDF personalizado da sua experiência</span>

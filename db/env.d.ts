@@ -28,5 +28,6 @@ declare namespace Cloudflare {
     ADMIN_PASSWORD?: string;
     ADMIN_SESSION_SECRET?: string;
     EBOOK_DOWNLOAD_NAME?: string;
+    EBOOK_UPLOAD_SECRET?: string;
   }
 }
