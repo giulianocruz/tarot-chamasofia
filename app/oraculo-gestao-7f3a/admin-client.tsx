@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 type Order = {
   id: number;
   order_number: string;
+  public_token: string;
   customer_name: string;
   customer_email?: string;
   customer_whatsapp?: string;
@@ -81,6 +82,23 @@ export default function AdminClient() {
     if (!r.ok) alert(d.error);
     setBusy("");
     void load();
+  }
+  function readingUrl(token: string) {
+    return `${window.location.origin}/leitura/${token}`;
+  }
+  async function copyReadingLink(token: string) {
+    await navigator.clipboard.writeText(readingUrl(token));
+    alert("Link privado copiado. Agora você pode enviá-lo ao cliente.");
+  }
+  function sendByWhatsApp(order: Order) {
+    const phone = (order.customer_whatsapp || "").replace(/\D/g, "");
+    const firstName = order.customer_name.trim().split(/\s+/)[0] || "Olá";
+    const message = `${firstName}, sua leitura de Tarot Chama Sofia está pronta ✨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nNeste link você pode revelar suas cartas, ler a interpretação e baixar o PDF e o e-book.`;
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
   if (login)
     return (
@@ -189,6 +207,35 @@ export default function AdminClient() {
                   </td>
                   <td>
                     <div className="row-actions">
+                      {["reading_generated", "delivered"].includes(
+                        order.reading_status,
+                      ) && (
+                        <>
+                          <button
+                            onClick={() =>
+                              window.open(
+                                readingUrl(order.public_token),
+                                "_blank",
+                                "noopener,noreferrer",
+                              )
+                            }
+                          >
+                            Abrir leitura
+                          </button>
+                          <button
+                            onClick={() =>
+                              void copyReadingLink(order.public_token)
+                            }
+                          >
+                            Copiar link privado
+                          </button>
+                          {order.customer_whatsapp && (
+                            <button onClick={() => sendByWhatsApp(order)}>
+                              Enviar pelo WhatsApp
+                            </button>
+                          )}
+                        </>
+                      )}
                       {order.payment_status === "pending" && (
                         <button
                           disabled={busy !== ""}
