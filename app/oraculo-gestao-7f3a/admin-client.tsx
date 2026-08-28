@@ -153,6 +153,7 @@ export default function AdminClient() {
           <h1>Tarot Chama Sofia</h1>
         </div>
         <div className="admin-actions">
+          <a className="admin-download" href="/assets/social/anuncio-tarot-livro-v2.png" download>Baixar arte do anúncio</a>
           <label className="admin-upload">Atualizar e-book<input type="file" accept="application/pdf" onChange={uploadBook} /></label>
           <button onClick={() => void load()}>Atualizar pedidos</button>
           {bookStatus && <small>{bookStatus}</small>}
