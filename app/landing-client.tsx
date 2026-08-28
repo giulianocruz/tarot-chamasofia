@@ -29,7 +29,7 @@ function track(event: string, metadata?: unknown) {
   const w = window as typeof window & { fbq?: (...args: unknown[]) => void };
   const map: Record<string, string> = {
     landing_view: "PageView",
-    start_question: "ViewContent",
+    tarot_started: "ViewContent",
     question_completed: "Lead",
     checkout_started: "InitiateCheckout",
   };
@@ -48,10 +48,9 @@ export default function LandingClient() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [contactMethod, setContactMethod] = useState<"whatsapp" | "email">(
-    "whatsapp",
-  );
   const [question, setQuestion] = useState("");
+  const [formStep, setFormStep] = useState<1 | 2>(1);
+  const [showSticky, setShowSticky] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const utms = useMemo(
@@ -65,6 +64,7 @@ export default function LandingClient() {
               "utm_campaign",
               "utm_content",
               "utm_term",
+              "fbclid",
             ].map((key) => [
               key,
               new URLSearchParams(location.search).get(key) ||
@@ -106,6 +106,13 @@ export default function LandingClient() {
       })
       .catch(() => undefined);
     track("landing_view");
+    const hero = document.querySelector(".hero");
+    const stickyObserver = hero
+      ? new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
+          threshold: 0.12,
+        })
+      : null;
+    if (hero) stickyObserver?.observe(hero);
     const revealObserver = new IntersectionObserver(
       (entries) =>
         entries.forEach((entry) => {
@@ -119,17 +126,33 @@ export default function LandingClient() {
     document
       .querySelectorAll("[data-reveal]")
       .forEach((item) => revealObserver.observe(item));
-    return () => revealObserver.disconnect();
+    return () => {
+      revealObserver.disconnect();
+      stickyObserver?.disconnect();
+    };
   }, [utms]);
   const start = () => {
-    track("start_question");
+    track("cta_click");
+    track("tarot_started");
     document.getElementById("pergunta")?.scrollIntoView({ behavior: "smooth" });
   };
+  function continueToContact() {
+    setError("");
+    if (!category || question.trim().length < 10) {
+      setError("Escolha um tema e escreva uma pergunta com pelo menos 10 caracteres.");
+      return;
+    }
+    setFormStep(2);
+    track("question_completed");
+    track("offer_view", { value: price.cents / 100, currency: "BRL" });
+    requestAnimationFrame(() =>
+      document.getElementById("dados-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
     setLoading(true);
-    track("question_completed");
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -191,41 +214,41 @@ export default function LandingClient() {
         <div className="stars" aria-hidden="true">
           ✦ · ✧ · ✦
         </div>
-        <p className="eyebrow">Uma pausa para ouvir sua intuição</p>
+        <p className="eyebrow">Livro digital + experiência personalizada</p>
         <h1>
-          FAÇA SUA PERGUNTA
+          COMECE SUA JORNADA
           <br />
-          AO TAROT
+          PELO TAROT
         </h1>
         <p className="hero-copy">
-          Receba uma leitura automática de 3 cartas, interpretação personalizada
-          e sua leitura completa em PDF.
+          Leve o livro Tarot para Iniciantes, com 276 páginas, e receba de
+          presente uma leitura personalizada de 3 cartas.
         </p>
         <p className="bonus-line">
-          <span>✦</span> E ainda ganhe o e-book Tarot para Iniciantes.
+          <span>✦</span> Bônus incluso: interpretação e PDF da sua leitura.
         </p>
         <PriceBox price={price} />
         <button className="primary-button" onClick={start}>
-          QUERO FAZER MINHA LEITURA <span>→</span>
+          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
         </button>
         <p className="secure-note">
           Pagamento via Pix · Resultado privado · Sem cadastro
         </p>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
-          <img src="/assets/tarot/cards/estrela.webp" alt="" />
+          <img className="hero-book" src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="" />
           <img src="/assets/tarot/cards/sol.webp" alt="" />
         </div>
       </section>
       <aside className="trust-strip" aria-label="Benefícios da compra">
         <span>
-          <b>✦</b> Liberação após confirmação
+          <b>✦</b> Livro digital de 276 páginas
         </span>
         <span>
-          <b>◈</b> Leitura privada e personalizada
+          <b>◈</b> Leitura de 3 cartas incluída
         </span>
         <span>
-          <b>⇩</b> PDF + e-book de 276 páginas
+          <b>⇩</b> Acesso imediato após o Pix
         </span>
       </aside>
       <section className="steps" id="como-funciona" data-reveal>
@@ -263,10 +286,12 @@ export default function LandingClient() {
         </div>
         <form className="reading-form" onSubmit={submit}>
           <div className="form-progress">
-            <span>1</span>
-            <b>Conte sua pergunta</b>
+            <span>{formStep}</span>
+            <b>{formStep === 1 ? "Conte sua pergunta" : "Receba sua leitura"}</b>
             <small>Leva menos de 2 minutos</small>
           </div>
+          {formStep === 1 ? (
+            <>
           <label className="field-label">Escolha o tema</label>
           <div className="category-grid">
             {CATEGORIES.map((item) => (
@@ -293,6 +318,20 @@ export default function LandingClient() {
             placeholder="Escreva sua pergunta com calma..."
           />
           <div className="char-count">{question.length}/500</div>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button type="button" className="primary-button form-submit" onClick={continueToContact}>
+            CONTINUAR MINHA LEITURA <span>→</span>
+          </button>
+            </>
+          ) : (
+            <div id="dados-entrega">
+          <div className="offer-includes">
+            <strong>Sua leitura inclui</strong>
+            <span>✓ livro Tarot para Iniciantes, 276 páginas</span>
+            <span>✓ leitura bônus com 3 cartas e interpretação</span>
+            <span>✓ PDF personalizado da sua experiência</span>
+          </div>
+          <button type="button" className="edit-question" onClick={() => setFormStep(1)}>← Editar minha pergunta</button>
           <label>
             Seu nome
             <input
@@ -317,35 +356,12 @@ export default function LandingClient() {
               placeholder="voce@email.com"
             />
             <small className="field-help">
-              Necessário para gerar o Pix seguro e recuperar sua leitura.
+              Usado para gerar o Pix seguro e recuperar sua leitura.
             </small>
           </label>
-          <fieldset className="contact-choice">
-            <legend>Como prefere receber o acesso?</legend>
-            <div>
-              <button
-                type="button"
-                className={contactMethod === "whatsapp" ? "selected" : ""}
-                aria-pressed={contactMethod === "whatsapp"}
-                onClick={() => setContactMethod("whatsapp")}
-              >
-                <span>◉</span> WhatsApp
-              </button>
-              <button
-                type="button"
-                className={contactMethod === "email" ? "selected" : ""}
-                aria-pressed={contactMethod === "email"}
-                onClick={() => setContactMethod("email")}
-              >
-                <span>✉</span> E-mail
-              </button>
-            </div>
-          </fieldset>
-          {contactMethod === "whatsapp" ? (
-            <label>
-              Seu WhatsApp
+          <label>
+              WhatsApp <small>(opcional)</small>
               <input
-                required
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
@@ -355,15 +371,9 @@ export default function LandingClient() {
                 placeholder="(14) 99999-9999"
               />
               <small className="field-help">
-                Usaremos este número somente para identificar e liberar sua
-                leitura.
+                Informe para receber automaticamente o link, o PDF e o livro.
               </small>
-            </label>
-          ) : (
-            <p className="field-help">
-              O link será entregue no e-mail informado acima.
-            </p>
-          )}
+          </label>
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -371,21 +381,23 @@ export default function LandingClient() {
           )}
           <button
             className="primary-button form-submit"
-            disabled={loading || !category}
+            disabled={loading}
           >
             {loading
-              ? "CRIANDO SEU PEDIDO..."
-              : `CONTINUAR POR ${price.formatted}`}{" "}
+              ? "GERANDO SEU PIX..."
+              : `IR PARA O PIX · ${price.formatted}`}{" "}
             <span>→</span>
           </button>
           <div className="checkout-confidence">
-            <span>✓ Pix seguro</span>
-            <span>✓ Sem assinatura</span>
+            <span>✓ Pagamento seguro</span>
+            <span>✓ Compra única</span>
             <span>✓ Acesso privado</span>
           </div>
           <p className="form-privacy">
             Seus dados e sua pergunta não serão publicados.
           </p>
+            </div>
+          )}
         </form>
       </section>
       <section className="receive" data-reveal>
@@ -393,21 +405,21 @@ export default function LandingClient() {
         <h2>O que você recebe</h2>
         <div className="receive-grid">
           {[
-            ["✦", "Três cartas", "Situação, influências e tendência/conselho."],
+            ["✦", "Livro completo", "Tarot para Iniciantes, edição digital com 276 páginas."],
             [
               "☾",
-              "Leitura personalizada",
-              "As cartas conversam entre si e com sua pergunta.",
+              "Leitura bônus",
+              "Três cartas que conversam entre si e com sua pergunta.",
             ],
             [
               "⇩",
-              "PDF completo",
-              "Sua leitura organizada para guardar e reler.",
+              "Interpretação personalizada",
+              "Uma narrativa conectada ao tema que você deseja compreender.",
             ],
             [
               "◈",
-              "Reflexão final",
-              "Um convite acolhedor para seus próximos passos.",
+              "PDF da leitura",
+              "Sua experiência organizada para guardar e reler.",
             ],
           ].map(([icon, title, text]) => (
             <article key={title}>
@@ -429,30 +441,30 @@ export default function LandingClient() {
           />
         </div>
         <div>
-          <p className="eyebrow">Seu presente</p>
-          <h2>Você acabou de ganhar um guia completo de Tarot.</h2>
+          <p className="eyebrow">O produto principal</p>
+          <h2>Aprenda Tarot. Experimente. Guarde sua jornada.</h2>
           <h3>Tarot para Iniciantes</h3>
           <p>
-            Livro digital da SofIA Labs com aproximadamente{" "}
+            Livro digital da SofIA Labs com{" "}
             <strong>276 páginas</strong>, entregue para download depois da
             confirmação do pagamento.
           </p>
           <p className="ebook-note">
-            Bônus separado da leitura e disponibilizado com autorização do
-            titular.
+            Inclui como bônus uma leitura personalizada de 3 cartas e o PDF do
+            resultado. Também publicado no Google Play Books.
           </p>
         </div>
       </section>
       <section className="price-section" data-reveal>
-        <p className="eyebrow">Valor progressivo e transparente</p>
-        <h2>Comece sua leitura hoje</h2>
+        <p className="eyebrow">Condição especial de lançamento</p>
+        <h2>Leve o livro e ganhe sua leitura</h2>
         <PriceBox price={price} />
         <p>
           O valor muda somente conforme pagamentos realmente confirmados. Sem
           escassez falsa.
         </p>
         <button className="primary-button" onClick={start}>
-          FAZER MINHA PERGUNTA <span>→</span>
+          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
         </button>
       </section>
       <section className="faq" data-reveal>
@@ -472,8 +484,8 @@ export default function LandingClient() {
             "Não. O sorteio usa três cartas distintas entre os 22 Arcanos Maiores.",
           ],
           [
-            "O e-book está incluso?",
-            "Sim. O livro Tarot para Iniciantes, com 276 páginas, fica disponível para download após a confirmação do pagamento.",
+            "O que estou comprando?",
+            "O produto principal é o livro digital Tarot para Iniciantes, com 276 páginas. A leitura personalizada de 3 cartas e seu PDF são bônus incluídos.",
           ],
           [
             "Minha pergunta é pública?",
@@ -489,6 +501,16 @@ export default function LandingClient() {
           </details>
         ))}
       </section>
+      <section className="collection" data-reveal>
+        <p className="eyebrow">Coleção Chama Sofia</p>
+        <h2>A jornada está apenas começando</h2>
+        <p>O Tarot é o primeiro volume desta experiência. Conheça os próximos títulos da coleção, sem sair do seu caminho de compra.</p>
+        <div className="collection-grid">
+          <article className="available"><img src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="Capa Tarot para Iniciantes" loading="lazy" /><h3>Tarot para Iniciantes</h3><span>Disponível agora</span></article>
+          <article><img src="/assets/books/pomba-gira.jpg" alt="Capa do livro Pomba Gira" loading="lazy" /><h3>Pomba Gira</h3><span>Coleção Chama Sofia</span></article>
+          <article><img src="/assets/books/preto-velho.jpg" alt="Capa do livro Preto Velho" loading="lazy" /><h3>Preto Velho</h3><span>Coleção Chama Sofia</span></article>
+        </div>
+      </section>
       <section className="final-cta">
         <span>✦</span>
         <h2>
@@ -497,7 +519,7 @@ export default function LandingClient() {
           As cartas convidam você a olhar por outro ângulo.
         </h2>
         <button className="primary-button" onClick={start}>
-          QUERO FAZER MINHA LEITURA <span>→</span>
+          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
         </button>
       </section>
       <footer>
@@ -520,8 +542,8 @@ export default function LandingClient() {
           © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
         </small>
       </footer>
-      <button className="mobile-sticky-cta" onClick={start}>
-        FAZER MINHA LEITURA · {price.formatted}
+      <button className={`mobile-sticky-cta ${showSticky ? "is-visible" : ""}`} onClick={start}>
+        LIVRO + LEITURA · {price.formatted}
       </button>
     </main>
   );
@@ -530,7 +552,7 @@ export default function LandingClient() {
 function PriceBox({ price }: { price: Price }) {
   return (
     <div className="price-card">
-      <span>PREÇO ATUAL</span>
+      <span>VALOR ESPECIAL DE LANÇAMENTO</span>
       <strong>{price.formatted}</strong>
       <small>
         {price.remaining

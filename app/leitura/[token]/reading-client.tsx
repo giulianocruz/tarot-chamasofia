@@ -126,7 +126,7 @@ export default function ReadingClient({ token }: { token: string }) {
     if (!order?.pixPayload) return;
     await navigator.clipboard.writeText(order.pixPayload);
     setCopied(true);
-    event("pix_copied", order.id);
+    event("pix_copy_clicked", order.id);
     setTimeout(() => setCopied(false), 3500);
   }
   function begin() {
@@ -137,7 +137,7 @@ export default function ReadingClient({ token }: { token: string }) {
     if (index !== revealed) return;
     const next = revealed + 1;
     setRevealed(next);
-    event("card_revealed", order?.id);
+    event("card_selected", order?.id);
     if (next === 3) setTimeout(() => setStage("result"), 850);
   }
   function share() {
@@ -183,9 +183,9 @@ export default function ReadingClient({ token }: { token: string }) {
         </header>
         <section className="checkout-card">
           <p className="eyebrow">Sua leitura está reservada</p>
-          <h1>Conclua o Pix para liberar suas cartas</h1>
+          <h1>Conclua o Pix para receber seu livro e sua leitura</h1>
           <div className="order-summary">
-            <span>Leitura automática de 3 cartas</span>
+            <span>Tarot para Iniciantes + leitura bônus</span>
             <strong>{formatBRL(order.price)}</strong>
           </div>
           {order.pixPayload ? (
@@ -226,15 +226,17 @@ export default function ReadingClient({ token }: { token: string }) {
         <div className="breath-circle">
           <span>☾</span>
         </div>
-        <p className="eyebrow">Sua leitura foi liberada</p>
+        <p className="eyebrow">Pagamento confirmado ✨</p>
         <h1>
-          Respire e pense
-          <br />
-          na sua pergunta.
+          Seu livro já está disponível.
         </h1>
+        <p>Baixe o produto agora e, quando quiser, comece sua leitura bônus.</p>
+        <a className="primary-button" href={`/api/ebook/${token}`}>
+          BAIXAR TAROT PARA INICIANTES <span>⇩</span>
+        </a>
         <blockquote>“{order.question}”</blockquote>
-        <button className="primary-button" onClick={begin}>
-          REVELAR MINHAS CARTAS <span>→</span>
+        <button className="secondary-button ritual-secondary" onClick={begin}>
+          COMEÇAR MINHA LEITURA BÔNUS <span>→</span>
         </button>
       </main>
     );
@@ -357,17 +359,12 @@ export default function ReadingClient({ token }: { token: string }) {
         <div className="download-actions">
           <a
             className="primary-button"
-            href={`/api/pdf/${token}`}
-            onClick={() => event("pdf_download", order.id)}
-          >
-            BAIXAR MINHA LEITURA EM PDF <span>⇩</span>
-          </a>
-          <a
-            className="secondary-button"
             href={`/api/ebook/${token}`}
-            onClick={() => event("ebook_claim", order.id)}
           >
             BAIXAR E-BOOK TAROT PARA INICIANTES <span>⇩</span>
+          </a>
+          <a className="secondary-button" href={`/api/pdf/${token}`}>
+            BAIXAR MINHA LEITURA EM PDF <span>⇩</span>
           </a>
         </div>
       </section>

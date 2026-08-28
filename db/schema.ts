@@ -24,6 +24,7 @@ export const orders = sqliteTable('orders', {
   utmCampaign: text('utm_campaign'),
   utmContent: text('utm_content'),
   utmTerm: text('utm_term'),
+  fbclid: text('fbclid'),
 }, (table) => [
   index('idx_orders_payment_status').on(table.paymentStatus),
   index('idx_orders_created_at').on(table.createdAt),

@@ -21,7 +21,7 @@ async function initialize() {
       customer_name TEXT NOT NULL, customer_email TEXT, customer_whatsapp TEXT, category TEXT NOT NULL, question TEXT NOT NULL,
       price INTEGER NOT NULL, pix_payload TEXT, payment_status TEXT NOT NULL DEFAULT 'pending', reading_status TEXT NOT NULL DEFAULT 'pending',
       cards_json TEXT, reading_json TEXT, created_at TEXT NOT NULL, paid_at TEXT, generated_at TEXT, delivered_at TEXT,
-      utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, utm_content TEXT, utm_term TEXT)`),
+      utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, utm_content TEXT, utm_term TEXT, fbclid TEXT)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS analytics_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, event_name TEXT NOT NULL, anonymous_id TEXT,
       metadata_json TEXT, created_at TEXT NOT NULL, FOREIGN KEY(order_id) REFERENCES orders(id))`),
@@ -37,6 +37,7 @@ async function initialize() {
   const additions: Array<[string,string]> = [
     ['gateway_name','TEXT'], ['gateway_transaction_id','TEXT'], ['notification_status','TEXT'],
     ['notification_error','TEXT'], ['privacy_consent_at','TEXT'], ['terms_version','TEXT'],
+    ['fbclid','TEXT'],
   ];
   for (const [name, type] of additions) if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_gateway_transaction ON orders(gateway_transaction_id)').run();

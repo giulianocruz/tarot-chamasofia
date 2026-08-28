@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   await ensureSchema();
   const result = await getD1()
     .prepare(
-      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?)`,
+      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?,?)`,
     )
     .bind(
       orderNumber,
@@ -82,6 +82,7 @@ export async function POST(request: Request) {
       cleanText(body.utm_campaign, 150) || null,
       cleanText(body.utm_content, 150) || null,
       cleanText(body.utm_term, 150) || null,
+      cleanText(body.fbclid, 255) || null,
     )
     .run();
   if (env.MERCADO_PAGO_ACCESS_TOKEN && email) {

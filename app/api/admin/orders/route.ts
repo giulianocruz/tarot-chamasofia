@@ -31,14 +31,15 @@ export async function GET(request: Request) {
       .first<{ sales: number }>(),
     getD1()
       .prepare(
-        "SELECT COUNT(*) AS views FROM analytics_events WHERE event_name='landing_view'",
+        "SELECT event_name,COUNT(DISTINCT COALESCE(NULLIF(anonymous_id,''),'order:'||order_id,'event:'||id)) AS count FROM analytics_events GROUP BY event_name",
       )
-      .first<{ views: number }>(),
+      .all<{ event_name: string; count: number }>(),
     getCurrentPrice(),
   ]);
   const totalSales = Number(totals?.sales || 0);
   const revenue = Number(totals?.revenue || 0);
-  const views = Number(events?.views || 0);
+  const eventCounts = Object.fromEntries(events.results.map((item) => [item.event_name, Number(item.count)]));
+  const views = Number(eventCounts.landing_view || 0);
   return Response.json(
     {
       orders: ordersResult.results,
@@ -51,6 +52,14 @@ export async function GET(request: Request) {
         generated: Number(totals?.generated || 0),
         conversion: views ? totalSales / views : 0,
         pricing,
+        funnel: {
+          sessions: views,
+          started: Number(eventCounts.tarot_started || eventCounts.start_question || 0),
+          questions: Number(eventCounts.question_completed || 0),
+          offers: Number(eventCounts.offer_view || 0),
+          pix: Number(eventCounts.pix_generated || 0),
+          paid: totalSales,
+        },
       },
     },
     { headers: { "Cache-Control": "no-store" } },
@@ -106,7 +115,15 @@ export async function POST(request: Request) {
       )
       .bind(now, order.id)
       .run();
+    await completePayment(orderNumber, undefined, "manual-delivery");
     await addAdminAudit("deliver", Number(order.id));
+  } else if (action === "resend") {
+    if (!['reading_generated','delivered'].includes(String(order.reading_status)))
+      return Response.json({ error: "A leitura ainda não foi gerada." }, { status: 409 });
+    await getD1().prepare('UPDATE orders SET notification_status=NULL,notification_error=NULL WHERE id=?').bind(order.id).run();
+    const completed = await completePayment(orderNumber, undefined, "manual-resend");
+    if (!completed.ok) return Response.json({ error: completed.error }, { status: completed.status });
+    await addAdminAudit("resend", Number(order.id));
   } else if (action === "cancel") {
     await getD1()
       .prepare(

@@ -1,6 +1,12 @@
 import { addEvent } from '@/lib/database';
 import { cleanText, sameOrigin } from '@/lib/security';
-const allowed = new Set(['landing_view','start_question','question_completed','checkout_started','pix_generated','pix_copied','payment_confirmed','reading_started','card_revealed','reading_completed','pdf_download','ebook_claim','new_reading_click']);
+const allowed = new Set([
+  'landing_view','cta_click','tarot_started','question_completed','offer_view',
+  'checkout_started','pix_generated','pix_copy_clicked','payment_confirmed',
+  'reading_started','card_selected','reading_generated','reading_completed',
+  'reading_pdf_download','ebook_download','purchase','upsell_viewed',
+  'new_reading_click',
+]);
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: 'Origem inválida.' }, { status: 403 });
   const body = await request.json().catch(() => ({}));

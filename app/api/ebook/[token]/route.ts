@@ -10,6 +10,6 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   if (!order || (order.payment_status !== 'paid' && !['reading_generated','delivered'].includes(order.reading_status))) return Response.json({ error: 'Bônus disponível somente após a confirmação do pagamento.' }, { status: 403 });
   const object = await env.BOOKS.get('tarot-para-iniciantes.pdf');
   if (!object) return Response.json({ error: 'O e-book está sendo preparado. Tente novamente em instantes.' }, { status: 503 });
-  await addEvent('ebook_claim', order.id);
+  await addEvent('ebook_download', order.id);
   return new Response(object.body, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="${env.EBOOK_DOWNLOAD_NAME || 'tarot-para-iniciantes-sofia-labs.pdf'}"`, 'Content-Length':String(object.size), 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
 }

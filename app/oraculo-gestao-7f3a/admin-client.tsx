@@ -29,6 +29,7 @@ type Data = {
     generated: number;
     conversion: number;
     pricing: { formatted: string; remaining: number | null };
+    funnel: { sessions:number; started:number; questions:number; offers:number; pix:number; paid:number };
   };
 };
 const money = (c: number) =>
@@ -42,6 +43,7 @@ export default function AdminClient() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [bookStatus, setBookStatus] = useState("");
   const load = useCallback(async () => {
     const r = await fetch("/api/admin/orders", { cache: "no-store" });
     if (r.status === 401) {
@@ -82,6 +84,16 @@ export default function AdminClient() {
     if (!r.ok) alert(d.error);
     setBusy("");
     void load();
+  }
+  async function uploadBook(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") { setBookStatus("Selecione um arquivo PDF."); return; }
+    setBookStatus("Enviando livro...");
+    const response = await fetch("/api/admin/ebook", { method:"PUT", headers:{"Content-Type":"application/pdf"}, body:file });
+    const result = await response.json();
+    setBookStatus(response.ok ? `Livro atualizado (${(file.size/1024/1024).toFixed(1)} MB).` : result.error || "Falha no envio.");
+    event.target.value = "";
   }
   function readingUrl(token: string) {
     return `${window.location.origin}/leitura/${token}`;
@@ -139,7 +151,11 @@ export default function AdminClient() {
           <p className="eyebrow">Painel administrativo</p>
           <h1>Tarot Chama Sofia</h1>
         </div>
-        <button onClick={() => void load()}>Atualizar</button>
+        <div className="admin-actions">
+          <label className="admin-upload">Atualizar e-book<input type="file" accept="application/pdf" onChange={uploadBook} /></label>
+          <button onClick={() => void load()}>Atualizar pedidos</button>
+          {bookStatus && <small>{bookStatus}</small>}
+        </div>
       </header>
       <section className="metrics">
         {[
@@ -158,6 +174,14 @@ export default function AdminClient() {
             <strong>{value}</strong>
           </article>
         ))}
+      </section>
+      <section className="funnel-panel">
+        <div><span>Sessões</span><strong>{d.funnel.sessions}</strong></div>
+        <b>→</b><div><span>Iniciaram</span><strong>{d.funnel.started}</strong></div>
+        <b>→</b><div><span>Pergunta</span><strong>{d.funnel.questions}</strong></div>
+        <b>→</b><div><span>Viram oferta</span><strong>{d.funnel.offers}</strong></div>
+        <b>→</b><div><span>Geraram Pix</span><strong>{d.funnel.pix}</strong></div>
+        <b>→</b><div><span>Pagaram</span><strong>{d.funnel.paid}</strong></div>
       </section>
       <section className="orders-panel">
         <div className="panel-title">
@@ -230,9 +254,10 @@ export default function AdminClient() {
                             Copiar link privado
                           </button>
                           {order.customer_whatsapp && (
-                            <button onClick={() => sendByWhatsApp(order)}>
-                              Enviar pelo WhatsApp
-                            </button>
+                            <>
+                              <button disabled={busy !== ""} onClick={() => void action(order.order_number, "resend")}>Reenviar automaticamente</button>
+                              <button onClick={() => sendByWhatsApp(order)}>Abrir envio manual</button>
+                            </>
                           )}
                         </>
                       )}

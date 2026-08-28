@@ -13,6 +13,6 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   const cardData = JSON.parse(String(order.cards_json)) as Array<{id:string}>;
   const cards = getCards(cardData.map((card) => card.id));
   const bytes = createReadingPdf(order as never, cards, JSON.parse(String(order.reading_json)) as Reading);
-  await addEvent('pdf_download', Number(order.id));
+  await addEvent('reading_pdf_download', Number(order.id));
   return new Response(bytes as BodyInit, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="leitura-tarot-chama-sofia-${order.order_number}.pdf"`, 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
 }
