@@ -20,6 +20,8 @@ declare namespace Cloudflare {
     WHATSAPP_ACCESS_TOKEN?: string;
     WHATSAPP_PHONE_NUMBER_ID?: string;
     WHATSAPP_GRAPH_VERSION?: string;
+    WHATSAPP_AGENT_URL?: string;
+    WHATSAPP_AGENT_SECRET?: string;
     AI_PROVIDER?: string;
     AI_API_KEY?: string;
     ADMIN_EMAIL?: string;

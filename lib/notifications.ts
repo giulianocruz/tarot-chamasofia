@@ -5,6 +5,8 @@ type DeliveryOrder = { customer_name:string; customer_email?:string|null; custom
 export async function notifyReadingReady(order: DeliveryOrder) {
   const appUrl = (env.APP_URL || 'https://tarot.chamasofia.com.br').replace(/\/$/, '');
   const readingUrl = `${appUrl}/leitura/${order.public_token}`;
+  const pdfUrl = `${appUrl}/api/pdf/${order.public_token}`;
+  const ebookUrl = `${appUrl}/api/ebook/${order.public_token}`;
   const results: Array<{channel:string;ok:boolean;error?:string}> = [];
 
   if (order.customer_email && env.BREVO_API_KEY && env.EMAIL_FROM) {
@@ -16,7 +18,24 @@ export async function notifyReadingReady(order: DeliveryOrder) {
     } catch (error) { results.push({ channel:'email', ok:false, error:error instanceof Error?error.message:'Falha desconhecida' }); }
   }
 
-  if (order.customer_whatsapp && env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) {
+  if (order.customer_whatsapp && env.WHATSAPP_AGENT_URL && env.WHATSAPP_AGENT_SECRET) {
+    try {
+      const response = await fetch(env.WHATSAPP_AGENT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json',Authorization:`Bearer ${env.WHATSAPP_AGENT_SECRET}`},
+        body:JSON.stringify({
+          phone:order.customer_whatsapp,
+          customerName:order.customer_name,
+          orderNumber:order.order_number,
+          readingUrl,
+          pdfUrl,
+          ebookUrl,
+        }),
+      });
+      const detail = response.ok ? undefined : (await response.text()).slice(0,180);
+      results.push({ channel:'whatsapp-agent', ok:response.ok, error:response.ok?undefined:`HTTP ${response.status}${detail?`: ${detail}`:''}` });
+    } catch (error) { results.push({ channel:'whatsapp-agent', ok:false, error:error instanceof Error?error.message:'Falha desconhecida' }); }
+  } else if (order.customer_whatsapp && env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) {
     try {
       const phone = order.customer_whatsapp.replace(/\D/g, '');
       const version = env.WHATSAPP_GRAPH_VERSION || 'v23.0';
