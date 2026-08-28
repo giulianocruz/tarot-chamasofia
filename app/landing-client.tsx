@@ -106,6 +106,20 @@ export default function LandingClient() {
       })
       .catch(() => undefined);
     track("landing_view");
+    const revealObserver = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.12 },
+    );
+    document
+      .querySelectorAll("[data-reveal]")
+      .forEach((item) => revealObserver.observe(item));
+    return () => revealObserver.disconnect();
   }, [utms]);
   const start = () => {
     track("start_question");
@@ -197,8 +211,24 @@ export default function LandingClient() {
         <p className="secure-note">
           Pagamento via Pix · Resultado privado · Sem cadastro
         </p>
+        <div className="hero-card-fan" aria-hidden="true">
+          <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
+          <img src="/assets/tarot/cards/estrela.webp" alt="" />
+          <img src="/assets/tarot/cards/sol.webp" alt="" />
+        </div>
       </section>
-      <section className="steps" id="como-funciona">
+      <aside className="trust-strip" aria-label="Benefícios da compra">
+        <span>
+          <b>✦</b> Liberação após confirmação
+        </span>
+        <span>
+          <b>◈</b> Leitura privada e personalizada
+        </span>
+        <span>
+          <b>⇩</b> PDF + e-book de 276 páginas
+        </span>
+      </aside>
+      <section className="steps" id="como-funciona" data-reveal>
         <p className="eyebrow">Simples, íntimo e especial</p>
         <h2>Sua leitura em poucos minutos</h2>
         <div className="step-grid">
@@ -216,7 +246,7 @@ export default function LandingClient() {
           ))}
         </div>
       </section>
-      <section className="question-section" id="pergunta">
+      <section className="question-section" id="pergunta" data-reveal>
         <div className="question-intro">
           <p className="eyebrow">Sua pergunta, sua jornada</p>
           <h2>O que você gostaria de compreender?</h2>
@@ -232,6 +262,11 @@ export default function LandingClient() {
           </ul>
         </div>
         <form className="reading-form" onSubmit={submit}>
+          <div className="form-progress">
+            <span>1</span>
+            <b>Conte sua pergunta</b>
+            <small>Leva menos de 2 minutos</small>
+          </div>
           <label className="field-label">Escolha o tema</label>
           <div className="category-grid">
             {CATEGORIES.map((item) => (
@@ -340,12 +375,17 @@ export default function LandingClient() {
               : `CONTINUAR POR ${price.formatted}`}{" "}
             <span>→</span>
           </button>
+          <div className="checkout-confidence">
+            <span>✓ Pix seguro</span>
+            <span>✓ Sem assinatura</span>
+            <span>✓ Acesso privado</span>
+          </div>
           <p className="form-privacy">
             Seus dados e sua pergunta não serão publicados.
           </p>
         </form>
       </section>
-      <section className="receive">
+      <section className="receive" data-reveal>
         <p className="eyebrow">Uma experiência completa</p>
         <h2>O que você recebe</h2>
         <div className="receive-grid">
@@ -375,7 +415,7 @@ export default function LandingClient() {
           ))}
         </div>
       </section>
-      <section className="ebook" id="presente">
+      <section className="ebook" id="presente" data-reveal>
         <div className="book-visual">
           <img
             src="/assets/books/tarot-para-iniciantes-oficial.jpg"
@@ -400,7 +440,7 @@ export default function LandingClient() {
           </p>
         </div>
       </section>
-      <section className="price-section">
+      <section className="price-section" data-reveal>
         <p className="eyebrow">Valor progressivo e transparente</p>
         <h2>Comece sua leitura hoje</h2>
         <PriceBox price={price} />
@@ -412,7 +452,7 @@ export default function LandingClient() {
           FAZER MINHA PERGUNTA <span>→</span>
         </button>
       </section>
-      <section className="faq">
+      <section className="faq" data-reveal>
         <p className="eyebrow">Perguntas frequentes</p>
         <h2>Antes de começar</h2>
         {[
@@ -477,6 +517,9 @@ export default function LandingClient() {
           © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
         </small>
       </footer>
+      <button className="mobile-sticky-cta" onClick={start}>
+        FAZER MINHA LEITURA · {price.formatted}
+      </button>
     </main>
   );
 }

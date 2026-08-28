@@ -83,14 +83,21 @@ export default function ReadingClient({ token }: { token: string }) {
     };
   }, [token, stage]);
   useEffect(() => {
-    if (!order || !order.reading || !["paid", "reading_generated", "delivered"].includes(order.paymentStatus)) return;
+    if (
+      !order ||
+      !order.reading ||
+      !["paid", "reading_generated", "delivered"].includes(order.paymentStatus)
+    )
+      return;
     const key = `cs_purchase_${order.orderNumber}`;
     if (localStorage.getItem(key)) return;
     void fetch("/api/config")
       .then((response) => response.json())
       .then((config) => {
         if (!config.metaPixelId) return;
-        const w = window as typeof window & { fbq?: (...args: unknown[]) => void };
+        const w = window as typeof window & {
+          fbq?: (...args: unknown[]) => void;
+        };
         if (!w.fbq) {
           const queue: unknown[][] = [];
           w.fbq = (...args: unknown[]) => queue.push(args);
@@ -101,7 +108,16 @@ export default function ReadingClient({ token }: { token: string }) {
           document.head.appendChild(script);
           w.fbq("init", config.metaPixelId);
         }
-        w.fbq("track", "Purchase", { value: order.price / 100, currency: "BRL", order_id: order.orderNumber }, { eventID: `purchase-${order.orderNumber}` });
+        w.fbq(
+          "track",
+          "Purchase",
+          {
+            value: order.price / 100,
+            currency: "BRL",
+            order_id: order.orderNumber,
+          },
+          { eventID: `purchase-${order.orderNumber}` },
+        );
         localStorage.setItem(key, "1");
       })
       .catch(() => undefined);
@@ -174,11 +190,7 @@ export default function ReadingClient({ token }: { token: string }) {
           </div>
           {order.pixPayload ? (
             <>
-              <img
-                className="qr"
-              src={`/api/qr/${token}`}
-                alt="QR Code Pix"
-              />
+              <img className="qr" src={`/api/qr/${token}`} alt="QR Code Pix" />
               <label>Pix Copia e Cola</label>
               <div className="pix-code">{order.pixPayload}</div>
               <button className="primary-button" onClick={copyPix}>
@@ -256,9 +268,10 @@ export default function ReadingClient({ token }: { token: string }) {
                     <small>{index + 1}</small>
                   </span>
                   <span className="flip-front">
-                    <small>{String(card.number).padStart(2, "0")}</small>
-                    <b>{card.symbol}</b>
-                    <strong>{card.name}</strong>
+                    <img
+                      src={`/assets/tarot/cards/${card.id}.webp`}
+                      alt={card.name}
+                    />
                     <em>{order.reading!.cardReadings[index].position}</em>
                   </span>
                 </span>
@@ -297,9 +310,11 @@ export default function ReadingClient({ token }: { token: string }) {
         {order.cards!.map((card, index) => (
           <article key={card.id}>
             <div className="result-card-art">
-              <small>{String(card.number).padStart(2, "0")}</small>
-              <b>{card.symbol}</b>
-              <strong>{card.name}</strong>
+              <img
+                src={`/assets/tarot/cards/${card.id}.webp`}
+                alt={card.name}
+                loading="lazy"
+              />
             </div>
             <div>
               <p className="eyebrow">
