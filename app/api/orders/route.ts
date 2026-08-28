@@ -10,6 +10,7 @@ import {
 import { createPixPayload } from "@/lib/pix";
 import { createMercadoPagoPix } from "@/lib/mercado-pago";
 import { cleanText, randomToken, sameOrigin, sha256 } from "@/lib/security";
+import { registerReferral } from '@/lib/referrals';
 
 export async function POST(request: Request) {
   if (!sameOrigin(request))
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
       { error: "Muitas tentativas. Aguarde alguns minutos." },
       { status: 429 },
     );
-  const body = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({})) as Record<string,unknown>;
   const name = cleanText(body.name, 80);
   const email = cleanText(body.email, 120).toLowerCase();
   const whatsapp = cleanText(body.whatsapp, 30);
@@ -127,6 +128,15 @@ export async function POST(request: Request) {
     Number(result.meta.last_row_id),
     cleanText(body.anonymousId, 100),
   );
+  const orderId = Number(result.meta.last_row_id);
+  const leadToken = cleanText(body.leadToken,80);
+  const anonymousId = cleanText(body.anonymousId,100);
+  if (leadToken || anonymousId) {
+    await getD1().prepare(`UPDATE abandoned_leads SET converted_order_id=?,stage='pix_generated',updated_at=?
+      WHERE converted_order_id IS NULL AND (public_token=? OR anonymous_id=?)`)
+      .bind(orderId,new Date().toISOString(),leadToken||'',anonymousId||'').run();
+  }
+  await registerReferral(orderId,body.referralCode);
   return Response.json(
     {
       orderNumber,

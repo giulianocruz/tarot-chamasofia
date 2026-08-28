@@ -28,6 +28,16 @@ async function initialize() {
     db.prepare(`CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, window_started_at INTEGER NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS admin_audit (
       id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, order_id INTEGER, metadata_json TEXT, created_at TEXT NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS abandoned_leads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, public_token TEXT NOT NULL UNIQUE, anonymous_id TEXT NOT NULL UNIQUE,
+      customer_name TEXT, customer_email TEXT, customer_whatsapp TEXT, category TEXT, question TEXT,
+      stage TEXT NOT NULL DEFAULT 'form_started', converted_order_id INTEGER, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      recovery_first_sent_at TEXT, recovery_second_sent_at TEXT, recovery_last_attempt_at TEXT, recovery_error TEXT)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS referral_codes (
+      code TEXT PRIMARY KEY, referrer_order_id INTEGER NOT NULL UNIQUE, created_at TEXT NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS referral_conversions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, referred_order_id INTEGER NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, qualified_at TEXT)`),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_events_name_created ON analytics_events(event_name, created_at)'),
@@ -37,10 +47,14 @@ async function initialize() {
   const additions: Array<[string,string]> = [
     ['gateway_name','TEXT'], ['gateway_transaction_id','TEXT'], ['notification_status','TEXT'],
     ['notification_error','TEXT'], ['privacy_consent_at','TEXT'], ['terms_version','TEXT'],
-    ['fbclid','TEXT'],
+    ['fbclid','TEXT'], ['recovery_first_sent_at','TEXT'], ['recovery_second_sent_at','TEXT'],
+    ['recovery_last_attempt_at','TEXT'], ['recovery_error','TEXT'],
   ];
   for (const [name, type] of additions) if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_gateway_transaction ON orders(gateway_transaction_id)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_pending_recovery ON orders(payment_status,created_at)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_abandoned_leads_recovery ON abandoned_leads(converted_order_id,updated_at)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_referral_conversions_code_status ON referral_conversions(code,status)').run();
   await db.prepare('PRAGMA optimize').run();
 }
 

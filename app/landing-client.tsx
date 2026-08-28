@@ -9,6 +9,10 @@ type Price = {
   nextFormatted: string | null;
   confirmedSales: number;
 };
+type PublicConfig = { metaPixelId?:string; whatsappNumber?:string };
+type SavedLead = { publicToken?:string; error?:string };
+type ResumeDraft = { name?:string;email?:string;whatsapp?:string;category?:string;question?:string;error?:string };
+type CreatedOrder = { orderNumber:string;publicToken:string;url:string;error?:string };
 
 function getAnonymousId() {
   let id = localStorage.getItem("cs_anon");
@@ -53,6 +57,7 @@ export default function LandingClient() {
   const [showSticky, setShowSticky] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [leadToken, setLeadToken] = useState("");
   const utms = useMemo(
     () =>
       typeof window === "undefined"
@@ -74,16 +79,31 @@ export default function LandingClient() {
           ),
     [],
   );
+  const referralCode = useMemo(() => typeof window === 'undefined' ? '' : (
+    new URLSearchParams(location.search).get('ref') || localStorage.getItem('cs_ref') || ''
+  ),[]);
   useEffect(() => {
     Object.entries(utms).forEach(([key, value]) => {
       if (value) localStorage.setItem(`cs_${key}`, String(value));
     });
+    if (referralCode) localStorage.setItem('cs_ref',referralCode);
+    const resumeToken = new URLSearchParams(location.search).get('resume');
+    if (resumeToken) {
+      fetch(`/api/leads/${encodeURIComponent(resumeToken)}`,{cache:'no-store'})
+        .then(async (response)=>{const draft=await response.json() as ResumeDraft;if(!response.ok) throw new Error(draft.error);return draft;})
+        .then((draft)=>{
+          setName(String(draft.name||''));setEmail(String(draft.email||''));setWhatsapp(String(draft.whatsapp||''));
+          setCategory(String(draft.category||''));setQuestion(String(draft.question||''));setFormStep(2);setLeadToken(resumeToken);
+          localStorage.setItem('cs_form_active','1');track('recovery_resumed',{kind:'form'});
+          requestAnimationFrame(()=>document.getElementById('pergunta')?.scrollIntoView({behavior:'smooth'}));
+        }).catch(()=>undefined);
+    }
     fetch("/api/pricing")
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<Price>)
       .then(setPrice)
       .catch(() => undefined);
     fetch("/api/config")
-      .then((r) => r.json())
+      .then((r) => r.json() as Promise<PublicConfig>)
       .then((config) => {
         if (
           config.metaPixelId &&
@@ -119,7 +139,10 @@ export default function LandingClient() {
         }
       });
     };
-    const onExit = () => track("page_exit", { seconds: Math.round((Date.now() - startedAt) / 1000) });
+    const onExit = () => {
+      track("page_exit", { seconds: Math.round((Date.now() - startedAt) / 1000) });
+      if (localStorage.getItem('cs_form_active')==='1') track('form_abandon');
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pagehide", onExit, { once: true });
     const hero = document.querySelector(".hero");
@@ -148,8 +171,9 @@ export default function LandingClient() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", onExit);
     };
-  }, [utms]);
+  }, [utms,referralCode]);
   const start = () => {
+    localStorage.setItem('cs_form_active','1');
     track("cta_click");
     track("tarot_started");
     document.getElementById("pergunta")?.scrollIntoView({ behavior: "smooth" });
@@ -161,6 +185,7 @@ export default function LandingClient() {
       return;
     }
     setFormStep(2);
+    localStorage.setItem('cs_form_active','1');
     track("form_step_view", { step: 2 });
     track("question_completed");
     track("offer_view", { value: price.cents / 100, currency: "BRL" });
@@ -168,11 +193,23 @@ export default function LandingClient() {
       document.getElementById("dados-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" }),
     );
   }
+  async function saveLead() {
+    if (formStep!==2 || (!email.trim() && !whatsapp.trim())) return leadToken;
+    try {
+      const response = await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        anonymousId:getAnonymousId(),name,email,whatsapp,category,question,
+      })});
+      const data = await response.json() as SavedLead;
+      if (response.ok && data.publicToken) { setLeadToken(data.publicToken); return String(data.publicToken); }
+    } catch { /* a criação do pedido continua disponível */ }
+    return leadToken;
+  }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
     setLoading(true);
     try {
+      const savedLeadToken = await saveLead();
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -183,10 +220,12 @@ export default function LandingClient() {
           category,
           question,
           anonymousId: getAnonymousId(),
+          leadToken:savedLeadToken,
+          referralCode,
           ...utms,
         }),
       });
-      const data = await response.json();
+      const data = await response.json() as CreatedOrder;
       if (!response.ok)
         throw new Error(data.error || "Não foi possível criar o pedido.");
       track("checkout_started", {
@@ -194,6 +233,7 @@ export default function LandingClient() {
         currency: "BRL",
         order_id: data.orderNumber,
       });
+      localStorage.removeItem('cs_form_active');
       location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Tente novamente.");
@@ -372,6 +412,7 @@ export default function LandingClient() {
               maxLength={120}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => void saveLead()}
               placeholder="voce@email.com"
             />
             <small className="field-help">
@@ -387,10 +428,11 @@ export default function LandingClient() {
                 maxLength={30}
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
+                onBlur={() => void saveLead()}
                 placeholder="(14) 99999-9999"
               />
               <small className="field-help">
-                Informe para receber automaticamente o link, o PDF e o livro.
+                Informe para receber o link, o PDF e o livro. Se você pausar, podemos enviar até dois lembretes desta jornada, sem pressão.
               </small>
           </label>
           {error && (

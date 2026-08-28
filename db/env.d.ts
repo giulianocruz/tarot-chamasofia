@@ -22,6 +22,10 @@ declare namespace Cloudflare {
     WHATSAPP_GRAPH_VERSION?: string;
     WHATSAPP_AGENT_URL?: string;
     WHATSAPP_AGENT_SECRET?: string;
+    RECOVERY_FIRST_DELAY_MINUTES?: string;
+    RECOVERY_SECOND_DELAY_MINUTES?: string;
+    RECOVERY_RETRY_DELAY_MINUTES?: string;
+    RECOVERY_CRON_SECRET?: string;
     AI_PROVIDER?: string;
     AI_API_KEY?: string;
     ADMIN_EMAIL?: string;

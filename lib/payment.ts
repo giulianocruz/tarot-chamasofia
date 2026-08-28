@@ -3,6 +3,7 @@ import { notifyReadingReady } from './notifications';
 import { sendMetaPurchase } from './meta';
 import { createReading } from './reading';
 import { drawThreeCards, type Category } from './tarot';
+import { ensureReferralCode, qualifyReferralForOrder } from './referrals';
 
 export async function completePayment(orderNumber: string, transactionId?: string, gateway = 'manual', forceRegenerate = false) {
   await ensureSchema();
@@ -27,6 +28,7 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   await addEvent('reading_generated',Number(order.id));
   await addEvent('reading_completed',Number(order.id));
   await addEvent('purchase',Number(order.id),null,{gateway,price:Number(order.price)});
+  await Promise.all([ensureReferralCode(Number(order.id)),qualifyReferralForOrder(Number(order.id))]);
   const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at) };
   const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
   const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';

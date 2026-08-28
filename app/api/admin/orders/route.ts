@@ -7,16 +7,18 @@ import {
 } from "@/lib/database";
 import { completePayment } from "@/lib/payment";
 import { cleanText, sameOrigin } from "@/lib/security";
+import { runRecoverySweep } from '@/lib/recovery';
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (!(await isAdmin(request)))
     return Response.json({ error: "Não autorizado." }, { status: 401 });
   await ensureSchema();
-  const [ordersResult, totals, today, events, pricing] = await Promise.all([
+  await runRecoverySweep(10).catch(()=>undefined);
+  const [ordersResult, totals, today, events, pricing, leadTotals] = await Promise.all([
     getD1()
       .prepare(
-        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name FROM orders ORDER BY id DESC LIMIT 100",
+        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,recovery_first_sent_at,recovery_second_sent_at,recovery_error FROM orders ORDER BY id DESC LIMIT 100",
       )
       .all(),
     getD1()
@@ -35,6 +37,7 @@ export async function GET(request: Request) {
       )
       .all<{ event_name: string; count: number }>(),
     getCurrentPrice(),
+    getD1().prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN converted_order_id IS NULL THEN 1 ELSE 0 END) AS open FROM abandoned_leads").first<Record<string,number>>(),
   ]);
   const totalSales = Number(totals?.sales || 0);
   const revenue = Number(totals?.revenue || 0);
@@ -66,6 +69,15 @@ export async function GET(request: Request) {
           faqOpened: Number(eventCounts.faq_open || 0), contactClicks: Number(eventCounts.contact_click || 0),
           exits: Number(eventCounts.page_exit || 0), step2: Number(eventCounts.form_step_view || 0),
         },
+        recovery: {
+          openForms:Number(leadTotals?.open || 0),
+          formFirst:Number(eventCounts.recovery_form_1_sent || 0), pixFirst:Number(eventCounts.recovery_pix_1_sent || 0),
+          second:Number(eventCounts.recovery_form_2_sent || 0)+Number(eventCounts.recovery_pix_2_sent || 0),
+          resumed:Number(eventCounts.recovery_resumed || 0),
+        },
+        growth: {
+          referrals:Number(eventCounts.referral_qualified || 0), upsellClicks:Number(eventCounts.upsell_clicked || 0),
+        },
       },
     },
     { headers: { "Cache-Control": "no-store" } },
@@ -75,7 +87,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!sameOrigin(request) || !(await isAdmin(request)))
     return Response.json({ error: "Não autorizado." }, { status: 401 });
-  const body = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({})) as Record<string,unknown>;
   const orderNumber = cleanText(body.orderNumber, 40);
   const action = cleanText(body.action, 30);
   await ensureSchema();

@@ -39,6 +39,7 @@ type Order = {
   cards: Card[] | null;
   reading: Reading | null;
 };
+type PublicConfig = { metaPixelId?:string };
 const formatBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     cents / 100,
@@ -62,7 +63,7 @@ export default function ReadingClient({ token }: { token: string }) {
     const load = async () => {
       try {
         const r = await fetch(`/api/orders/${token}`, { cache: "no-store" });
-        const d = await r.json();
+        const d = await r.json() as Order & {error?:string};
         if (!r.ok) throw new Error(d.error);
         if (active) {
           setOrder(d);
@@ -89,10 +90,21 @@ export default function ReadingClient({ token }: { token: string }) {
       !["paid", "reading_generated", "delivered"].includes(order.paymentStatus)
     )
       return;
+    const startNow = new URLSearchParams(location.search).get('start') === '1';
+    const thankYouKey = `cs_thanks_${order.orderNumber}`;
+    if (!startNow && !localStorage.getItem(thankYouKey)) {
+      localStorage.setItem(thankYouKey,'1');
+      location.replace(`/obrigada/${token}`);
+      return;
+    }
+    if (startNow && stage === 'intro') {
+      setStage('cards');
+      event('reading_started',order.id);
+    }
     const key = `cs_purchase_${order.orderNumber}`;
     if (localStorage.getItem(key)) return;
     void fetch("/api/config")
-      .then((response) => response.json())
+      .then((response) => response.json() as Promise<PublicConfig>)
       .then((config) => {
         if (!config.metaPixelId) return;
         const w = window as typeof window & {
@@ -121,7 +133,7 @@ export default function ReadingClient({ token }: { token: string }) {
         localStorage.setItem(key, "1");
       })
       .catch(() => undefined);
-  }, [order]);
+  }, [order,stage,token]);
   async function copyPix() {
     if (!order?.pixPayload) return;
     await navigator.clipboard.writeText(order.pixPayload);
