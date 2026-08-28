@@ -12,6 +12,9 @@ declare namespace Cloudflare {
     META_GRAPH_VERSION?: string;
     PAYMENT_WEBHOOK_SECRET?: string;
     PAYMENT_GATEWAY?: string;
+    MERCADO_PAGO_ACCESS_TOKEN?: string;
+    MERCADO_PAGO_PUBLIC_KEY?: string;
+    MERCADO_PAGO_WEBHOOK_SECRET?: string;
     BREVO_API_KEY?: string;
     EMAIL_FROM?: string;
     WHATSAPP_ACCESS_TOKEN?: string;

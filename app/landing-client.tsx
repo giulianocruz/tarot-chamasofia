@@ -304,6 +304,22 @@ export default function LandingClient() {
               placeholder="Como podemos te chamar?"
             />
           </label>
+          <label>
+            Seu e-mail
+            <input
+              required
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              maxLength={120}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="voce@email.com"
+            />
+            <small className="field-help">
+              Necessário para gerar o Pix seguro e recuperar sua leitura.
+            </small>
+          </label>
           <fieldset className="contact-choice">
             <legend>Como prefere receber o acesso?</legend>
             <div>
@@ -344,22 +360,9 @@ export default function LandingClient() {
               </small>
             </label>
           ) : (
-            <label>
-              Seu e-mail
-              <input
-                required
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                maxLength={120}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@email.com"
-              />
-              <small className="field-help">
-                Confira o endereço antes de continuar.
-              </small>
-            </label>
+            <p className="field-help">
+              O link será entregue no e-mail informado acima.
+            </p>
           )}
           {error && (
             <p className="form-error" role="alert">
