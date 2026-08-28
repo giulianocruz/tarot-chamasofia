@@ -60,6 +60,12 @@ export async function GET(request: Request) {
           pix: Number(eventCounts.pix_generated || 0),
           paid: totalSales,
         },
+        behavior: {
+          depth25: Number(eventCounts.scroll_depth_25 || 0), depth50: Number(eventCounts.scroll_depth_50 || 0),
+          depth75: Number(eventCounts.scroll_depth_75 || 0), depth90: Number(eventCounts.scroll_depth_90 || 0),
+          faqOpened: Number(eventCounts.faq_open || 0), contactClicks: Number(eventCounts.contact_click || 0),
+          exits: Number(eventCounts.page_exit || 0), step2: Number(eventCounts.form_step_view || 0),
+        },
       },
     },
     { headers: { "Cache-Control": "no-store" } },

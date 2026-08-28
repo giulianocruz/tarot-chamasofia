@@ -30,6 +30,7 @@ type Data = {
     conversion: number;
     pricing: { formatted: string; remaining: number | null };
     funnel: { sessions:number; started:number; questions:number; offers:number; pix:number; paid:number };
+    behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
 };
 const money = (c: number) =>
@@ -174,6 +175,16 @@ export default function AdminClient() {
             <strong>{value}</strong>
           </article>
         ))}
+      </section>
+      <section className="behavior-panel">
+        <div className="panel-title"><h2>Comportamento na página</h2><span>visitantes únicos por evento</span></div>
+        <div className="behavior-grid">
+          <div><span>Chegaram a 25%</span><strong>{d.behavior.depth25}</strong></div><div><span>Chegaram a 50%</span><strong>{d.behavior.depth50}</strong></div>
+          <div><span>Chegaram a 75%</span><strong>{d.behavior.depth75}</strong></div><div><span>Chegaram a 90%</span><strong>{d.behavior.depth90}</strong></div>
+          <div><span>Avançaram no formulário</span><strong>{d.behavior.step2}</strong></div><div><span>Abriram FAQ</span><strong>{d.behavior.faqOpened}</strong></div>
+          <div><span>Clicaram no suporte</span><strong>{d.behavior.contactClicks}</strong></div><div><span>Saíram da página</span><strong>{d.behavior.exits}</strong></div>
+        </div>
+        <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulário ou objeção antes do pagamento.</p>
       </section>
       <section className="funnel-panel">
         <div><span>Sessões</span><strong>{d.funnel.sessions}</strong></div>

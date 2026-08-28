@@ -106,6 +106,22 @@ export default function LandingClient() {
       })
       .catch(() => undefined);
     track("landing_view");
+    const startedAt = Date.now();
+    const scrollMarks = new Set<number>();
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      const depth = Math.min(100, Math.round((window.scrollY / max) * 100));
+      [25, 50, 75, 90].forEach((mark) => {
+        if (depth >= mark && !scrollMarks.has(mark)) {
+          scrollMarks.add(mark);
+          track(`scroll_depth_${mark}`);
+        }
+      });
+    };
+    const onExit = () => track("page_exit", { seconds: Math.round((Date.now() - startedAt) / 1000) });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", onExit, { once: true });
     const hero = document.querySelector(".hero");
     const stickyObserver = hero
       ? new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
@@ -129,6 +145,8 @@ export default function LandingClient() {
     return () => {
       revealObserver.disconnect();
       stickyObserver?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", onExit);
     };
   }, [utms]);
   const start = () => {
@@ -143,6 +161,7 @@ export default function LandingClient() {
       return;
     }
     setFormStep(2);
+    track("form_step_view", { step: 2 });
     track("question_completed");
     track("offer_view", { value: price.cents / 100, currency: "BRL" });
     requestAnimationFrame(() =>
@@ -491,8 +510,8 @@ export default function LandingClient() {
             "Minha pergunta é pública?",
             "Não. Ela aparece somente na página protegida pelo token longo e não indexada por buscadores.",
           ],
-        ].map(([q, a]) => (
-          <details key={q}>
+          ].map(([q, a]) => (
+          <details key={q} onToggle={(event) => event.currentTarget.open && track("faq_open", { question: q })}>
             <summary>
               {q}
               <span>+</span>
@@ -541,6 +560,9 @@ export default function LandingClient() {
         <small>
           © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
         </small>
+        <a className="support-link" href="https://wa.me/5514996428874?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Tarot%20Chama%20Sofia" target="_blank" rel="noreferrer" onClick={() => track("contact_click", { channel: "whatsapp" })}>
+          Atendimento pelo WhatsApp · (14) 99642-8874
+        </a>
       </footer>
       <button className={`mobile-sticky-cta ${showSticky ? "is-visible" : ""}`} onClick={start}>
         LIVRO + LEITURA · {price.formatted}
