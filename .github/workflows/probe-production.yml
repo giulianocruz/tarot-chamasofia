@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - codex/conversion-release
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -37,6 +39,12 @@ jobs:
             echo 'PRODUCTION_COPY=reading_first'
           else
             echo 'PRODUCTION_COPY=unknown'
+          fi
+
+          if grep -q '"scheduler"' /tmp/health.json; then
+            echo 'PRODUCTION_HEALTH_SCHEMA=scheduler_enabled'
+          else
+            echo 'PRODUCTION_HEALTH_SCHEMA=legacy'
           fi
 
           echo "HOME_BYTES=$(wc -c < /tmp/home.html)"
