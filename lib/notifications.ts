@@ -7,7 +7,7 @@ type LifecycleMessage = {
   customerEmail?: string | null;
   customerWhatsapp?: string | null;
   orderNumber?: string | null;
-  kind: 'form_recovery_1' | 'form_recovery_2' | 'pix_recovery_1' | 'pix_recovery_2';
+  kind: 'form_recovery_1' | 'form_recovery_2' | 'pix_recovery_1' | 'pix_recovery_2' | 'operation_alert';
   subject: string;
   message: string;
   url: string;

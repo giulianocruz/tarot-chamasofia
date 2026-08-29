@@ -10,6 +10,8 @@ type Candidate = {
   customer_email?: string | null;
   customer_whatsapp?: string | null;
   anonymous_id?: string | null;
+  session_id?: string | null;
+  is_test?: number | null;
   recovery_first_sent_at?: string | null;
 };
 
@@ -63,7 +65,7 @@ async function processCandidate(candidate: Candidate, kind: 'form' | 'pix', step
   if (result.ok) {
     const column = step === 1 ? 'recovery_first_sent_at' : 'recovery_second_sent_at';
     await getD1().prepare(`UPDATE ${table} SET ${column}=?,recovery_error=NULL WHERE id=?`).bind(now,candidate.id).run();
-    await addEvent(`recovery_${kind}_${step}_sent`,kind==='pix'?candidate.id:null,candidate.anonymous_id||null,{channels:result.results.filter((item)=>item.ok).map((item)=>item.channel)});
+    await addEvent(`recovery_${kind}_${step}_sent`,kind==='pix'?candidate.id:null,candidate.anonymous_id||null,{channels:result.results.filter((item)=>item.ok).map((item)=>item.channel)},{sessionId:candidate.session_id,isTest:Number(candidate.is_test||0)===1});
     return true;
   }
   const error = result.attempted
