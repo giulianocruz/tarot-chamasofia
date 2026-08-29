@@ -1,0 +1,42 @@
+name: Probe Tarot production
+
+on:
+  push:
+    branches:
+      - codex/conversion-release
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe public endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://tarot.chamasofia.com.br'
+
+          curl --fail --silent --show-error --location --max-time 20 "$BASE/" -o /tmp/home.html
+          curl --fail --silent --show-error --location --max-time 20 "$BASE/api/health" -o /tmp/health.json
+          curl --fail --silent --show-error --location --max-time 20 "$BASE/api/offers" -o /tmp/offers.json
+
+          echo '--- health ---'
+          cat /tmp/health.json
+          echo
+          echo '--- offers ---'
+          cat /tmp/offers.json
+          echo
+
+          if grep -q 'O produto principal' /tmp/home.html; then
+            echo 'PRODUCTION_COPY=legacy_book_first'
+          elif grep -q 'Sua leitura de Tarô personalizada' /tmp/home.html || grep -q 'Leitura personalizada + e-book completo' /tmp/home.html; then
+            echo 'PRODUCTION_COPY=reading_first'
+          else
+            echo 'PRODUCTION_COPY=unknown'
+          fi
+
+          echo "HOME_BYTES=$(wc -c < /tmp/home.html)"
