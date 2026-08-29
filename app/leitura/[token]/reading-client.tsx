@@ -38,6 +38,7 @@ type Order = {
   createdAt: string;
   cards: Card[] | null;
   reading: Reading | null;
+  isTest: boolean;
 };
 type PublicConfig = { metaPixelId?:string };
 const formatBRL = (cents: number) =>
@@ -101,6 +102,7 @@ export default function ReadingClient({ token }: { token: string }) {
       setStage('cards');
       event('reading_started',order.id);
     }
+    if (order.isTest) return;
     const key = `cs_purchase_${order.orderNumber}`;
     if (localStorage.getItem(key)) return;
     void fetch("/api/config")
@@ -311,6 +313,7 @@ export default function ReadingClient({ token }: { token: string }) {
         </a>
         <span>Leitura {order.orderNumber}</span>
       </header>
+      {order.isTest && <div className="test-mode-banner">MODO DE TESTE · não contabilizado como venda</div>}
       <section className="result-hero">
         <p className="eyebrow">Sua leitura de Tarot</p>
         <h1>Olá, {order.customerName.split(" ")[0]}.</h1>

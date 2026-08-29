@@ -13,6 +13,9 @@ type PublicConfig = { metaPixelId?:string; whatsappNumber?:string };
 type SavedLead = { publicToken?:string; error?:string };
 type ResumeDraft = { name?:string;email?:string;whatsapp?:string;category?:string;question?:string;error?:string };
 type CreatedOrder = { orderNumber:string;publicToken:string;url:string;error?:string };
+type Offer={code:string;name:string;cents:number;formatted:string;available:boolean;books:string[]};
+type Offers={essential:Offer;complete:Offer;upsell:Offer;pricing:Price};
+type PublicReview={rating:number;comment:string;display_name:string;created_at:string};
 
 function getAnonymousId() {
   let id = localStorage.getItem("cs_anon");
@@ -23,17 +26,52 @@ function getAnonymousId() {
   return id;
 }
 
+function getSessionId() {
+  const now = Date.now();
+  const raw = localStorage.getItem('cs_session');
+  try {
+    const saved = raw ? JSON.parse(raw) as {id?:string;last?:number} : {};
+    if (saved.id && saved.last && now-saved.last < 30*60*1000) {
+      localStorage.setItem('cs_session',JSON.stringify({id:saved.id,last:now}));
+      return saved.id;
+    }
+  } catch { /* inicia uma sessão limpa */ }
+  const id = crypto.randomUUID();
+  localStorage.setItem('cs_session',JSON.stringify({id,last:now}));
+  return id;
+}
+
+function getLandingVariant() {
+  const requested = new URLSearchParams(location.search).get('landing_variant');
+  const variant = requested === 'B' ? 'B' : requested === 'A' ? 'A' : (sessionStorage.getItem('cs_landing_variant')==='B'?'B':'A');
+  sessionStorage.setItem('cs_landing_variant',variant);
+  return variant;
+}
+
+function getDeviceType() {
+  const width = window.innerWidth;
+  return width < 768 ? 'mobile' : width < 1024 ? 'tablet' : 'desktop';
+}
+
+function getAttribution() {
+  return Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'].map((key)=>[
+    key,new URLSearchParams(location.search).get(key)||localStorage.getItem(`cs_${key}`)||'',
+  ]));
+}
+
 function track(event: string, metadata?: unknown) {
   const anonymousId = getAnonymousId();
+  const isTest = new URLSearchParams(location.search).get('test')==='1';
   void fetch("/api/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event, anonymousId, metadata }),
+    keepalive:true,
+    body: JSON.stringify({ event, anonymousId,sessionId:getSessionId(),metadata,isTest,landingVariant:getLandingVariant(),deviceType:getDeviceType(),attribution:getAttribution() }),
   });
+  if (isTest) return;
   const w = window as typeof window & { fbq?: (...args: unknown[]) => void };
   const map: Record<string, string> = {
-    landing_view: "PageView",
-    tarot_started: "ViewContent",
+    cta_click: "ViewContent",
     question_completed: "Lead",
     checkout_started: "InitiateCheckout",
   };
@@ -58,6 +96,11 @@ export default function LandingClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [leadToken, setLeadToken] = useState("");
+  const [offers,setOffers]=useState<Offers|null>(null);
+  const [offerCode,setOfferCode]=useState<'essential'|'complete'>('essential');
+  const [reviews,setReviews]=useState<PublicReview[]>([]);
+  const landingVariant = useMemo(()=>typeof window==='undefined'?'A':getLandingVariant(),[]);
+  const isTest = useMemo(()=>typeof window!=='undefined'&&new URLSearchParams(location.search).get('test')==='1',[]);
   const utms = useMemo(
     () =>
       typeof window === "undefined"
@@ -98,15 +141,15 @@ export default function LandingClient() {
           requestAnimationFrame(()=>document.getElementById('pergunta')?.scrollIntoView({behavior:'smooth'}));
         }).catch(()=>undefined);
     }
-    fetch("/api/pricing")
-      .then((r) => r.json() as Promise<Price>)
-      .then(setPrice)
+    fetch("/api/offers")
+      .then((r) => r.json() as Promise<Offers>)
+      .then((data)=>{setOffers(data);setPrice(data.pricing);})
       .catch(() => undefined);
     fetch("/api/config")
       .then((r) => r.json() as Promise<PublicConfig>)
       .then((config) => {
         if (
-          config.metaPixelId &&
+          config.metaPixelId && !isTest &&
           !(window as typeof window & { fbq?: unknown }).fbq
         ) {
           const w = window as typeof window & {
@@ -125,8 +168,8 @@ export default function LandingClient() {
         }
       })
       .catch(() => undefined);
+    fetch('/api/reviews').then(response=>response.json() as Promise<{reviews:PublicReview[]}>).then(data=>setReviews(data.reviews||[])).catch(()=>undefined);
     track("landing_view");
-    const startedAt = Date.now();
     const scrollMarks = new Set<number>();
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -135,16 +178,18 @@ export default function LandingClient() {
       [25, 50, 75, 90].forEach((mark) => {
         if (depth >= mark && !scrollMarks.has(mark)) {
           scrollMarks.add(mark);
-          track(`scroll_depth_${mark}`);
+          track(`scroll_${mark}`);
         }
       });
     };
-    const onExit = () => {
-      track("page_exit", { seconds: Math.round((Date.now() - startedAt) / 1000) });
+    const onHidden = () => {
+      if (document.visibilityState!=='hidden') return;
+      track("page_hidden");
       if (localStorage.getItem('cs_form_active')==='1') track('form_abandon');
     };
+    const activityTimer = window.setInterval(()=>track('last_activity'),30000);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("pagehide", onExit, { once: true });
+    document.addEventListener("visibilitychange", onHidden);
     const hero = document.querySelector(".hero");
     const stickyObserver = hero
       ? new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
@@ -169,13 +214,13 @@ export default function LandingClient() {
       revealObserver.disconnect();
       stickyObserver?.disconnect();
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("pagehide", onExit);
+      document.removeEventListener("visibilitychange", onHidden);
+      window.clearInterval(activityTimer);
     };
-  }, [utms,referralCode]);
+  }, [utms,referralCode,isTest]);
   const start = () => {
     localStorage.setItem('cs_form_active','1');
     track("cta_click");
-    track("tarot_started");
     document.getElementById("pergunta")?.scrollIntoView({ behavior: "smooth" });
   };
   function continueToContact() {
@@ -186,9 +231,8 @@ export default function LandingClient() {
     }
     setFormStep(2);
     localStorage.setItem('cs_form_active','1');
-    track("form_step_view", { step: 2 });
     track("question_completed");
-    track("offer_view", { value: price.cents / 100, currency: "BRL" });
+    track("offer_viewed", { value: price.cents / 100, currency: "BRL" });
     requestAnimationFrame(() =>
       document.getElementById("dados-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" }),
     );
@@ -197,7 +241,7 @@ export default function LandingClient() {
     if (formStep!==2 || (!email.trim() && !whatsapp.trim())) return leadToken;
     try {
       const response = await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        anonymousId:getAnonymousId(),name,email,whatsapp,category,question,
+        anonymousId:getAnonymousId(),sessionId:getSessionId(),isTest,name,email,whatsapp,category,question,
       })});
       const data = await response.json() as SavedLead;
       if (response.ok && data.publicToken) { setLeadToken(data.publicToken); return String(data.publicToken); }
@@ -220,8 +264,13 @@ export default function LandingClient() {
           category,
           question,
           anonymousId: getAnonymousId(),
+          sessionId:getSessionId(),
+          landingVariant,
+          deviceType:getDeviceType(),
+          isTest,
           leadToken:savedLeadToken,
           referralCode,
+          offerCode,
           ...utms,
         }),
       });
@@ -256,9 +305,11 @@ export default function LandingClient() {
         <div className="nav-menu">
           <a href="#como-funciona">Como funciona</a>
           <a href="#presente">Seu presente</a>
+          <a href="/biblioteca">Biblioteca</a>
           <button onClick={start}>Começar leitura</button>
         </div>
       </nav>
+      {isTest && <div className="test-mode-banner landing-test-banner">MODO DE TESTE · pedidos e eventos não entram nas métricas comerciais</div>}
       <section className="hero" id="top">
         <img
           className="hero-art"
@@ -273,26 +324,24 @@ export default function LandingClient() {
         <div className="stars" aria-hidden="true">
           ✦ · ✧ · ✦
         </div>
-        <p className="eyebrow">Livro digital + experiência personalizada</p>
-        <h1>
-          COMECE SUA JORNADA
-          <br />
-          PELO TAROT
-        </h1>
+        <div className="hero-conversion-copy">
+        <p className="eyebrow">Leitura personalizada + livro digital</p>
+        <h1>{landingVariant==='B'?'Sua leitura de Tarô + e-book completo por R$ 9,90':'Sua leitura de Tarô personalizada + e-book por R$ 9,90'}</h1>
         <p className="hero-copy">
-          Leve o livro Tarot para Iniciantes, com 276 páginas, e receba de
-          presente uma leitura personalizada de 3 cartas.
+          Faça uma tiragem personalizada de 3 cartas, receba sua interpretação em PDF e leve também o e-book Tarot para Iniciantes.
         </p>
-        <p className="bonus-line">
-          <span>✦</span> Bônus incluso: interpretação e PDF da sua leitura.
-        </p>
+        <ul className="hero-benefits">
+          <li>3 cartas escolhidas para sua pergunta</li><li>Interpretação personalizada</li><li>Resultado privado em PDF</li>
+          <li>E-book completo incluído</li><li>Pagamento único via Pix</li><li>Sem assinatura</li>
+        </ul>
         <PriceBox price={price} />
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA AGORA <span>→</span>
         </button>
         <p className="secure-note">
-          Pagamento via Pix · Resultado privado · Sem cadastro
+          Pagamento único · Sem assinatura · Entrega digital após confirmação
         </p>
+        </div>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
           <img className="hero-book" src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="" />
@@ -310,6 +359,23 @@ export default function LandingClient() {
           <b>⇩</b> Acesso imediato após o Pix
         </span>
       </aside>
+      <section className="demo-section" id="demonstracao" data-reveal>
+        <div className="demo-heading"><p className="eyebrow">Demonstração do produto</p><h2>Veja como sua leitura chega</h2><p>Este é um exemplo ilustrativo. Sua leitura real usa as cartas sorteadas para a sua pergunta.</p></div>
+        <div className="demo-grid">
+          <div className="demo-cards" aria-label="Exemplo de tiragem de três cartas">
+            {[
+              ['/assets/tarot/cards/sacerdotisa.webp','Carta 1 · Seu momento','Perceba o que já sabe, mesmo antes de encontrar todas as palavras.'],
+              ['/assets/tarot/cards/mago.webp','Carta 2 · O caminho','Organize os recursos disponíveis e transforme intenção em ação consciente.'],
+              ['/assets/tarot/cards/sol.webp','Carta 3 · Conselho','Procure clareza e converse com honestidade sobre o que deseja construir.'],
+            ].map(([image,title,text])=><article key={title}><img src={image} alt="" width="220" height="350" loading="lazy"/><div><span>EXEMPLO</span><h3>{title}</h3><p>{text}</p></div></article>)}
+          </div>
+          <div className="delivery-preview">
+            <div className="pdf-preview"><span>PDF PERSONALIZADO</span><strong>Sua pergunta + 3 cartas + interpretação conectada</strong><small>Um arquivo privado para baixar, guardar e reler.</small></div>
+            <img src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="Capa real do e-book Tarot para Iniciantes" width="320" height="480" loading="lazy"/>
+          </div>
+        </div>
+        <button className="primary-button" onClick={start}>QUERO RECEBER MINHA LEITURA <span>→</span></button>
+      </section>
       <section className="steps" id="como-funciona" data-reveal>
         <p className="eyebrow">Simples, íntimo e especial</p>
         <h2>Sua leitura em poucos minutos</h2>
@@ -357,7 +423,7 @@ export default function LandingClient() {
               <button
                 type="button"
                 className={category === item ? "selected" : ""}
-                onClick={() => setCategory(item)}
+                onClick={() => {setCategory(item);track('question_started',{category:item});}}
                 key={item}
               >
                 {item}
@@ -374,6 +440,7 @@ export default function LandingClient() {
             maxLength={500}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+            onFocus={()=>track('question_started')}
             placeholder="Escreva sua pergunta com calma..."
           />
           <div className="char-count">{question.length}/500</div>
@@ -384,6 +451,14 @@ export default function LandingClient() {
             </>
           ) : (
             <div id="dados-entrega">
+          <div className="offer-picker" aria-label="Escolha sua oferta">
+            <button type="button" className={offerCode==='essential'?'selected':''} onClick={()=>{setOfferCode('essential');track('offer_selected',{offerCode:'essential'});}}>
+              <span>ESSENCIAL</span><strong>{offers?.essential.formatted||price.formatted}</strong><small>3 cartas + interpretação + PDF + e-book Tarot para Iniciantes</small>
+            </button>
+            <button type="button" disabled={!offers?.complete.available} className={offerCode==='complete'?'selected recommended':''} onClick={()=>{if(offers?.complete.available){setOfferCode('complete');track('offer_selected',{offerCode:'complete'});}}}>
+              <span>MELHOR CUSTO-BENEFÍCIO</span><strong>{offers?.complete.formatted||'R$ 19,90'}</strong><small>{offers?.complete.available?'Tudo da Essencial + biblioteca ampliada':'Biblioteca ampliada em preparação'}</small>
+            </button>
+          </div>
           <div className="offer-includes">
             <strong>Sua compra inclui</strong>
             <span>✓ livro Tarot para Iniciantes, 276 páginas</span>
@@ -446,7 +521,7 @@ export default function LandingClient() {
           >
             {loading
               ? "GERANDO SEU PIX..."
-              : `IR PARA O PIX · ${price.formatted}`}{" "}
+              : `IR PARA O PIX · ${offerCode==='complete'&&offers?offers.complete.formatted:price.formatted}`}{" "}
             <span>→</span>
           </button>
           <div className="checkout-confidence">
@@ -528,6 +603,7 @@ export default function LandingClient() {
           QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
         </button>
       </section>
+      {reviews.length>0&&<section className="social-proof" data-reveal><p className="eyebrow">Experiências reais</p><h2>Avaliações de quem já viveu a jornada</h2><div className="review-grid">{reviews.map((review,index)=><article key={`${review.display_name}-${index}`}><span className="stars-real">{'★'.repeat(review.rating)}</span><blockquote>“{review.comment}”</blockquote><small>{review.display_name} · compra verificada</small></article>)}</div></section>}
       <section className="faq" data-reveal>
         <p className="eyebrow">Perguntas frequentes</p>
         <h2>Antes de começar</h2>
@@ -553,7 +629,7 @@ export default function LandingClient() {
             "Não. Ela aparece somente na página protegida pelo token longo e não indexada por buscadores.",
           ],
           ].map(([q, a]) => (
-          <details key={q} onToggle={(event) => event.currentTarget.open && track("faq_open", { question: q })}>
+          <details key={q} onToggle={(event) => event.currentTarget.open && track("faq_opened", { question: q })}>
             <summary>
               {q}
               <span>+</span>
@@ -602,12 +678,12 @@ export default function LandingClient() {
         <small>
           © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
         </small>
-        <a className="support-link" href="https://wa.me/5514996428874?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Tarot%20Chama%20Sofia" target="_blank" rel="noreferrer" onClick={() => track("contact_click", { channel: "whatsapp" })}>
+        <a className="support-link" href="https://wa.me/5514996428874?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Tarot%20Chama%20Sofia" target="_blank" rel="noreferrer" onClick={() => track("support_clicked", { channel: "whatsapp" })}>
           Atendimento pelo WhatsApp · (14) 99642-8874
         </a>
       </footer>
       <button className={`mobile-sticky-cta ${showSticky ? "is-visible" : ""}`} onClick={start}>
-        LIVRO + LEITURA · {price.formatted}
+        FAZER MINHA LEITURA · {price.formatted}
       </button>
     </main>
   );

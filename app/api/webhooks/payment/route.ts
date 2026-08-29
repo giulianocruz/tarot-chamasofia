@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { ensureSchema, getD1 } from "@/lib/database";
+import { addEvent, ensureSchema, getD1 } from "@/lib/database";
 import {
   getMercadoPagoPayment,
   verifyMercadoPagoSignature,
@@ -41,6 +41,16 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, ignored: true });
   }
   await ensureSchema();
+  if(payment.external_reference.startsWith('UP-')) {
+    const orderNumber=payment.external_reference.slice(3);
+    const upsell=await getD1().prepare('SELECT id,upsell_price,upsell_status,is_test FROM orders WHERE order_number=?').bind(orderNumber).first<{id:number;upsell_price:number;upsell_status:string;is_test:number}>();
+    if(!upsell||Math.round(Number(payment.transaction_amount||0)*100)!==Number(upsell.upsell_price))return Response.json({error:'Pagamento complementar não corresponde ao pedido.'},{status:409});
+    if(upsell.upsell_status!=='paid'){
+      await getD1().prepare("UPDATE orders SET upsell_status='paid',journey_status='completed' WHERE id=?").bind(upsell.id).run();
+      await addEvent('upsell_paid',upsell.id,null,{price:upsell.upsell_price});
+    }
+    return Response.json({ok:true,upsell:true,alreadyProcessed:upsell.upsell_status==='paid'});
+  }
   const order = await getD1()
     .prepare("SELECT order_number,price FROM orders WHERE order_number=?")
     .bind(payment.external_reference)

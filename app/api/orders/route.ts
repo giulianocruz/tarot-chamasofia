@@ -4,13 +4,14 @@ import {
   addEvent,
   checkRateLimit,
   ensureSchema,
-  getCurrentPrice,
   getD1,
 } from "@/lib/database";
 import { createPixPayload } from "@/lib/pix";
 import { createMercadoPagoPix } from "@/lib/mercado-pago";
 import { cleanText, randomToken, sameOrigin, sha256 } from "@/lib/security";
 import { registerReferral } from '@/lib/referrals';
+import { isAdmin } from '@/lib/admin';
+import { getCommercialOffers } from '@/lib/offers';
 
 export async function POST(request: Request) {
   if (!sameOrigin(request))
@@ -30,6 +31,11 @@ export async function POST(request: Request) {
   const whatsapp = cleanText(body.whatsapp, 30);
   const category = cleanText(body.category, 50) as Category;
   const question = cleanText(body.question, 500);
+  const isTest = body.isTest === true && await isAdmin(request);
+  const anonymousId = cleanText(body.anonymousId,100);
+  const sessionId = cleanText(body.sessionId,100);
+  const landingVariant = cleanText(body.landingVariant,1)==='B'?'B':'A';
+  const deviceType = cleanText(body.deviceType,20)||'unknown';
   if (
     name.length < 2 ||
     question.length < 10 ||
@@ -50,7 +56,11 @@ export async function POST(request: Request) {
       { error: "Informe um e-mail válido." },
       { status: 400 },
     );
-  const price = await getCurrentPrice();
+  const offers=await getCommercialOffers();
+  const offerCode=cleanText(body.offerCode,30)==='complete'?'complete':'essential';
+  const selectedOffer=offerCode==='complete'?offers.complete:offers.essential;
+  if(!selectedOffer.available) return Response.json({error:'Esta oferta ainda está sendo preparada. Escolha a Leitura Essencial.'},{status:409});
+  const price={cents:selectedOffer.cents,formatted:selectedOffer.formatted};
   const orderNumber = `CS${new Date().toISOString().slice(2, 10).replace(/-/g, "")}${randomToken(5).slice(0, 7).toUpperCase()}`;
   const publicToken = randomToken(32);
   let pixPayload = env.PIX_KEY
@@ -65,7 +75,7 @@ export async function POST(request: Request) {
   await ensureSchema();
   const result = await getD1()
     .prepare(
-      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?,?)`,
+      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,anonymous_id,session_id,landing_variant,device_type,is_test,offer_code,included_books_json,journey_status) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pix_generated')`,
     )
     .bind(
       orderNumber,
@@ -84,6 +94,13 @@ export async function POST(request: Request) {
       cleanText(body.utm_content, 150) || null,
       cleanText(body.utm_term, 150) || null,
       cleanText(body.fbclid, 255) || null,
+      anonymousId||null,
+      sessionId||null,
+      landingVariant,
+      deviceType,
+      isTest?1:0,
+      offerCode,
+      JSON.stringify(selectedOffer.books),
     )
     .run();
   if (env.MERCADO_PAGO_ACCESS_TOKEN && email) {
@@ -118,25 +135,30 @@ export async function POST(request: Request) {
     }
   }
   await addEvent(
+    "offer_selected",Number(result.meta.last_row_id),anonymousId,{offerCode,price:price.cents},{sessionId,isTest},
+  );
+  await addEvent(
     "checkout_started",
     Number(result.meta.last_row_id),
-    cleanText(body.anonymousId, 100),
+    anonymousId,
     { price: price.cents },
+    {sessionId,isTest},
   );
   await addEvent(
     "pix_generated",
     Number(result.meta.last_row_id),
-    cleanText(body.anonymousId, 100),
+    anonymousId,
+    undefined,
+    {sessionId,isTest},
   );
   const orderId = Number(result.meta.last_row_id);
   const leadToken = cleanText(body.leadToken,80);
-  const anonymousId = cleanText(body.anonymousId,100);
   if (leadToken || anonymousId) {
     await getD1().prepare(`UPDATE abandoned_leads SET converted_order_id=?,stage='pix_generated',updated_at=?
       WHERE converted_order_id IS NULL AND (public_token=? OR anonymous_id=?)`)
       .bind(orderId,new Date().toISOString(),leadToken||'',anonymousId||'').run();
   }
-  await registerReferral(orderId,body.referralCode);
+  if (!isTest) await registerReferral(orderId,body.referralCode);
   return Response.json(
     {
       orderNumber,
@@ -144,6 +166,7 @@ export async function POST(request: Request) {
       price,
       pixPayload,
       url: `/leitura/${publicToken}`,
+      isTest,
     },
     { status: 201 },
   );

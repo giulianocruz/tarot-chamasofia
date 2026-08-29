@@ -22,17 +22,18 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   const cards = drawThreeCards();
   const reading = createReading(String(order.question), String(order.category) as Category, cards);
   const now = new Date().toISOString();
-  await getD1().prepare("UPDATE orders SET payment_status='paid',reading_status='reading_generated',cards_json=?,reading_json=?,paid_at=COALESCE(paid_at,?),generated_at=?,gateway_name=?,gateway_transaction_id=COALESCE(?,gateway_transaction_id) WHERE id=?")
+  await getD1().prepare("UPDATE orders SET payment_status='paid',reading_status='reading_generated',journey_status='reading_generated',cards_json=?,reading_json=?,paid_at=COALESCE(paid_at,?),generated_at=?,gateway_name=?,gateway_transaction_id=COALESCE(?,gateway_transaction_id) WHERE id=?")
     .bind(JSON.stringify(cards.map(({id,name,number,symbol,image,keywords,general,constructive,alert})=>({id,name,number,symbol,image,keywords,general,constructive,alert}))),JSON.stringify(reading),now,now,gateway,transactionId||null,order.id).run();
   await addEvent('payment_confirmed',Number(order.id),null,{gateway,transactionId});
   await addEvent('reading_generated',Number(order.id));
   await addEvent('reading_completed',Number(order.id));
   await addEvent('purchase',Number(order.id),null,{gateway,price:Number(order.price)});
-  await Promise.all([ensureReferralCode(Number(order.id)),qualifyReferralForOrder(Number(order.id))]);
+  const isTest = Number(order.is_test||0)===1;
+  if (!isTest) await Promise.all([ensureReferralCode(Number(order.id)),qualifyReferralForOrder(Number(order.id))]);
   const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at) };
-  const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
+  const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),isTest?Promise.resolve({attempted:false,ok:false,skipped:'test'}):sendMetaPurchase(fresh)]);
   const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
   const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
   await getD1().prepare('UPDATE orders SET notification_status=?,notification_error=? WHERE id=?').bind(notificationStatus,notificationError,order.id).run();
-  return { ok:true as const, token:String(order.public_token), delivery, meta };
+  return { ok:true as const, token:String(order.public_token), delivery, meta, isTest };
 }
