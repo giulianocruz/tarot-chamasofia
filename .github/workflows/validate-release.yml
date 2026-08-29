@@ -50,3 +50,27 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Smoke local funnel
+        env:
+          PIX_KEY: smoke-test@chamasofia.invalid
+          PIX_RECEIVER_NAME: CHAMA SOFIA
+          PIX_RECEIVER_CITY: BOTUCATU
+          BASE_URL: http://127.0.0.1:3000
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 3000 > /tmp/tarot-dev.log 2>&1 &
+          APP_PID=$!
+          cleanup() {
+            kill "$APP_PID" 2>/dev/null || true
+            echo "--- local server log ---"
+            tail -n 200 /tmp/tarot-dev.log || true
+          }
+          trap cleanup EXIT
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/ >/dev/null
+          npm run smoke:funnel
