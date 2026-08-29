@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   await ensureSchema();
   const heartbeat=Math.floor(Date.now()/1000);
   await getD1().prepare(`INSERT INTO operation_settings (key,value_cents,updated_at)
-    VALUES ('last_recovery_run_epoch',?,?,)
+    VALUES ('last_recovery_run_epoch',?,?)
     ON CONFLICT(key) DO UPDATE SET value_cents=excluded.value_cents,updated_at=excluded.updated_at`)
     .bind(heartbeat,new Date().toISOString()).run();
 
