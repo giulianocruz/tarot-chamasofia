@@ -277,10 +277,12 @@ export default function LandingClient() {
       const data = await response.json() as CreatedOrder;
       if (!response.ok)
         throw new Error(data.error || "Não foi possível criar o pedido.");
+      const checkoutCents = offerCode==='complete'&&offers ? offers.complete.cents : price.cents;
       track("checkout_started", {
-        value: price.cents / 100,
+        value: checkoutCents / 100,
         currency: "BRL",
         order_id: data.orderNumber,
+        offer_code: offerCode,
       });
       localStorage.removeItem('cs_form_active');
       location.href = data.url;
@@ -304,7 +306,7 @@ export default function LandingClient() {
         </a>
         <div className="nav-menu">
           <a href="#como-funciona">Como funciona</a>
-          <a href="#presente">Seu presente</a>
+          <a href="#presente">Seu e-book</a>
           <a href="/biblioteca">Biblioteca</a>
           <button onClick={start}>Começar leitura</button>
         </div>
@@ -325,8 +327,8 @@ export default function LandingClient() {
           ✦ · ✧ · ✦
         </div>
         <div className="hero-conversion-copy">
-        <p className="eyebrow">Leitura personalizada + livro digital</p>
-        <h1>{landingVariant==='B'?'Sua leitura de Tarô + e-book completo por R$ 9,90':'Sua leitura de Tarô personalizada + e-book por R$ 9,90'}</h1>
+        <p className="eyebrow">Leitura personalizada + e-book completo</p>
+        <h1>{landingVariant==='B'?`Sua leitura de Tarô + e-book completo por ${price.formatted}`:`Sua leitura de Tarô personalizada + e-book por ${price.formatted}`}</h1>
         <p className="hero-copy">
           Faça uma tiragem personalizada de 3 cartas, receba sua interpretação em PDF e leve também o e-book Tarot para Iniciantes.
         </p>
@@ -350,17 +352,17 @@ export default function LandingClient() {
       </section>
       <aside className="trust-strip" aria-label="Benefícios da compra">
         <span>
-          <b>✦</b> Livro digital de 276 páginas
+          <b>✦</b> Leitura personalizada de 3 cartas
         </span>
         <span>
-          <b>◈</b> Leitura de 3 cartas incluída
+          <b>◈</b> E-book completo de 276 páginas incluído
         </span>
         <span>
-          <b>⇩</b> Acesso imediato após o Pix
+          <b>⇩</b> Acesso liberado após confirmação do Pix
         </span>
       </aside>
       <section className="demo-section" id="demonstracao" data-reveal>
-        <div className="demo-heading"><p className="eyebrow">Demonstração do produto</p><h2>Veja como sua leitura chega</h2><p>Este é um exemplo ilustrativo. Sua leitura real usa as cartas sorteadas para a sua pergunta.</p></div>
+        <div className="demo-heading"><p className="eyebrow">Demonstração da experiência</p><h2>Veja como sua leitura chega</h2><p>Este é um exemplo ilustrativo. Sua leitura real usa as cartas sorteadas para a sua pergunta.</p></div>
         <div className="demo-grid">
           <div className="demo-cards" aria-label="Exemplo de tiragem de três cartas">
             {[
@@ -456,14 +458,15 @@ export default function LandingClient() {
               <span>ESSENCIAL</span><strong>{offers?.essential.formatted||price.formatted}</strong><small>3 cartas + interpretação + PDF + e-book Tarot para Iniciantes</small>
             </button>
             <button type="button" disabled={!offers?.complete.available} className={offerCode==='complete'?'selected recommended':''} onClick={()=>{if(offers?.complete.available){setOfferCode('complete');track('offer_selected',{offerCode:'complete'});}}}>
-              <span>MELHOR CUSTO-BENEFÍCIO</span><strong>{offers?.complete.formatted||'R$ 19,90'}</strong><small>{offers?.complete.available?'Tudo da Essencial + biblioteca ampliada':'Biblioteca ampliada em preparação'}</small>
+              <span>MELHOR CUSTO-BENEFÍCIO</span><strong>{offers?.complete.formatted||'R$ 19,90'}</strong><small>{offers?.complete.available?'Tudo da Essencial + Pomba Gira + Preto Velho':'Biblioteca ampliada em preparação'}</small>
             </button>
           </div>
           <div className="offer-includes">
             <strong>Sua compra inclui</strong>
-            <span>✓ livro Tarot para Iniciantes, 276 páginas</span>
-            <span>✓ leitura bônus com 3 cartas e interpretação</span>
-            <span>✓ PDF personalizado da sua experiência</span>
+            <span>✓ leitura personalizada com 3 cartas e interpretação</span>
+            <span>✓ PDF privado para guardar e reler</span>
+            <span>✓ e-book Tarot para Iniciantes, 276 páginas</span>
+            {offerCode==='complete'&&<span>✓ livros Pomba Gira + Preto Velho</span>}
           </div>
           <button type="button" className="edit-question" onClick={() => setFormStep(1)}>← Editar minha pergunta</button>
           <label>
@@ -507,7 +510,7 @@ export default function LandingClient() {
                 placeholder="(14) 99999-9999"
               />
               <small className="field-help">
-                Informe para receber o link, o PDF e o livro. Se você pausar, podemos enviar até dois lembretes desta jornada, sem pressão.
+                Informe para receber o link da sua jornada. Se você pausar, podemos enviar até dois lembretes desta compra, sem pressão.
               </small>
           </label>
           {error && (
@@ -541,22 +544,18 @@ export default function LandingClient() {
         <h2>O que você recebe</h2>
         <div className="receive-grid">
           {[
-            ["✦", "Livro completo", "Tarot para Iniciantes, edição digital com 276 páginas."],
-            [
-              "☾",
-              "Leitura bônus",
-              "Três cartas que conversam entre si e com sua pergunta.",
-            ],
+            ["☾", "Leitura personalizada", "Três cartas que conversam entre si e com a pergunta que você trouxe."],
             [
               "⇩",
-              "Interpretação personalizada",
-              "Uma narrativa conectada ao tema que você deseja compreender.",
+              "Interpretação conectada",
+              "Uma narrativa personalizada para ajudar você a refletir sobre seu momento.",
             ],
             [
               "◈",
-              "PDF da leitura",
-              "Sua experiência organizada para guardar e reler.",
+              "PDF da sua leitura",
+              "Sua experiência organizada em um arquivo privado para guardar e reler.",
             ],
+            ["✦", "E-book completo incluído", "Tarot para Iniciantes, edição digital com 276 páginas para continuar explorando o Tarot."],
           ].map(([icon, title, text]) => (
             <article key={title}>
               <span>{icon}</span>
@@ -577,30 +576,29 @@ export default function LandingClient() {
           />
         </div>
         <div>
-          <p className="eyebrow">O produto principal</p>
-          <h2>Aprenda Tarot. Experimente. Guarde sua jornada.</h2>
+          <p className="eyebrow">Seu guia para continuar</p>
+          <h2>A leitura termina. Seu aprendizado pode continuar.</h2>
           <h3>Tarot para Iniciantes</h3>
           <p>
-            Livro digital da SofIA Labs com{" "}
-            <strong>276 páginas</strong>, entregue para download depois da
+            Além da experiência personalizada, você recebe o livro digital da SofIA Labs com{" "}
+            <strong>276 páginas</strong>, liberado para download depois da
             confirmação do pagamento.
           </p>
           <p className="ebook-note">
-            Inclui como bônus uma leitura personalizada de 3 cartas e o PDF do
-            resultado. Também publicado no Google Play Books.
+            Use o e-book para conhecer melhor os Arcanos, aprofundar o significado das cartas e continuar sua jornada depois da leitura. Também publicado no Google Play Books.
           </p>
         </div>
       </section>
       <section className="price-section" data-reveal>
         <p className="eyebrow">Condição especial de lançamento</p>
-        <h2>Leve o livro e ganhe sua leitura</h2>
+        <h2>Faça sua leitura e leve o e-book junto</h2>
         <PriceBox price={price} />
         <p>
           O valor muda somente conforme pagamentos realmente confirmados. Sem
           escassez falsa.
         </p>
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA <span>→</span>
         </button>
       </section>
       {reviews.length>0&&<section className="social-proof" data-reveal><p className="eyebrow">Experiências reais</p><h2>Avaliações de quem já viveu a jornada</h2><div className="review-grid">{reviews.map((review,index)=><article key={`${review.display_name}-${index}`}><span className="stars-real">{'★'.repeat(review.rating)}</span><blockquote>“{review.comment}”</blockquote><small>{review.display_name} · compra verificada</small></article>)}</div></section>}
@@ -622,7 +620,7 @@ export default function LandingClient() {
           ],
           [
             "O que estou comprando?",
-            "O produto principal é o livro digital Tarot para Iniciantes, com 276 páginas. A leitura personalizada de 3 cartas e seu PDF são bônus incluídos.",
+            "Você compra uma experiência digital de Tarô: uma leitura personalizada de 3 cartas, interpretação conectada à sua pergunta e PDF privado. O e-book Tarot para Iniciantes, com 276 páginas, também está incluído para você continuar explorando o Tarot depois da leitura.",
           ],
           [
             "Minha pergunta é pública?",
@@ -641,11 +639,11 @@ export default function LandingClient() {
       <section className="collection" data-reveal>
         <p className="eyebrow">Coleção Chama Sofia</p>
         <h2>A jornada está apenas começando</h2>
-        <p>O Tarot é o primeiro volume desta experiência. Conheça os próximos títulos da coleção, sem sair do seu caminho de compra.</p>
+        <p>Além do e-book de Tarot incluído na oferta Essencial, você pode ampliar sua biblioteca com os títulos Pomba Gira e Preto Velho na oferta Completa ou após a compra.</p>
         <div className="collection-grid">
-          <article className="available"><img src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="Capa Tarot para Iniciantes" loading="lazy" /><h3>Tarot para Iniciantes</h3><span>Disponível agora</span></article>
-          <article><img src="/assets/books/pomba-gira.jpg" alt="Capa do livro Pomba Gira" loading="lazy" /><h3>Pomba Gira</h3><span>Coleção Chama Sofia</span></article>
-          <article><img src="/assets/books/preto-velho.jpg" alt="Capa do livro Preto Velho" loading="lazy" /><h3>Preto Velho</h3><span>Coleção Chama Sofia</span></article>
+          <article className="available"><img src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="Capa Tarot para Iniciantes" loading="lazy" /><h3>Tarot para Iniciantes</h3><span>Incluído na Essencial</span></article>
+          <article><img src="/assets/books/pomba-gira.jpg" alt="Capa do livro Pomba Gira" loading="lazy" /><h3>Pomba Gira</h3><span>Pacote Completo</span></article>
+          <article><img src="/assets/books/preto-velho.jpg" alt="Capa do livro Preto Velho" loading="lazy" /><h3>Preto Velho</h3><span>Pacote Completo</span></article>
         </div>
       </section>
       <section className="final-cta">
@@ -656,7 +654,7 @@ export default function LandingClient() {
           As cartas convidam você a olhar por outro ângulo.
         </h2>
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA <span>→</span>
         </button>
       </section>
       <footer>
