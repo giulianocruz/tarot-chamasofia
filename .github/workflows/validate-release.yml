@@ -1,6 +1,9 @@
 name: Validate Tarot release
 
 on:
+  push:
+    branches:
+      - fix/tarot-conversion-consistency-20260829
   pull_request:
     branches:
       - codex/conversion-release
