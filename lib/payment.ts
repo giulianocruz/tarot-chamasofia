@@ -2,7 +2,7 @@ import { addEvent, ensureSchema, getD1 } from './database';
 import { notifyReadingReady } from './notifications';
 import { sendMetaPurchase } from './meta';
 import { createReading } from './reading';
-import { drawThreeCards, type Category } from './tarot';
+import { drawThreeCards, getCards, type Category } from './tarot';
 
 export async function completePayment(orderNumber: string, transactionId?: string, gateway = 'manual', forceRegenerate = false) {
   await ensureSchema();
@@ -18,7 +18,8 @@ export async function completePayment(orderNumber: string, transactionId?: strin
     await getD1().prepare('UPDATE orders SET notification_status=?,notification_error=? WHERE id=?').bind(notificationStatus,notificationError,order.id).run();
     return { ok:true as const, alreadyProcessed:true, token:String(order.public_token), delivery };
   }
-  const cards = drawThreeCards();
+  let cards = drawThreeCards();
+  if (order.cards_json) { try { const ids = JSON.parse(String(order.cards_json)); if (Array.isArray(ids) && ids.length === 3 && ids.every((id) => typeof id === "string")) { const chosen = getCards(ids); if (chosen.length === 3) cards = chosen; } } catch {} }
   const reading = createReading(String(order.question), String(order.category) as Category, cards);
   const now = new Date().toISOString();
   await getD1().prepare("UPDATE orders SET payment_status='paid',reading_status='reading_generated',cards_json=?,reading_json=?,paid_at=COALESCE(paid_at,?),generated_at=?,gateway_name=?,gateway_transaction_id=COALESCE(?,gateway_transaction_id) WHERE id=?")

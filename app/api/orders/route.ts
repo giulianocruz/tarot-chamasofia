@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { CATEGORIES, type Category } from "@/lib/tarot";
+import { CATEGORIES, getCards, type Category } from "@/lib/tarot";
 import {
   addEvent,
   checkRateLimit,
@@ -29,6 +29,8 @@ export async function POST(request: Request) {
   const whatsapp = cleanText(body.whatsapp, 30);
   const category = cleanText(body.category, 50) as Category;
   const question = cleanText(body.question, 500);
+  const cardIds = Array.isArray(body.cardIds) ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 3) : [];
+  const selectedCards = cardIds.length === 3 ? getCards(cardIds) : [];
   if (
     name.length < 2 ||
     question.length < 10 ||
@@ -85,6 +87,7 @@ export async function POST(request: Request) {
       cleanText(body.fbclid, 255) || null,
     )
     .run();
+  if (selectedCards.length === 3) await getD1().prepare("UPDATE orders SET cards_json=? WHERE id=?").bind(JSON.stringify(cardIds), result.meta.last_row_id).run();
   if (env.MERCADO_PAGO_ACCESS_TOKEN && email) {
     try {
       const payment = await createMercadoPagoPix({
