@@ -8,6 +8,19 @@ export const PRICE_TIERS = [
   { from: 30, to: Number.POSITIVE_INFINITY, cents: 2990 },
 ] as const;
 
+export const CONSULTATION_PRICE_CENTS = 990;
+
+export function consultationPrice() {
+  return {
+    cents: CONSULTATION_PRICE_CENTS,
+    formatted: formatBRL(CONSULTATION_PRICE_CENTS),
+    remaining: null,
+    nextCents: null,
+    nextFormatted: null,
+    confirmedSales: 0,
+  };
+}
+
 export function priceForConfirmedSales(confirmedSales: number) {
   const tierIndex = PRICE_TIERS.findIndex((tier) => confirmedSales >= tier.from && confirmedSales <= tier.to);
   const tier = PRICE_TIERS[Math.max(tierIndex, 0)];

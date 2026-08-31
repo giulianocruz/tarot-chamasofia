@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Card = {
@@ -158,9 +159,9 @@ export default function ReadingClient({ token }: { token: string }) {
         <div className="status-orb">✦</div>
         <h1>Não encontramos esta leitura</h1>
         <p>{error}</p>
-        <a className="primary-button" href="/">
+        <Link className="primary-button" href="/">
           VOLTAR AO INÍCIO
-        </a>
+        </Link>
       </main>
     );
   if (!order)
@@ -175,10 +176,10 @@ export default function ReadingClient({ token }: { token: string }) {
     return (
       <main className="reading-shell checkout-shell">
         <header className="reading-header">
-          <a className="brand" href="/">
+          <Link className="brand" href="/">
             <span className="brand-mark">✦</span>
             <span>CHAMA SOFIA</span>
-          </a>
+          </Link>
           <span>Pedido {order.orderNumber}</span>
         </header>
         <section className="checkout-card">
@@ -293,10 +294,10 @@ export default function ReadingClient({ token }: { token: string }) {
   return (
     <main className="result-shell">
       <header className="reading-header">
-        <a className="brand" href="/">
+        <Link className="brand" href="/">
           <span className="brand-mark">✦</span>
           <span>CHAMA SOFIA</span>
-        </a>
+        </Link>
         <span>Leitura {order.orderNumber}</span>
       </header>
       <section className="result-hero">
@@ -381,13 +382,13 @@ export default function ReadingClient({ token }: { token: string }) {
       <section className="new-reading">
         <p>Surgiu outra pergunta?</p>
         <h2>Faça uma nova leitura quando sentir que é o momento.</h2>
-        <a
+        <Link
           className="primary-button"
           href="/#pergunta"
           onClick={() => event("new_reading_click", order.id)}
         >
           FAZER OUTRA PERGUNTA AO TAROT <span>→</span>
-        </a>
+        </Link>
       </section>
       <footer>
         <p>

@@ -7,9 +7,10 @@
   },
   "scripts": {
     "dev": "vinext dev",
+    "test": "node --test tests/*.test.ts",
     "build": "vinext build",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern node_modules-broken-20260827 --ignore-pattern work",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
