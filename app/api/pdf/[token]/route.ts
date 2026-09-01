@@ -4,7 +4,7 @@ import type { Reading } from '@/lib/reading';
 import { cleanText } from '@/lib/security';
 import { getCards } from '@/lib/tarot';
 
-export async function GET(_request: Request, context: { params: Promise<{ token: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
   const { token: rawToken } = await context.params;
   const token = cleanText(rawToken, 80);
   await ensureSchema();
@@ -12,7 +12,12 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   if (!order || !order.reading_json || !order.cards_json) return Response.json({ error: 'Leitura ainda não liberada.' }, { status: 403 });
   const cardData = JSON.parse(String(order.cards_json)) as Array<{id:string}>;
   const cards = getCards(cardData.map((card) => card.id));
-  const bytes = createReadingPdf(order as never, cards, JSON.parse(String(order.reading_json)) as Reading);
+  let logoBytes: Uint8Array | undefined;
+  try {
+    const logoResponse = await fetch(new URL('/assets/brand/chama-sofia-logo.png', request.url), { cache: 'force-cache' });
+    if (logoResponse.ok) logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
+  } catch { logoBytes = undefined; }
+  const bytes = await createReadingPdf(order as never, cards, JSON.parse(String(order.reading_json)) as Reading, logoBytes);
   await addEvent('reading_pdf_download', Number(order.id));
   return new Response(bytes as BodyInit, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="leitura-tarot-chama-sofia-${order.order_number}.pdf"`, 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
 }

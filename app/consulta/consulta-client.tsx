@@ -5,6 +5,7 @@ import { ATTRIBUTION_KEYS, normalizeTestFlag, type AnalyticsContext } from "@/li
 import { createReading } from "@/lib/reading";
 import { getCards, MAJOR_ARCANA, type Category } from "@/lib/tarot";
 import { BOOK_CATALOG, discountPercent, formatBookPrice, type BookOffer } from "@/lib/book-catalog";
+import PreviewDashboard from "./preview-dashboard";
 
 type Price = { cents: number; formatted: string };
 
@@ -303,11 +304,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step">
             <p className="consult-progress">1 de 5</p>
             <button className="consult-back" onClick={() => go(0)}>← voltar</button>
-            <h2>O que mais ocupa seus pensamentos agora?</h2>
+            <h2>O que est? pesando mais hoje?</h2>
             <div className="consult-options">
-              {CATEGORY_MAP.map(([value, icon, label]) => (
+              {CATEGORY_MAP.map(([value, icon, label, description]) => (
                 <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
-                  <b aria-hidden="true">{icon}</b><span>{label}</span>
+                  <b aria-hidden="true">{icon}</b><span>{label}<small>{description}</small></span>
                 </button>
               ))}
             </div>
@@ -369,25 +370,31 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
         )}
 
         {step === 5 && (
-          <div className="consult-step">
-            <p className="consult-progress">4 de 5</p>
-            <button className="consult-back" onClick={() => go(3)}>← escolher outras cartas</button>
-            <h2>Suas cartas foram reveladas</h2>
-            <div className="consult-reveal">
-              {cards.map((card) => (
-                <article key={card.id}>
+          <div className="consult-step consult-preview-step">
+            <p className="consult-progress">4 de 5 ? sua pr?via</p>
+            <button className="consult-back" onClick={() => go(3)}>? escolher outras cartas</button>
+            <div className="preview-reveal-heading">
+              <p className="eyebrow">As tr?s cartas responderam de formas diferentes</p>
+              <h2>Seu mapa inicial est? pronto.</h2>
+              <p className="consult-muted">Veja a primeira camada antes de decidir se quer aprofundar.</p>
+            </div>
+            <div className="consult-reveal premium-reveal">
+              {cards.map((card, index) => (
+                <article key={card.id} style={{ "--card-delay": `${index * 120}ms` } as React.CSSProperties}>
+                  <span className="reveal-position">{index === 0 ? "Agora" : index === 1 ? "Influ?ncia" : "Dire??o"}</span>
                   <img src={card.image} alt={card.name} width="240" height="360" />
                   <strong>{card.name}</strong>
-                  <small>{card.keywords.slice(0, 2).join(" · ")}</small>
+                  <small>{card.keywords.slice(0, 2).join(" ? ")}</small>
                 </article>
               ))}
             </div>
-            <div className="consult-preview">
-              <span>PRÉVIA DA SUA LEITURA</span>
-              <p><strong>{cards[0]?.name}</strong> — {preview}</p>
-              <div className="consult-fade">A leitura continua conectando as três cartas à sua pergunta, com tendência e orientação final.</div>
+            <PreviewDashboard cards={cards} category={category} question={question} preview={preview} />
+            <div className="preview-conversion-cta">
+              <img src="/assets/tarot/ui/reading-seal.svg" alt="" aria-hidden="true" />
+              <div><span>Leitura completa preparada para esta pergunta</span><strong>Conecte as 3 cartas e receba sua an?lise em PDF</strong></div>
             </div>
-            <button className="primary-button" onClick={showOffer}>VER MINHA LEITURA COMPLETA <span>→</span></button>
+            <button className="primary-button premium-unlock" onClick={showOffer}>QUERO APROFUNDAR MINHA LEITURA <span>?</span></button>
+            <small className="preview-honesty">Voc? viu uma pr?via simb?lica. O pagamento libera a interpreta??o completa, PDF e e-book b?nus.</small>
           </div>
         )}
 
