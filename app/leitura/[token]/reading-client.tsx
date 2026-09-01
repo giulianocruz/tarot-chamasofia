@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getBook } from "@/lib/book-catalog";
+import type { AstroTarotLayer } from "@/lib/astrology-types";
 
 type Card = {
   id: string;
@@ -43,6 +44,8 @@ type Order = {
   createdAt: string;
   cards: Card[] | null;
   reading: Reading | null;
+  astrology?: AstroTarotLayer | null;
+  astrologyStatus?: string | null;
 };
 const formatBRL = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -62,6 +65,13 @@ export default function ReadingClient({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [stage, setStage] = useState<"intro" | "cards" | "result">("intro");
+  const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
+  const [timeKnown, setTimeKnown] = useState(true);
+  const [astroLoading, setAstroLoading] = useState(false);
+  const [astroError, setAstroError] = useState("");
+  const [skipAstro, setSkipAstro] = useState(false);
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -76,7 +86,7 @@ export default function ReadingClient({ token }: { token: string }) {
       } catch (e) {
         if (active)
           setError(
-            e instanceof Error ? e.message : "Não foi possível carregar.",
+            e instanceof Error ? e.message : "N├úo foi poss├¡vel carregar.",
           );
       }
     };
@@ -134,6 +144,17 @@ export default function ReadingClient({ token }: { token: string }) {
     event("pix_copy_clicked", order.id);
     setTimeout(() => setCopied(false), 3500);
   }
+  async function submitAstrology(eventForm: React.FormEvent) {
+    eventForm.preventDefault();
+    setAstroError(""); setAstroLoading(true);
+    try {
+      const response = await fetch(`/api/orders/${token}/astrology`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ birthDate, birthTime, birthPlace, timeKnown }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível calcular seu mapa agora.");
+      setOrder((current) => current ? { ...current, astrology:data.astrology, astrologyStatus:"generated" } : current);
+      event("astrology_profile_completed", order?.id);
+    } catch (e) { setAstroError(e instanceof Error ? e.message : "Tente novamente."); } finally { setAstroLoading(false); }
+  }
   function begin() {
     setStage("cards");
     event("reading_started", order?.id);
@@ -147,7 +168,7 @@ export default function ReadingClient({ token }: { token: string }) {
   }
   function share() {
     const url = location.href;
-    const text = "Fiz uma leitura no Tarot Chama Sofia 🔮";
+    const text = "Fiz uma leitura no Tarot Chama Sofia ­ƒö«";
     if (navigator.share)
       void navigator.share({ title: "Tarot Chama Sofia", text, url });
     else
@@ -160,19 +181,19 @@ export default function ReadingClient({ token }: { token: string }) {
   if (error)
     return (
       <main className="reading-shell center-state">
-        <div className="status-orb">✦</div>
-        <h1>Não encontramos esta leitura</h1>
+        <div className="status-orb">Ô£ª</div>
+        <h1>N├úo encontramos esta leitura</h1>
         <p>{error}</p>
         <Link className="primary-button" href="/">
-          VOLTAR AO INÍCIO
+          VOLTAR AO IN├ìCIO
         </Link>
       </main>
     );
   if (!order)
     return (
       <main className="reading-shell center-state">
-        <div className="status-orb pulse">✦</div>
-        <p>Preparando seu espaço...</p>
+        <div className="status-orb pulse">Ô£ª</div>
+        <p>Preparando seu espa├ºo...</p>
       </main>
     );
   const ebookBook = order.offerCode === "ebook" ? getBook(order.productSlug) : undefined;
@@ -180,13 +201,13 @@ export default function ReadingClient({ token }: { token: string }) {
   if (ebookBook && orderPaid)
     return (
       <main className="reading-shell ebook-release-shell">
-        <header className="reading-header"><Link className="brand" href="/"><span className="brand-mark">✦</span><span>CHAMA SOFIA</span></Link><span>Pedido {order.orderNumber}</span></header>
+        <header className="reading-header"><Link className="brand" href="/"><span className="brand-mark">Ô£ª</span><span>CHAMA SOFIA</span></Link><span>Pedido {order.orderNumber}</span></header>
         <section className="ebook-release-card">
           <div className="ebook-release-cover"><img src={ebookBook.cover} alt={`Capa ${ebookBook.title}`} /></div>
-          <div><p className="eyebrow">Pagamento confirmado ✨</p><h1>Seu e-book está liberado.</h1>
-            <h2>{ebookBook.title}</h2><p>Seu acesso é privado e está vinculado a este pedido.</p>
-            <a className="primary-button" href={`/api/ebook/${token}/${ebookBook.slug}`}>BAIXAR MEU E-BOOK <span>⇩</span></a>
-            <small>Se escolheu WhatsApp, o agente também envia este acesso automaticamente.</small>
+          <div><p className="eyebrow">Pagamento confirmado Ô£¿</p><h1>Seu e-book est├í liberado.</h1>
+            <h2>{ebookBook.title}</h2><p>Seu acesso ├® privado e est├í vinculado a este pedido.</p>
+            <a className="primary-button" href={`/api/ebook/${token}/${ebookBook.slug}`}>BAIXAR MEU E-BOOK <span>Ôç®</span></a>
+            <small>Se escolheu WhatsApp, o agente tamb├®m envia este acesso automaticamente.</small>
           </div>
         </section>
       </main>
@@ -197,16 +218,16 @@ export default function ReadingClient({ token }: { token: string }) {
       <main className="reading-shell checkout-shell">
         <header className="reading-header">
           <Link className="brand" href="/">
-            <span className="brand-mark">✦</span>
+            <span className="brand-mark">Ô£ª</span>
             <span>CHAMA SOFIA</span>
           </Link>
           <span>Pedido {order.orderNumber}</span>
         </header>
         <section className="checkout-card">
-          <p className="eyebrow">{ebookBook ? "Seu e-book está reservado" : "Sua leitura está reservada"}</p>
+          <p className="eyebrow">{ebookBook ? "Seu e-book est├í reservado" : "Sua leitura est├í reservada"}</p>
           <h1>{ebookBook ? "Conclua o Pix para liberar seu e-book" : "Conclua o Pix para receber seu livro e sua leitura"}</h1>
           <div className="order-summary">
-            <span>{ebookBook ? ebookBook.title : "Tarot para Iniciantes + leitura bônus"}</span>
+            <span>{ebookBook ? ebookBook.title : "Tarot para Iniciantes + leitura b├┤nus"}</span>
             <strong>{formatBRL(order.price)}</strong>
           </div>
           {order.pixPayload ? (
@@ -215,29 +236,51 @@ export default function ReadingClient({ token }: { token: string }) {
               <label>Pix Copia e Cola</label>
               <div className="pix-code">{order.pixPayload}</div>
               <button className="primary-button" onClick={copyPix}>
-                {copied ? "PIX COPIADO!" : "COPIAR PIX"} <span>→</span>
+                {copied ? "PIX COPIADO!" : "COPIAR PIX"} <span>ÔåÆ</span>
               </button>
               <p className="pix-feedback">
                 {copied
                   ? "Pix copiado! Abra seu banco e conclua o pagamento."
-                  : "Após pagar, aguarde a confirmação. Esta página atualiza automaticamente."}
+                  : "Ap├│s pagar, aguarde a confirma├º├úo. Esta p├ígina atualiza automaticamente."}
               </p>
             </>
           ) : (
             <div className="payment-warning">
-              <strong>Pix em configuração</strong>
+              <strong>Pix em configura├º├úo</strong>
               <p>
-                Seu pedido foi criado, mas a chave Pix ainda não foi cadastrada
-                pela Chama Sofia. Não efetue nenhum pagamento fora desta página.
+                Seu pedido foi criado, mas a chave Pix ainda n├úo foi cadastrada
+                pela Chama Sofia. N├úo efetue nenhum pagamento fora desta p├ígina.
               </p>
             </div>
           )}
           <div className="pending">
-            <span className="pulse-dot" /> Aguardando confirmação do pagamento
+            <span className="pulse-dot" /> Aguardando confirma├º├úo do pagamento
           </div>
           <p className="privacy-note">
-            A leitura nunca é liberada apenas pelo clique em “Copiar Pix”.
+            A leitura nunca ├® liberada apenas pelo clique em ÔÇ£Copiar PixÔÇØ.
           </p>
+        </section>
+      </main>
+    );
+  if (order.offerCode === "astro-tarot" && !order.astrology && !skipAstro)
+    return (
+      <main className="reading-shell astro-onboarding-shell">
+        <header className="reading-header"><Link className="brand" href="/"><span className="brand-mark">✦</span><span>CHAMA SOFIA</span></Link><span>Pedido {order.orderNumber}</span></header>
+        <section className="astro-onboarding-card">
+          <p className="eyebrow">Pagamento confirmado · personalização final</p>
+          <h1>Agora vamos cruzar seu céu com as cartas.</h1>
+          <p>Informe seus dados de nascimento. Usamos a cidade para localizar coordenadas e o fuso histórico automaticamente.</p>
+          <form onSubmit={submitAstrology} className="astro-birth-form">
+            <label>Data de nascimento<input required type="date" value={birthDate} onChange={(e)=>setBirthDate(e.target.value)} /></label>
+            <label className={!timeKnown ? "is-disabled" : ""}>Horário de nascimento<input required={timeKnown} disabled={!timeKnown} type="time" value={birthTime} onChange={(e)=>setBirthTime(e.target.value)} /></label>
+            <label className="astro-time-check"><input type="checkbox" checked={!timeKnown} onChange={(e)=>setTimeKnown(!e.target.checked)} /> Não sei meu horário de nascimento</label>
+            <label>Cidade, estado e país<input required value={birthPlace} onChange={(e)=>setBirthPlace(e.target.value)} placeholder="Ex.: Botucatu, SP, Brasil" /></label>
+            <div className="astro-data-note"><strong>O que acontece agora</strong><span>Mapa natal → trânsitos atuais → 3 cartas → orientação integrada.</span></div>
+            {astroError && <p className="form-error">{astroError}</p>}
+            <button disabled={astroLoading} className="primary-button">{astroLoading ? "CALCULANDO SEU CÉU..." : "GERAR MAPA + CRUZAR COM AS CARTAS"} <span>→</span></button>
+            <small>Se o horário não for conhecido, a leitura continua útil, mas Ascendente e casas não serão tratados como precisos. Seus dados de nascimento ficam vinculados ao pedido privado e são usados para gerar esta análise.</small>
+          </form>
+          {astroError && <button className="secondary-button" onClick={()=>setSkipAstro(true)}>CONTINUAR COM O TAROT ENQUANTO ISSO</button>}
         </section>
       </main>
     );
@@ -245,19 +288,19 @@ export default function ReadingClient({ token }: { token: string }) {
     return (
       <main className="reading-shell ritual center-state">
         <div className="breath-circle">
-          <span>☾</span>
+          <span>Ôÿ¥</span>
         </div>
-        <p className="eyebrow">Pagamento confirmado ✨</p>
+        <p className="eyebrow">Pagamento confirmado Ô£¿</p>
         <h1>
-          Seu livro já está disponível.
+          Seu livro j├í est├í dispon├¡vel.
         </h1>
-        <p>Baixe o produto agora e, quando quiser, comece sua leitura bônus.</p>
+        <p>Baixe o produto agora e, quando quiser, comece sua leitura b├┤nus.</p>
         <a className="primary-button" href={`/api/ebook/${token}`}>
-          BAIXAR TAROT PARA INICIANTES <span>⇩</span>
+          BAIXAR TAROT PARA INICIANTES <span>Ôç®</span>
         </a>
-        <blockquote>“{order.question}”</blockquote>
+        <blockquote>ÔÇ£{order.question}ÔÇØ</blockquote>
         <button className="secondary-button ritual-secondary" onClick={begin}>
-          COMEÇAR MINHA LEITURA BÔNUS <span>→</span>
+          COME├çAR MINHA LEITURA B├öNUS <span>ÔåÆ</span>
         </button>
       </main>
     );
@@ -266,14 +309,14 @@ export default function ReadingClient({ token }: { token: string }) {
       <main className="reading-shell ritual">
         <header className="reading-header">
           <span className="brand">
-            <span className="brand-mark">✦</span>
+            <span className="brand-mark">Ô£ª</span>
             <span>CHAMA SOFIA</span>
           </span>
           <span>{revealed}/3 reveladas</span>
         </header>
         <section className="reveal-area">
           <p className="eyebrow">Toque em cada carta, na ordem</p>
-          <h1>Suas três cartas</h1>
+          <h1>Suas tr├¬s cartas</h1>
           <div className="reveal-grid">
             {order.cards!.map((card, index) => (
               <button
@@ -287,7 +330,7 @@ export default function ReadingClient({ token }: { token: string }) {
                 <span className="flip-inner">
                   <span className="flip-back">
                     <i>CHAMA SOFIA</i>
-                    <b>✦</b>
+                    <b>Ô£ª</b>
                     <small>{index + 1}</small>
                   </span>
                   <span className="flip-front">
@@ -305,7 +348,7 @@ export default function ReadingClient({ token }: { token: string }) {
             <p className="tap-hint">
               {revealed === 0
                 ? "Comece pela carta da esquerda."
-                : "Continue para a próxima carta."}
+                : "Continue para a pr├│xima carta."}
             </p>
           )}
         </section>
@@ -315,20 +358,32 @@ export default function ReadingClient({ token }: { token: string }) {
     <main className="result-shell">
       <header className="reading-header">
         <Link className="brand" href="/">
-          <span className="brand-mark">✦</span>
+          <span className="brand-mark">Ô£ª</span>
           <span>CHAMA SOFIA</span>
         </Link>
         <span>Leitura {order.orderNumber}</span>
       </header>
       <section className="result-hero">
         <p className="eyebrow">Sua leitura de Tarot</p>
-        <h1>Olá, {order.customerName.split(" ")[0]}.</h1>
-        <p>Veja o que as cartas podem trazer para sua reflexão.</p>
+        <h1>Ol├í, {order.customerName.split(" ")[0]}.</h1>
+        <p>Veja o que as cartas podem trazer para sua reflex├úo.</p>
         <div className="question-quote">
-          <small>SUA PERGUNTA · {order.category}</small>
-          <blockquote>“{order.question}”</blockquote>
+          <small>SUA PERGUNTA ┬À {order.category}</small>
+          <blockquote>ÔÇ£{order.question}ÔÇØ</blockquote>
         </div>
       </section>
+      {order.astrology && (
+        <section className="astro-result">
+          <div className="astro-result-head"><p className="eyebrow">Seu céu de nascimento + céu atual</p><h2>O que a astrologia acrescenta à sua pergunta</h2><p>{order.astrology.situation}</p></div>
+          <div className="astro-natal-grid">
+            {[['Sol',order.astrology.natal.sun],['Lua',order.astrology.natal.moon],['Ascendente',order.astrology.natal.ascendantSign ? { sign:order.astrology.natal.ascendantSign } : undefined]].map(([label,value]) => value && <article key={String(label)}><small>{String(label).toUpperCase()}</small><strong>{typeof value === 'object' && 'sign' in value ? String(value.sign) : ''}</strong></article>)}
+          </div>
+          {order.astrology.current.highlights.length > 0 && <div className="astro-transits"><h3>Movimentos que mais pesam agora</h3>{order.astrology.current.highlights.slice(0,3).map((item,index)=><article key={`${item.transitPlanet}-${item.natalPlanet}-${index}`}><span>{item.transitPlanet} · {item.aspectType}</span><p>{item.meaning}</p></article>)}</div>}
+          <div className="astro-tarot-bridge"><p className="eyebrow">Astro + Tarot</p><h3>Onde o céu encontra suas cartas</h3><p>{order.astrology.cardsBridge}</p></div>
+          <div className="astro-solution"><p className="eyebrow">Sua orientação integrada</p><h3>{order.astrology.solution.title}</h3>{order.astrology.solution.steps.map((step)=><article key={step.title}><strong>{step.title}</strong><p>{step.text}</p></article>)}</div>
+          <p className="astro-precision">{order.astrology.precisionNote}</p>
+        </section>
+      )}
       <section className="result-cards">
         {order.cards!.map((card, index) => (
           <article key={card.id}>
@@ -341,7 +396,7 @@ export default function ReadingClient({ token }: { token: string }) {
             </div>
             <div>
               <p className="eyebrow">
-                Carta {index + 1} ·{" "}
+                Carta {index + 1} ┬À{" "}
                 {order.reading!.cardReadings[index].position}
               </p>
               <h2>{card.name}</h2>
@@ -362,12 +417,12 @@ export default function ReadingClient({ token }: { token: string }) {
           <p>{order.reading!.connections}</p>
         </div>
         <div className="summary-box">
-          <p className="eyebrow">Síntese da leitura</p>
+          <p className="eyebrow">S├¡ntese da leitura</p>
           <p>{order.reading!.summary}</p>
         </div>
         <div className="reflection-box">
-          <span>✦</span>
-          <p className="eyebrow">Reflexão final</p>
+          <span>Ô£ª</span>
+          <p className="eyebrow">Reflex├úo final</p>
           <blockquote>{order.reading!.reflection}</blockquote>
         </div>
       </section>
@@ -375,24 +430,24 @@ export default function ReadingClient({ token }: { token: string }) {
         <div>
           <p className="eyebrow">Guarde este momento</p>
           <h2>Sua leitura e seu presente</h2>
-          <p>Baixe a leitura organizada e o livro completo de 276 páginas.</p>
+          <p>Baixe a leitura organizada e o livro completo de 276 p├íginas.</p>
         </div>
         <div className="download-actions">
           <a
             className="primary-button"
             href={`/api/ebook/${token}`}
           >
-            BAIXAR E-BOOK TAROT PARA INICIANTES <span>⇩</span>
+            BAIXAR E-BOOK TAROT PARA INICIANTES <span>Ôç®</span>
           </a>
           <a className="secondary-button" href={`/api/pdf/${token}`}>
-            BAIXAR MINHA LEITURA EM PDF <span>⇩</span>
+            BAIXAR MINHA LEITURA EM PDF <span>Ôç®</span>
           </a>
         </div>
       </section>
       <section className="share-row">
         <button onClick={share}>Compartilhar leitura</button>
         <a
-          href={`https://wa.me/?text=${encodeURIComponent(`Fiz uma leitura no Tarot Chama Sofia 🔮\n${typeof location !== "undefined" ? location.href : ""}`)}`}
+          href={`https://wa.me/?text=${encodeURIComponent(`Fiz uma leitura no Tarot Chama Sofia ­ƒö«\n${typeof location !== "undefined" ? location.href : ""}`)}`}
           target="_blank"
           rel="noreferrer"
         >
@@ -401,19 +456,19 @@ export default function ReadingClient({ token }: { token: string }) {
       </section>
       <section className="new-reading">
         <p>Surgiu outra pergunta?</p>
-        <h2>Faça uma nova leitura quando sentir que é o momento.</h2>
+        <h2>Fa├ºa uma nova leitura quando sentir que ├® o momento.</h2>
         <Link
           className="primary-button"
           href="/#pergunta"
           onClick={() => event("new_reading_click", order.id)}
         >
-          FAZER OUTRA PERGUNTA AO TAROT <span>→</span>
+          FAZER OUTRA PERGUNTA AO TAROT <span>ÔåÆ</span>
         </Link>
       </section>
       <footer>
         <p>
-          {order.reading!.disclaimer} Não substitui orientação médica,
-          psicológica, jurídica, financeira ou profissional.
+          {order.reading!.disclaimer} N├úo substitui orienta├º├úo m├®dica,
+          psicol├│gica, jur├¡dica, financeira ou profissional.
         </p>
       </footer>
     </main>

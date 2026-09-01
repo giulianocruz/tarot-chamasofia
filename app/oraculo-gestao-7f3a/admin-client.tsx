@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useCallback, useEffect, useState } from "react";
 import { BOOK_CATALOG } from "@/lib/book-catalog";
 type Order = {
@@ -110,12 +110,12 @@ export default function AdminClient() {
   }
   async function copyReadingLink(token: string) {
     await navigator.clipboard.writeText(readingUrl(token));
-    alert("Link privado copiado. Agora vocÃª pode enviÃ¡-lo ao cliente.");
+    alert("Link privado copiado. Agora você pode enviá-lo ao cliente.");
   }
   function sendByWhatsApp(order: Order) {
     const phone = (order.customer_whatsapp || "").replace(/\D/g, "");
-    const firstName = order.customer_name.trim().split(/\s+/)[0] || "OlÃ¡";
-    const message = `${firstName}, sua leitura de Tarot Chama Sofia estÃ¡ pronta âœ¨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nNeste link vocÃª pode revelar suas cartas, ler a interpretaÃ§Ã£o e baixar o PDF e o e-book.`;
+    const firstName = order.customer_name.trim().split(/\s+/)[0] || "Olá";
+    const message = `${firstName}, sua leitura de Tarot Chama Sofia está pronta ✨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nNeste link você pode revelar suas cartas, ler a interpretação e baixar o PDF e o e-book.`;
     window.open(
       `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
       "_blank",
@@ -126,9 +126,9 @@ export default function AdminClient() {
     return (
       <main className="admin-login">
         <form onSubmit={signIn}>
-          <span className="brand-mark">âœ¦</span>
+          <span className="brand-mark">✦</span>
           <p className="eyebrow">Chama Sofia</p>
-          <h1>Acesso Ã  gestÃ£o</h1>
+          <h1>Acesso à gestão</h1>
           <label>
             E-mail
             <input
@@ -155,7 +155,7 @@ export default function AdminClient() {
   if (!data) return <main className="admin-login">Carregando...</main>;
   const d = data.dashboard;
   const funnelStages = [
-    ['SessÃµes', d.funnel.sessions], ['Tema', d.funnel.categories], ['Pergunta', d.funnel.questions], ['Cartas', d.funnel.cards], ['E-mail/contato', d.funnel.contacts], ['Oferta', d.funnel.offers], ['Pix', d.funnel.pix], ['Pagamento', d.funnel.paid],
+    ['Sessões', d.funnel.sessions], ['Tema', d.funnel.categories], ['Pergunta', d.funnel.questions], ['Cartas', d.funnel.cards], ['E-mail/contato', d.funnel.contacts], ['Oferta', d.funnel.offers], ['Pix', d.funnel.pix], ['Pagamento', d.funnel.paid],
   ] as const;
   const stageDrops = funnelStages.slice(1).map((stage,index) => { const previous=funnelStages[index][1]; const current=stage[1]; return { from:funnelStages[index][0], to:stage[0], previous, current, rate:previous ? current/previous : 0, drop:previous ? 1-current/previous : 0 }; }).filter((item)=>item.previous>0);
   const biggestDrop = stageDrops.sort((a,b)=>b.drop-a.drop)[0];
@@ -167,14 +167,14 @@ export default function AdminClient() {
           <h1>Tarot Chama Sofia</h1>
         </div>
         <div className="admin-actions">
-          <a className="admin-download" href="/assets/social/anuncio-tarot-livro-v2.png" download>Baixar arte do anÃºncio</a>
+          <a className="admin-download" href="/assets/social/anuncio-tarot-livro-v2.png" download>Baixar arte do anúncio</a>
 
           <button onClick={() => void load()}>Atualizar pedidos</button>
           {bookStatus && <small>{bookStatus}</small>}
         </div>
       </header>
       <section className="library-admin-panel">
-        <div className="panel-title"><div><p className="eyebrow">Acervo digital</p><h2>Biblioteca Chama Sofia</h2></div><span>PDFs entregues automaticamente apÃ³s o pagamento</span></div>
+        <div className="panel-title"><div><p className="eyebrow">Acervo digital</p><h2>Biblioteca Chama Sofia</h2></div><span>PDFs entregues automaticamente após o pagamento</span></div>
         <div className="library-admin-grid">
           {BOOK_CATALOG.map((book) => (
             <article key={book.slug}>
@@ -188,66 +188,71 @@ export default function AdminClient() {
       </section>
       <section className="metrics">
         {[
-          ["Vendas hoje", d.salesToday],
-          ["Vendas totais", d.totalSales],
-          ["SessÃµes de anÃºncios", d.traffic.paidSessions],
-          ["Vendas de anÃºncios", d.traffic.paidSales],
-          ["ConversÃ£o anÃºncios", `${(d.traffic.paidConversion * 100).toFixed(1)}%`],
-          ["Faturamento anÃºncios", money(d.traffic.paidRevenue)],
-          ["Faturamento", money(d.revenue)],
-          ["Ticket mÃ©dio", money(d.averageTicket)],
-          ["PreÃ§o atual", d.pricing.formatted],
-          ["Restam na faixa", d.pricing.remaining ?? "âˆž"],
-          ["ConversÃ£o", `${(d.conversion * 100).toFixed(1)}%`],
-          ["Pendentes", d.pending],
-          ["Leituras geradas", d.generated],
-          ["E-books vendidos", d.ebooks.sales],
-          ["Receita e-books", money(d.ebooks.revenue)],
-          ["Entrega por e-mail", d.delivery.email],
-          ["Entrega por WhatsApp", d.delivery.whatsapp],
-        ].map(([label, value]) => (
+          ["Vendas hoje", d.salesToday, "pagamentos confirmados hoje"],
+          ["Vendas totais", d.totalSales, "pedidos pagos na base"],
+          ["Sessões Ads", d.traffic.paidSessions, "visitas atribuídas às campanhas"],
+          ["Vendas Ads", d.traffic.paidSales, "compras vindas de mídia paga"],
+          ["Conversão Ads", `${(d.traffic.paidConversion * 100).toFixed(1)}%`, "vendas ÷ sessões pagas"],
+          ["Receita Ads", money(d.traffic.paidRevenue), "receita atribuída às campanhas"],
+          ["Receita total", money(d.revenue), "faturamento confirmado"],
+          ["Ticket médio", money(d.averageTicket), "valor médio por venda"],
+          ["Preço atual", d.pricing.formatted, "oferta vigente"],
+          ["Restam na faixa", d.pricing.remaining ?? "∞", "antes da próxima faixa"],
+          ["Conversão geral", `${(d.conversion * 100).toFixed(1)}%`, "vendas ÷ sessões"],
+          ["Pendentes", d.pending, "Pix ainda não confirmado"],
+          ["Leituras geradas", d.generated, "entregas produzidas"],
+          ["E-books vendidos", d.ebooks.sales, "vendas da biblioteca"],
+          ["Receita e-books", money(d.ebooks.revenue), "receita da biblioteca"],
+          ["Entrega por e-mail", d.delivery.email, "pedidos com e-mail"],
+          ["Entrega WhatsApp", d.delivery.whatsapp, "pedidos com WhatsApp"],
+        ].map(([label, value, hint]) => (
           <article key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
+            {hint && <small>{hint}</small>}
           </article>
         ))}
       </section>
+      <section className="admin-insight">
+        <div><p className="eyebrow">Leitura rápida do funil</p><h2>{d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? "Já existe tráfego. Agora precisamos fazer a oferta convencer." : "Acompanhe tráfego, intenção e venda no mesmo lugar."}</h2></div>
+        <p>{d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio e nenhuma venda atribuída. Priorize clareza de oferta, prova de valor e menos atrito antes do Pix.` : "Use os eventos abaixo para descobrir em qual etapa a pessoa desiste e melhorar a experiência com base em comportamento real."}</p>
+      </section>
       <section className="behavior-panel">
-        <div className="panel-title"><h2>Comportamento na pÃ¡gina</h2><span>visitantes Ãºnicos por evento</span></div>
+        <div className="panel-title"><h2>Comportamento na página</h2><span>visitantes únicos por evento</span></div>
         <div className="behavior-grid">
           <div><span>Chegaram a 25%</span><strong>{d.behavior.depth25}</strong></div><div><span>Chegaram a 50%</span><strong>{d.behavior.depth50}</strong></div>
           <div><span>Chegaram a 75%</span><strong>{d.behavior.depth75}</strong></div><div><span>Chegaram a 90%</span><strong>{d.behavior.depth90}</strong></div>
           <div><span>Escolheram um tema</span><strong>{d.behavior.step2}</strong></div><div><span>Abriram FAQ</span><strong>{d.behavior.faqOpened}</strong></div>
-          <div><span>Clicaram no suporte</span><strong>{d.behavior.contactClicks}</strong></div><div><span>SaÃ­ram da pÃ¡gina</span><strong>{d.behavior.exits}</strong></div>
+          <div><span>Clicaram no suporte</span><strong>{d.behavior.contactClicks}</strong></div><div><span>Saíram da página</span><strong>{d.behavior.exits}</strong></div>
         </div>
-        <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulÃ¡rio ou objeÃ§Ã£o antes do pagamento.</p>
+        <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulário ou objeção antes do pagamento.</p>
       </section>
       <section className="funnel-panel premium-funnel">
-        {funnelStages.map(([label,value], index) => <div key={label}><span>{label}</span><strong>{value}</strong>{index>0 && <small>{funnelStages[index-1][1] ? `${((value/funnelStages[index-1][1])*100).toFixed(1)}% da etapa anterior` : 'â€”'}</small>}</div>)}
+        {funnelStages.map(([label,value], index) => <div key={label}><span>{label}</span><strong>{value}</strong>{index>0 && <small>{funnelStages[index-1][1] ? `${((value/funnelStages[index-1][1])*100).toFixed(1)}% da etapa anterior` : '—'}</small>}</div>)}
       </section>
-      {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} â†’ {biggestDrop.to} Â· queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
-      <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessÃ£o. Eventos e pedidos marcados como teste nÃ£o entram nas mÃ©tricas de conversÃ£o.</p>
+      {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} → {biggestDrop.to} · queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
+      <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
       <section className="orders-panel ebook-panel">
-        <div className="panel-title"><h2>E-books / downsell</h2><span>oferta alternativa apÃ³s captura do contato</span></div>
+        <div className="panel-title"><h2>E-books / downsell</h2><span>oferta alternativa após captura do contato</span></div>
         <div className="behavior-grid ebook-metrics">
           <div><span>Viram oferta</span><strong>{d.ebooks.offerViews}</strong></div>
           <div><span>Selecionaram</span><strong>{d.ebooks.selected}</strong></div>
           <div><span>Iniciaram checkout</span><strong>{d.ebooks.checkoutStarted}</strong></div>
           <div><span>Compraram</span><strong>{d.ebooks.sales}</strong></div>
-          <div><span>SeleÃ§Ã£o â†’ compra</span><strong>{d.ebooks.selected ? `${((d.ebooks.sales/d.ebooks.selected)*100).toFixed(1)}%` : '0,0%'}</strong></div>
+          <div><span>Seleção → compra</span><strong>{d.ebooks.selected ? `${((d.ebooks.sales/d.ebooks.selected)*100).toFixed(1)}%` : '0,0%'}</strong></div>
           <div><span>Receita</span><strong>{money(d.ebooks.revenue)}</strong></div>
         </div>
       </section>
       <section className="orders-panel campaign-panel">
         <div className="panel-title">
           <h2>Resultado por campanha paga</h2>
-          <span>UTM/origem Â· testes excluÃ­dos</span>
+          <span>UTM/origem · testes excluídos</span>
         </div>
         {d.campaigns.length === 0 ? (
-          <p className="campaign-empty">Ainda nÃ£o hÃ¡ sessÃµes pagas atribuÃ­das nesta base.</p>
+          <p className="campaign-empty">Ainda não há sessões pagas atribuídas nesta base.</p>
         ) : (
           <div className="table-wrap"><table><thead><tr>
-            <th>Origem</th><th>Campanha</th><th>SessÃµes</th><th>Oferta</th><th>Pix</th><th>Vendas</th><th>ConversÃ£o</th><th>Faturamento</th>
+            <th>Origem</th><th>Campanha</th><th>Sessões</th><th>Oferta</th><th>Pix</th><th>Vendas</th><th>Conversão</th><th>Faturamento</th>
           </tr></thead><tbody>
             {d.campaigns.map((campaign) => (
               <tr key={`${campaign.source}:${campaign.campaign}`}>
@@ -273,7 +278,7 @@ export default function AdminClient() {
                 <th>Origem</th>
                 <th>Valor</th>
                 <th>Status</th>
-                <th>AÃ§Ãµes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>

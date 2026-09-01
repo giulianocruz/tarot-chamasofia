@@ -234,24 +234,24 @@ export default function LandingClient() {
         <div className="stars" aria-hidden="true">
           ✦ · ✧ · ✦
         </div>
-        <p className="eyebrow">Tarot online + Biblioteca Chama Sofia</p>
+        <p className="eyebrow">Mapa Astral Express + Tarot Chama Sofia</p>
         <h1>
-          SUA LEITURA ESPIRITUAL
+          SEU CÉU + SUAS CARTAS
           <br />
-          EM MINUTOS
+          EM UMA LEITURA SÓ
         </h1>
         <p className="hero-copy">
-          Faça poucas escolhas, revele 3 cartas e receba sua leitura completa por e-mail ou WhatsApp. Sem cadastro, sem assinatura e com o mínimo de preenchimento.
+          Comece com uma pergunta e 3 cartas. Após o Pix, cruzamos seu Mapa Astral Express com os trânsitos atuais e o Tarot para criar uma orientação personalizada.
         </p>
         <p className="bonus-line">
           <span>✦</span> Tarot para Iniciantes incluído como bônus na leitura completa.
         </p>
         <PriceBox price={price} />
         <button className="primary-button" onClick={start}>
-          FAZER MINHA LEITURA <span>→</span>
+          VER MINHA ANÁLISE ASTROTAROT <span>→</span>
         </button>
         <p className="secure-note">
-          Pix seguro · Resultado privado · Entrega por e-mail ou WhatsApp
+          Pix seguro · Mapa + céu atual + Tarot · PDF privado
         </p>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
@@ -261,23 +261,23 @@ export default function LandingClient() {
       </section>
       <aside className="trust-strip" aria-label="Benefícios da compra">
         <span>
-          <b>✦</b> Livro digital de 276 páginas
+          <b>✦</b> Mapa Astral Express
         </span>
         <span>
-          <b>◈</b> Leitura de 3 cartas incluída
+          <b>◈</b> 3 cartas integradas ao seu momento
         </span>
         <span>
-          <b>⇩</b> Acesso imediato após o Pix
+          <b>⇩</b> PDF premium + e-book bônus
         </span>
       </aside>
       <section className="steps" id="como-funciona" data-reveal>
         <p className="eyebrow">Simples, íntimo e especial</p>
-        <h2>Sua leitura em poucos minutos</h2>
+        <h2>Uma jornada curta até uma análise mais completa</h2>
         <div className="step-grid">
           {[
             ["01", "Escolha seu tema"],
             ["02", "Revele 3 cartas"],
-            ["03", "Receba sua leitura"],
+            ["03", "Cruze mapa + céu atual + cartas"],
           ].map(([n, label]) => (
             <div className="step" key={n}>
               <span>{n}</span>
@@ -419,7 +419,7 @@ export default function LandingClient() {
       </section>
       <section className="receive" data-reveal>
         <p className="eyebrow">Uma experiência completa</p>
-        <h2>O que você recebe</h2>
+        <h2>Mais do que uma tiragem isolada</h2>
         <div className="receive-grid">
           {[
             ["✦", "Livro completo", "Tarot para Iniciantes, edição digital com 276 páginas."],
@@ -474,14 +474,14 @@ export default function LandingClient() {
       </section>
       <section className="price-section" data-reveal>
         <p className="eyebrow">Condição especial de lançamento</p>
-        <h2>Leve o livro e ganhe sua leitura</h2>
+        <h2>Mapa Astral Express + Tarot por um valor de entrada</h2>
         <PriceBox price={price} />
         <p>
           O valor muda somente conforme pagamentos realmente confirmados. Sem
           escassez falsa.
         </p>
         <button className="primary-button" onClick={start}>
-          FAZER MINHA LEITURA <span>→</span>
+          VER MINHA ANÁLISE ASTROTAROT <span>→</span>
         </button>
       </section>
       <section className="faq" data-reveal>
@@ -502,7 +502,7 @@ export default function LandingClient() {
           ],
           [
             "O que estou comprando?",
-            "O produto principal é o livro digital Tarot para Iniciantes, com 276 páginas. A leitura personalizada de 3 cartas e seu PDF são bônus incluídos.",
+            "Você recebe Mapa Astral Express, principais trânsitos do momento, leitura de 3 cartas integrada à sua pergunta e PDF premium. O Tarot para Iniciantes entra como bônus.",
           ],
           [
             "Minha pergunta é pública?",
@@ -545,7 +545,7 @@ export default function LandingClient() {
           As cartas convidam você a olhar por outro ângulo.
         </h2>
         <button className="primary-button" onClick={start}>
-          FAZER MINHA LEITURA <span>→</span>
+          VER MINHA ANÁLISE ASTROTAROT <span>→</span>
         </button>
       </section>
       <footer>
@@ -572,7 +572,7 @@ export default function LandingClient() {
         </a>
       </footer>
       <button className={`mobile-sticky-cta ${showSticky ? "is-visible" : ""}`} onClick={start}>
-        LIVRO + LEITURA · {price.formatted}
+        MAPA + TAROT · {price.formatted}
       </button>
     </main>
   );
@@ -586,7 +586,7 @@ function PriceBox({ price }: { price: Price }) {
       <small>
         {price.remaining
           ? `Restam ${price.remaining} leituras neste valor.`
-          : "Valor atual da leitura."}
+          : "Valor atual da análise."}
         {price.nextFormatted && (
           <>
             {" "}

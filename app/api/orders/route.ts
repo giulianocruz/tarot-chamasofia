@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const offer = cleanText(body.offer || body.offerCode, 40);
   const requestedBook = offer === "ebook" ? getBook(cleanText(body.productSlug, 40)) : undefined;
   const deliveryChannel = cleanText(body.deliveryChannel, 20) === "whatsapp" ? "whatsapp" : "email";
-  const isConsultaOffer = ["consulta", "consulta-990"].includes(offer) && selectedCards.length === 3;
+  const isConsultaOffer = ["consulta", "consulta-990", "astro-tarot"].includes(offer) && selectedCards.length === 3;
   const isEbookOffer = offer === "ebook" && Boolean(requestedBook);
   const orderCategory = isEbookOffer ? "Biblioteca" : category;
   const orderQuestion = isEbookOffer && requestedBook ? `Compra de e-book: ${requestedBook.title}` : question;
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     (!email && !whatsapp) ||
     (deliveryChannel === "whatsapp" && whatsappDigits.length < 10) ||
     (cardIds.length > 0 && selectedCards.length !== 3) ||
-    (["consulta", "consulta-990"].includes(offer) && !isConsultaOffer) ||
+    (["consulta", "consulta-990", "astro-tarot"].includes(offer) && !isConsultaOffer) ||
     (offer === "ebook" && !requestedBook)
   ) {
     return Response.json(
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
       anonymousId || null,
       sessionId || null,
       isTest ? 1 : 0,
-      isEbookOffer ? "ebook" : (isConsultaOffer ? "consulta" : (offer || "legacy")),
+      isEbookOffer ? "ebook" : (isConsultaOffer ? (offer === "astro-tarot" ? "astro-tarot" : "consulta") : (offer || "legacy")),
       requestedBook?.slug || null,
       deliveryChannel,
     )
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     anonymousId,
     analyticsMetadata(analyticsContext, {
       price: price.cents,
-      offer: isEbookOffer ? "ebook" : (isConsultaOffer ? "consulta" : (offer || "legacy")),
+      offer: isEbookOffer ? "ebook" : (isConsultaOffer ? (offer === "astro-tarot" ? "astro-tarot" : "consulta") : (offer || "legacy")),
       product_slug: requestedBook?.slug,
       delivery_channel: deliveryChannel,
     }),

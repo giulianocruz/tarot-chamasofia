@@ -10,10 +10,10 @@ import PreviewDashboard from "./preview-dashboard";
 type Price = { cents: number; formatted: string };
 
 const CATEGORY_MAP = [
-  ["Amor e relacionamentos", "♡", "Amor"],
-  ["Dinheiro", "◇", "Dinheiro"],
-  ["Trabalho e carreira", "✦", "Trabalho"],
-  ["Decisões", "◉", "Decisão importante"],
+  ["Amor e relacionamentos", "♡", "Amor", "Vínculos, reciprocidade e o que você sente"],
+  ["Dinheiro", "◇", "Dinheiro", "Segurança, escolhas e vida material"],
+  ["Trabalho e carreira", "✦", "Trabalho", "Carreira, reconhecimento e próximos passos"],
+  ["Decisões", "◉", "Decisão", "Caminhos, consequências e clareza para escolher"],
 ] as const;
 
 const QUESTION_PRESETS: Record<string, string[]> = {
@@ -123,7 +123,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   }, [cards, category, question]);
 
   useEffect(() => {
-    fetch("/api/pricing?offer=consulta")
+    fetch("/api/pricing?offer=astro-tarot")
       .then((response) => response.json())
       .then(setPrice)
       .catch(() => undefined);
@@ -244,7 +244,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           name: "Consulente", email: email.trim(),
           whatsapp: deliveryChannel === "whatsapp" ? whatsapp.trim() : "",
           deliveryChannel, category, question: question.trim(), cardIds: selected,
-          offer: "consulta", ...context,
+          offer: "astro-tarot", ...context,
         }),
       });
       const data = await response.json();
@@ -287,16 +287,16 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       <section className="consult-card" aria-live="polite">
         <header className="consult-brand">
           <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />
-          <span>CHAMA SOFIA · TAROT</span>
+          <span>CHAMA SOFIA · ASTROTAROT</span>
         </header>
 
         {step === 0 && (
           <div className="consult-step hero-consult">
-            <p className="eyebrow">Uma pergunta. Três cartas. Uma nova perspectiva.</p>
-            <h1>Existe uma pergunta que não sai da sua cabeça?</h1>
-            <p>Em menos de 2 minutos, você prepara uma leitura feita a partir da sua pergunta e das cartas que escolher.</p>
-            <button className="primary-button" onClick={() => go(1)}>COMEÇAR MINHA LEITURA <span>→</span></button>
-            <small>Leitura privada · 3 cartas · PDF + e-book bônus</small>
+            <p className="eyebrow">Seu céu, sua pergunta e três cartas em uma leitura só.</p>
+            <h1>Descubra o que o seu momento está pedindo de você.</h1>
+            <p>Comece pela sua pergunta e por 3 cartas. Depois do Pix, seu Mapa Astral Express e os trânsitos atuais entram na análise para ampliar a leitura.</p>
+            <button className="primary-button" onClick={() => go(1)}>COMEÇAR MINHA ANÁLISE <span>→</span></button>
+            <small>Mapa Astral Express · 3 cartas · céu atual · PDF + e-book bônus</small>
           </div>
         )}
 
@@ -304,7 +304,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step">
             <p className="consult-progress">1 de 5</p>
             <button className="consult-back" onClick={() => go(0)}>← voltar</button>
-            <h2>O que est? pesando mais hoje?</h2>
+            <h2>O que está pesando mais hoje?</h2>
             <div className="consult-options">
               {CATEGORY_MAP.map(([value, icon, label, description]) => (
                 <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
@@ -371,30 +371,30 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
         {step === 5 && (
           <div className="consult-step consult-preview-step">
-            <p className="consult-progress">4 de 5 ? sua pr?via</p>
-            <button className="consult-back" onClick={() => go(3)}>? escolher outras cartas</button>
+            <p className="consult-progress">4 de 5 · sua prévia</p>
+            <button className="consult-back" onClick={() => go(3)}>← escolher outras cartas</button>
             <div className="preview-reveal-heading">
-              <p className="eyebrow">As tr?s cartas responderam de formas diferentes</p>
-              <h2>Seu mapa inicial est? pronto.</h2>
+              <p className="eyebrow">As três cartas responderam de formas diferentes</p>
+              <h2>Seu mapa inicial está pronto.</h2>
               <p className="consult-muted">Veja a primeira camada antes de decidir se quer aprofundar.</p>
             </div>
             <div className="consult-reveal premium-reveal">
               {cards.map((card, index) => (
                 <article key={card.id} style={{ "--card-delay": `${index * 120}ms` } as React.CSSProperties}>
-                  <span className="reveal-position">{index === 0 ? "Agora" : index === 1 ? "Influ?ncia" : "Dire??o"}</span>
+                  <span className="reveal-position">{index === 0 ? "Agora" : index === 1 ? "Influência" : "Direção"}</span>
                   <img src={card.image} alt={card.name} width="240" height="360" />
                   <strong>{card.name}</strong>
-                  <small>{card.keywords.slice(0, 2).join(" ? ")}</small>
+                  <small>{card.keywords.slice(0, 2).join(" · ")}</small>
                 </article>
               ))}
             </div>
             <PreviewDashboard cards={cards} category={category} question={question} preview={preview} />
             <div className="preview-conversion-cta">
               <img src="/assets/tarot/ui/reading-seal.svg" alt="" aria-hidden="true" />
-              <div><span>Leitura completa preparada para esta pergunta</span><strong>Conecte as 3 cartas e receba sua an?lise em PDF</strong></div>
+              <div><span>Leitura completa preparada para esta pergunta</span><strong>Conecte as 3 cartas ao seu céu e receba sua análise em PDF</strong></div>
             </div>
-            <button className="primary-button premium-unlock" onClick={showOffer}>QUERO APROFUNDAR MINHA LEITURA <span>?</span></button>
-            <small className="preview-honesty">Voc? viu uma pr?via simb?lica. O pagamento libera a interpreta??o completa, PDF e e-book b?nus.</small>
+            <button className="primary-button premium-unlock" onClick={showOffer}>QUERO LIBERAR MINHA ANÁLISE <span>→</span></button>
+            <small className="preview-honesty">Você viu uma prévia simbólica. O pagamento libera Mapa Astral Express, trânsitos atuais, interpretação completa, PDF e e-book bônus.</small>
           </div>
         )}
 
@@ -402,14 +402,14 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step consult-offer">
             <p className="consult-progress">5 de 5</p>
             <button className="consult-back" onClick={() => go(5)}>← voltar à prévia</button>
-            <p className="eyebrow">Sua leitura está pronta para ser liberada</p>
-            <h2>Receba a leitura completa do jeito que preferir</h2>
+            <p className="eyebrow">Seu Mapa Astral Express + Tarot está pronto para ser liberado</p>
+            <h2>Receba uma análise do seu momento, não apenas uma tiragem</h2>
             <p className="consult-muted">Pagamento único via Pix. Sem assinatura e sem cadastro.</p>
             <div className="consult-offer-summary">
               <ul>
-                <li>✓ 3 cartas escolhidas por você</li>
-                <li>✓ interpretação personalizada para sua pergunta</li>
-                <li>✓ PDF da leitura para guardar</li>
+                <li>✓ Mapa Astral Express com Sol, Lua e Ascendente*</li>
+                <li>✓ trânsitos atuais cruzados com seu mapa natal</li>
+                <li>✓ 3 cartas integradas à sua situação + PDF premium</li>
                 <li>✓ Tarot para Iniciantes de bônus</li>
               </ul>
               <div className="consult-price">
@@ -438,14 +438,14 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               )}
               {error && <p className="consult-error">{error}</p>}
               <button disabled={loading || ebookLoading !== ""} className="primary-button">
-                {loading ? "GERANDO PIX..." : `LIBERAR MINHA LEITURA — ${price.formatted}`}
+                {loading ? "GERANDO PIX..." : `LIBERAR MAPA + TAROT — ${price.formatted}`}
               </button>
               <small className="consult-payment-note">Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
             </form>
 
             <section className="ebook-downsell" aria-labelledby="ebook-offer-title">
               <span className="ebook-offer-kicker">OFERTA ESPECIAL DA BIBLIOTECA CHAMA SOFIA</span>
-              <h3 id="ebook-offer-title">Ainda não quer liberar a leitura?</h3>
+              <h3 id="ebook-offer-title">Ainda não quer liberar a análise completa?</h3>
               <p>Você pode começar por um e-book. Escolha apenas se fizer sentido para você — nada é adicionado automaticamente.</p>              <div className="ebook-offer-grid">
                 {BOOK_CATALOG.map((book) => (
                   <article className="ebook-offer-card" key={book.slug}>
@@ -461,7 +461,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                   </article>
                 ))}
               </div>
-              <small>Tarot para Iniciantes custa R$ 9,90 sozinho e continua incluído como brinde na leitura completa.</small>
+              <small>*Se você não souber o horário de nascimento, ainda entregamos uma análise útil, mas Ascendente e casas ficam limitados. O e-book continua incluído como bônus.</small>
             </section>
           </div>
         )}

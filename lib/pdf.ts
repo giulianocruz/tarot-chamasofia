@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 import type { Reading } from './reading';
 import type { TarotCard } from './tarot';
+import type { AstroTarotLayer } from './astrology-types';
 
 type PdfOrder = {
   order_number: string;
@@ -96,7 +97,7 @@ function cardTile(page: PDFPage, card: TarotCard, index: number, x: number, y: n
   page.drawText('CHAMA SOFIA', { x: x + 15, y: y + 17, font: bold, size: 6.5, color: C.goldSoft });
 }
 
-export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], reading: Reading, brandLogoBytes?: Uint8Array) {
+export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], reading: Reading, brandLogoBytes?: Uint8Array, astrology?: AstroTarotLayer | null) {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Leitura de Tarot \u00b7 ${order.order_number}`);
   pdf.setAuthor('Chama Sofia');
@@ -146,6 +147,24 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
   map.drawText('PRIMEIRA S\u00cdNTESE', { x: 57, y: 196, font: bold, size: 7, color: C.gold });
   textBlock(map, reading.summary, 57, 173, 480, regular, 9.5, C.cream, 14.5);
   map.drawText('Os indicadores acima s\u00e3o simb\u00f3licos: organizam visualmente os temas das cartas e n\u00e3o medem fatos objetivos.', { x: 57, y: 116, font: regular, size: 6.5, color: C.muted });
+
+  if (astrology) {
+    const astro = pdf.addPage(PAGE);
+    background(astro); header(astro, bold, logo);
+    astro.drawText('Seu céu + suas cartas', { x:40, y:735, font:bold, size:28, color:C.cream });
+    astro.drawText('Mapa Astral Express e trânsitos do momento integrados ao Tarot.', { x:40, y:709, font:regular, size:9, color:C.muted });
+    panel(astro,40,605,515,70,C.panel);
+    astro.drawText('NASCIMENTO', { x:57, y:650, font:bold, size:7, color:C.gold });
+    textBlock(astro, `${astrology.birth.date} · ${astrology.birth.time} · ${astrology.birth.resolvedPlace}`, 57,630,480,regular,9,C.cream,13);
+    const natalItems=[['SOL',astrology.natal.sun?.sign],['LUA',astrology.natal.moon?.sign],['ASCENDENTE',astrology.natal.ascendantSign]] as const;
+    natalItems.forEach(([label,value],index)=>{ panel(astro,40+index*178,515,159,62,C.panel2); astro.drawText(label,{x:54+index*178,y:554,font:bold,size:6.5,color:C.gold}); astro.drawText(value||'—',{x:54+index*178,y:532,font:bold,size:15,color:C.cream}); });
+    panel(astro,40,330,515,150,C.panel); astro.drawText('O CÉU DO MOMENTO', {x:57,y:452,font:bold,size:7,color:C.gold});
+    let y=428; astrology.current.highlights.slice(0,3).forEach((item)=>{ astro.drawText(`${item.transitPlanet} · ${item.aspectType} · ${item.natalPlanet}`,{x:57,y,font:bold,size:8,color:C.goldSoft}); y=textBlock(astro,item.meaning,57,y-15,478,regular,8.3,C.cream,12)-8; });
+    panel(astro,40,188,515,112,rgb(0.105,0.045,0.12)); astro.drawText('ASTRO + TAROT', {x:57,y:274,font:bold,size:7,color:C.goldSoft});
+    textBlock(astro,astrology.cardsBridge,57,250,478,regular,9,C.cream,13.5);
+    panel(astro,40,72,515,86,rgb(0.13,0.05,0.10)); astro.drawText('ORIENTAÇÃO', {x:57,y:133,font:bold,size:7,color:C.goldSoft});
+    textBlock(astro,astrology.solution.steps.map(step=>`${step.title}: ${step.text}`).join('  '),57,112,478,regular,7.8,C.cream,11);
+  }
 
   reading.cardReadings.forEach((item, index) => {
     const card = cards[index];
