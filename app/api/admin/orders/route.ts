@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%')`;
   const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%')`;
 
-  const [ordersResult, totals, today, events, funnel, paidTraffic, pricing] = await Promise.all([
+  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, campaignOrderRows, pricing] = await Promise.all([
     getD1()
       .prepare(
         "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test FROM orders ORDER BY id DESC LIMIT 100",
@@ -65,6 +65,30 @@ export async function GET(request: Request) {
         `SELECT COUNT(DISTINCT ${actor}) AS sessions FROM analytics_events WHERE ${nonTestEvent} AND event_name IN ('landing_view','onboarding_started') AND ${paidEvent}`,
       )
       .first<{ sessions: number }>(),
+    getD1()
+      .prepare(
+        `SELECT
+          LOWER(COALESCE(NULLIF(json_extract(metadata_json,'$.utm_source'),''),CASE WHEN COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' THEN 'meta' ELSE 'pago' END)) AS source,
+          COALESCE(NULLIF(json_extract(metadata_json,'$.utm_campaign'),''),'sem campanha') AS campaign,
+          COUNT(DISTINCT CASE WHEN event_name IN ('landing_view','onboarding_started') THEN ${actor} END) AS sessions,
+          COUNT(DISTINCT CASE WHEN event_name IN ('offer_view','offer_viewed') THEN ${actor} END) AS offers,
+          COUNT(DISTINCT CASE WHEN event_name='pix_generated' THEN ${actor} END) AS pix
+         FROM analytics_events
+         WHERE ${nonTestEvent} AND ${paidEvent}
+         GROUP BY source,campaign ORDER BY sessions DESC LIMIT 20`,
+      )
+      .all<Record<string, unknown>>(),
+    getD1()
+      .prepare(
+        `SELECT
+          LOWER(COALESCE(NULLIF(utm_source,''),CASE WHEN COALESCE(fbclid,'')<>'' THEN 'meta' ELSE 'pago' END)) AS source,
+          COALESCE(NULLIF(utm_campaign,''),'sem campanha') AS campaign,
+          SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS sales,
+          SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN price ELSE 0 END) AS revenue
+         FROM orders WHERE COALESCE(is_test,0)=0 AND ${paidOrder}
+         GROUP BY source,campaign ORDER BY sales DESC LIMIT 20`,
+      )
+      .all<Record<string, unknown>>(),
     getCurrentPrice(),
   ]);
 
@@ -75,6 +99,28 @@ export async function GET(request: Request) {
   const paidSessions = Number(paidTraffic?.sessions || 0);
   const sessions = Number(funnel?.sessions || 0);
   const eventCounts = Object.fromEntries(events.results.map((item) => [item.event_name, Number(item.count)]));
+  const campaignMap = new Map<string, { source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number }>();
+  for (const raw of campaignEventRows.results) {
+    const source = String(raw.source || "pago");
+    const campaign = String(raw.campaign || "sem campanha");
+    campaignMap.set(`${source}::${campaign}`, {
+      source, campaign, sessions:Number(raw.sessions || 0), offers:Number(raw.offers || 0),
+      pix:Number(raw.pix || 0), sales:0, revenue:0,
+    });
+  }
+  for (const raw of campaignOrderRows.results) {
+    const source = String(raw.source || "pago");
+    const campaign = String(raw.campaign || "sem campanha");
+    const key = `${source}::${campaign}`;
+    const row = campaignMap.get(key) || { source, campaign, sessions:0, offers:0, pix:0, sales:0, revenue:0 };
+    row.sales = Number(raw.sales || 0);
+    row.revenue = Number(raw.revenue || 0);
+    campaignMap.set(key, row);
+  }
+  const campaigns = Array.from(campaignMap.values())
+    .map((row) => ({ ...row, conversion: row.sessions ? row.sales / row.sessions : 0 }))
+    .sort((a, b) => b.revenue - a.revenue || b.sessions - a.sessions)
+    .slice(0, 20);
 
   return Response.json(
     {
@@ -94,6 +140,7 @@ export async function GET(request: Request) {
           paidRevenue,
           paidConversion: paidSessions ? paidSales / paidSessions : 0,
         },
+        campaigns,
         funnel: {
           sessions,
           started: Number(funnel?.started || 0),

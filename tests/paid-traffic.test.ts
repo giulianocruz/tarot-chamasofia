@@ -3,12 +3,13 @@ import test from "node:test";
 import { consultationUrl, shouldUseConsulta } from "../lib/paid-traffic.ts";
 import { analyticsMetadata, normalizeTestFlag } from "../lib/analytics-context.ts";
 
-test("encaminha apenas marcadores seguros de tráfego Meta", () => {
+test("encaminha tráfego pago conhecido para a consulta", () => {
   assert.equal(shouldUseConsulta({ utm_source: "meta" }), true);
   assert.equal(shouldUseConsulta({ utm_source: "Instagram" }), true);
   assert.equal(shouldUseConsulta({ fbclid: "abc123" }), true);
   assert.equal(shouldUseConsulta({ meta: "paid" }), true);
-  assert.equal(shouldUseConsulta({ utm_source: "newsletter" }), false);
+  assert.equal(shouldUseConsulta({ utm_source: "google", utm_medium: "cpc" }), true);
+  assert.equal(shouldUseConsulta({ utm_source: "newsletter", utm_medium: "email" }), false);
   assert.equal(shouldUseConsulta({}), false);
 });
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import ConsultaClient from './consulta-client';
+import { shouldUseConsulta, type SearchParams } from '@/lib/paid-traffic';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -8,4 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: '/consulta' },
   robots: { index: false, follow: true },
 };
-export default function ConsultaPage(){ return <ConsultaClient />; }
+
+export default async function ConsultaPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  return <ConsultaClient paidTraffic={shouldUseConsulta(params)} />;
+}

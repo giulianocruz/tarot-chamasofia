@@ -97,8 +97,8 @@ function emitEvent(
   });
 }
 
-export default function ConsultaClient() {
-  const [step, setStep] = useState(0);
+export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: boolean }) {
+  const [step, setStep] = useState(paidTraffic ? 1 : 0);
   const [category, setCategory] = useState("");
   const [question, setQuestion] = useState("");
   const [selected, setSelected] = useState<string[]>([]);

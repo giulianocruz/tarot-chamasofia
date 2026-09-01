@@ -9,7 +9,10 @@ export function shouldUseConsulta(searchParams: SearchParams) {
   if (first(searchParams.fbclid).trim()) return true;
 
   const source = first(searchParams.utm_source).trim().toLowerCase();
-  if (["meta", "facebook", "instagram", "fb", "ig"].includes(source)) return true;
+  if (["meta", "facebook", "instagram", "fb", "ig", "google", "youtube", "tiktok", "bing"].includes(source)) return true;
+
+  const medium = first(searchParams.utm_medium).trim().toLowerCase();
+  if (["cpc", "ppc", "paid", "paid_social", "paid-social", "display"].some((marker) => medium.includes(marker))) return true;
 
   const metaMarker = first(searchParams.meta).trim().toLowerCase();
   return ["1", "true", "ads", "paid"].includes(metaMarker);

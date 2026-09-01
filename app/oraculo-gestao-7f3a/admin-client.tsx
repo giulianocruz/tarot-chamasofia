@@ -30,6 +30,7 @@ type Data = {
     conversion: number;
     pricing: { formatted: string; remaining: number | null };
     traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
+    campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
     funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; offers:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
@@ -204,6 +205,27 @@ export default function AdminClient() {
         <b>→</b><div><span>Pagaram</span><strong>{d.funnel.paid}</strong></div>
       </section>
       <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
+      <section className="orders-panel campaign-panel">
+        <div className="panel-title">
+          <h2>Resultado por campanha paga</h2>
+          <span>UTM/origem · testes excluídos</span>
+        </div>
+        {d.campaigns.length === 0 ? (
+          <p className="campaign-empty">Ainda não há sessões pagas atribuídas nesta base.</p>
+        ) : (
+          <div className="table-wrap"><table><thead><tr>
+            <th>Origem</th><th>Campanha</th><th>Sessões</th><th>Oferta</th><th>Pix</th><th>Vendas</th><th>Conversão</th><th>Faturamento</th>
+          </tr></thead><tbody>
+            {d.campaigns.map((campaign) => (
+              <tr key={`${campaign.source}:${campaign.campaign}`}>
+                <td><strong>{campaign.source}</strong></td><td>{campaign.campaign}</td>
+                <td>{campaign.sessions}</td><td>{campaign.offers}</td><td>{campaign.pix}</td><td>{campaign.sales}</td>
+                <td>{(campaign.conversion * 100).toFixed(1)}%</td><td><strong>{money(campaign.revenue)}</strong></td>
+              </tr>
+            ))}
+          </tbody></table></div>
+        )}
+      </section>
       <section className="orders-panel">
         <div className="panel-title">
           <h2>Pedidos recentes</h2>
