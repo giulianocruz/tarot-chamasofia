@@ -275,11 +275,9 @@ export default function LandingClient() {
         <h2>Sua leitura em poucos minutos</h2>
         <div className="step-grid">
           {[
-            ["01", "Faça sua pergunta"],
-            ["02", "Realize o Pix"],
-            ["03", "Revele suas 3 cartas"],
-            ["04", "Receba sua interpretação"],
-            ["05", "Receba por e-mail ou WhatsApp"],
+            ["01", "Escolha seu tema"],
+            ["02", "Revele 3 cartas"],
+            ["03", "Receba sua leitura"],
           ].map(([n, label]) => (
             <div className="step" key={n}>
               <span>{n}</span>
