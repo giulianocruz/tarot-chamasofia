@@ -9,6 +9,8 @@ test("encaminha tráfego pago conhecido para a consulta", () => {
   assert.equal(shouldUseConsulta({ fbclid: "abc123" }), true);
   assert.equal(shouldUseConsulta({ meta: "paid" }), true);
   assert.equal(shouldUseConsulta({ utm_source: "google", utm_medium: "cpc" }), true);
+  assert.equal(shouldUseConsulta({ utm_source: "tiktok", utm_medium: "social" }), true);
+  assert.equal(shouldUseConsulta({ utm_source: "partner", utm_medium: "display" }), true);
   assert.equal(shouldUseConsulta({ utm_source: "newsletter", utm_medium: "email" }), false);
   assert.equal(shouldUseConsulta({}), false);
 });
