@@ -13,33 +13,69 @@ export async function GET(request: Request) {
   if (!(await isAdmin(request)))
     return Response.json({ error: "Não autorizado." }, { status: 401 });
   await ensureSchema();
-  const [ordersResult, totals, today, events, pricing] = await Promise.all([
+
+  const nonTestEvent = `COALESCE(LOWER(CAST(json_extract(metadata_json,'$.is_test') AS TEXT)),'0') NOT IN ('1','true','yes','sim')`;
+  const actor = `COALESCE(NULLIF(json_extract(metadata_json,'$.session_id'),''),NULLIF(anonymous_id,''),'event:'||id)`;
+  const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%')`;
+  const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%')`;
+
+  const [ordersResult, totals, today, events, funnel, paidTraffic, pricing] = await Promise.all([
     getD1()
       .prepare(
-        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name FROM orders ORDER BY id DESC LIMIT 100",
+        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test FROM orders ORDER BY id DESC LIMIT 100",
       )
       .all(),
     getD1()
       .prepare(
-        "SELECT COUNT(*) AS total,SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS sales,SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN price ELSE 0 END) AS revenue,SUM(CASE WHEN payment_status='pending' THEN 1 ELSE 0 END) AS pending,SUM(CASE WHEN reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS generated FROM orders",
+        `SELECT COUNT(*) AS total,
+          SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS sales,
+          SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN price ELSE 0 END) AS revenue,
+          SUM(CASE WHEN payment_status='pending' THEN 1 ELSE 0 END) AS pending,
+          SUM(CASE WHEN reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS generated,
+          SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN 1 ELSE 0 END) AS paid_sales,
+          SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN price ELSE 0 END) AS paid_revenue
+         FROM orders WHERE COALESCE(is_test,0)=0`,
       )
       .first<Record<string, number>>(),
     getD1()
       .prepare(
-        "SELECT COUNT(*) AS sales FROM orders WHERE (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND date(paid_at)=date('now')",
+        "SELECT COUNT(*) AS sales FROM orders WHERE COALESCE(is_test,0)=0 AND (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND date(paid_at)=date('now')",
       )
       .first<{ sales: number }>(),
     getD1()
       .prepare(
-        "SELECT event_name,COUNT(DISTINCT COALESCE(NULLIF(anonymous_id,''),'order:'||order_id,'event:'||id)) AS count FROM analytics_events GROUP BY event_name",
+        `SELECT event_name,COUNT(DISTINCT ${actor}) AS count FROM analytics_events WHERE ${nonTestEvent} GROUP BY event_name`,
       )
       .all<{ event_name: string; count: number }>(),
+    getD1()
+      .prepare(
+        `SELECT
+          COUNT(DISTINCT CASE WHEN event_name IN ('landing_view','onboarding_started') THEN ${actor} END) AS sessions,
+          COUNT(DISTINCT CASE WHEN event_name IN ('tarot_started','onboarding_started') THEN ${actor} END) AS started,
+          COUNT(DISTINCT CASE WHEN event_name='category_selected' THEN ${actor} END) AS categories,
+          COUNT(DISTINCT CASE WHEN event_name IN ('question_completed','question_written') THEN ${actor} END) AS questions,
+          COUNT(DISTINCT CASE WHEN event_name IN ('cards_selected','reading_preview') THEN ${actor} END) AS cards,
+          COUNT(DISTINCT CASE WHEN event_name IN ('offer_view','offer_viewed') THEN ${actor} END) AS offers,
+          COUNT(DISTINCT CASE WHEN event_name='pix_generated' THEN ${actor} END) AS pix
+         FROM analytics_events WHERE ${nonTestEvent}`,
+      )
+      .first<Record<string, number>>(),
+    getD1()
+      .prepare(
+        `SELECT COUNT(DISTINCT ${actor}) AS sessions FROM analytics_events WHERE ${nonTestEvent} AND event_name IN ('landing_view','onboarding_started') AND ${paidEvent}`,
+      )
+      .first<{ sessions: number }>(),
     getCurrentPrice(),
   ]);
+
   const totalSales = Number(totals?.sales || 0);
   const revenue = Number(totals?.revenue || 0);
+  const paidSales = Number(totals?.paid_sales || 0);
+  const paidRevenue = Number(totals?.paid_revenue || 0);
+  const paidSessions = Number(paidTraffic?.sessions || 0);
+  const sessions = Number(funnel?.sessions || 0);
   const eventCounts = Object.fromEntries(events.results.map((item) => [item.event_name, Number(item.count)]));
-  const views = Number(eventCounts.landing_view || 0);
+
   return Response.json(
     {
       orders: ordersResult.results,
@@ -50,21 +86,29 @@ export async function GET(request: Request) {
         averageTicket: totalSales ? Math.round(revenue / totalSales) : 0,
         pending: Number(totals?.pending || 0),
         generated: Number(totals?.generated || 0),
-        conversion: views ? totalSales / views : 0,
+        conversion: sessions ? totalSales / sessions : 0,
         pricing,
+        traffic: {
+          paidSessions,
+          paidSales,
+          paidRevenue,
+          paidConversion: paidSessions ? paidSales / paidSessions : 0,
+        },
         funnel: {
-          sessions: views,
-          started: Number(eventCounts.tarot_started || eventCounts.start_question || 0),
-          questions: Number(eventCounts.question_completed || 0),
-          offers: Number(eventCounts.offer_view || 0),
-          pix: Number(eventCounts.pix_generated || 0),
+          sessions,
+          started: Number(funnel?.started || 0),
+          categories: Number(funnel?.categories || 0),
+          questions: Number(funnel?.questions || 0),
+          cards: Number(funnel?.cards || 0),
+          offers: Number(funnel?.offers || 0),
+          pix: Number(funnel?.pix || 0),
           paid: totalSales,
         },
         behavior: {
           depth25: Number(eventCounts.scroll_depth_25 || 0), depth50: Number(eventCounts.scroll_depth_50 || 0),
           depth75: Number(eventCounts.scroll_depth_75 || 0), depth90: Number(eventCounts.scroll_depth_90 || 0),
           faqOpened: Number(eventCounts.faq_open || 0), contactClicks: Number(eventCounts.contact_click || 0),
-          exits: Number(eventCounts.page_exit || 0), step2: Number(eventCounts.form_step_view || 0),
+          exits: Number(eventCounts.page_exit || 0), step2: Number(eventCounts.category_selected || eventCounts.form_step_view || 0),
         },
       },
     },

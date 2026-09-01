@@ -29,7 +29,8 @@ type Data = {
     generated: number;
     conversion: number;
     pricing: { formatted: string; remaining: number | null };
-    funnel: { sessions:number; started:number; questions:number; offers:number; pix:number; paid:number };
+    traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
+    funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; offers:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
 };
@@ -164,6 +165,10 @@ export default function AdminClient() {
         {[
           ["Vendas hoje", d.salesToday],
           ["Vendas totais", d.totalSales],
+          ["Sessões de anúncios", d.traffic.paidSessions],
+          ["Vendas de anúncios", d.traffic.paidSales],
+          ["Conversão anúncios", `${(d.traffic.paidConversion * 100).toFixed(1)}%`],
+          ["Faturamento anúncios", money(d.traffic.paidRevenue)],
           ["Faturamento", money(d.revenue)],
           ["Ticket médio", money(d.averageTicket)],
           ["Preço atual", d.pricing.formatted],
@@ -183,7 +188,7 @@ export default function AdminClient() {
         <div className="behavior-grid">
           <div><span>Chegaram a 25%</span><strong>{d.behavior.depth25}</strong></div><div><span>Chegaram a 50%</span><strong>{d.behavior.depth50}</strong></div>
           <div><span>Chegaram a 75%</span><strong>{d.behavior.depth75}</strong></div><div><span>Chegaram a 90%</span><strong>{d.behavior.depth90}</strong></div>
-          <div><span>Avançaram no formulário</span><strong>{d.behavior.step2}</strong></div><div><span>Abriram FAQ</span><strong>{d.behavior.faqOpened}</strong></div>
+          <div><span>Escolheram um tema</span><strong>{d.behavior.step2}</strong></div><div><span>Abriram FAQ</span><strong>{d.behavior.faqOpened}</strong></div>
           <div><span>Clicaram no suporte</span><strong>{d.behavior.contactClicks}</strong></div><div><span>Saíram da página</span><strong>{d.behavior.exits}</strong></div>
         </div>
         <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulário ou objeção antes do pagamento.</p>
@@ -191,11 +196,14 @@ export default function AdminClient() {
       <section className="funnel-panel">
         <div><span>Sessões</span><strong>{d.funnel.sessions}</strong></div>
         <b>→</b><div><span>Iniciaram</span><strong>{d.funnel.started}</strong></div>
+        <b>→</b><div><span>Tema</span><strong>{d.funnel.categories}</strong></div>
         <b>→</b><div><span>Pergunta</span><strong>{d.funnel.questions}</strong></div>
+        <b>→</b><div><span>Cartas</span><strong>{d.funnel.cards}</strong></div>
         <b>→</b><div><span>Viram oferta</span><strong>{d.funnel.offers}</strong></div>
         <b>→</b><div><span>Geraram Pix</span><strong>{d.funnel.pix}</strong></div>
         <b>→</b><div><span>Pagaram</span><strong>{d.funnel.paid}</strong></div>
       </section>
+      <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
       <section className="orders-panel">
         <div className="panel-title">
           <h2>Pedidos recentes</h2>

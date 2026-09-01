@@ -14,6 +14,29 @@ const CATEGORY_MAP = [
   ["Decisões", "◉", "Decisão importante"],
 ] as const;
 
+const QUESTION_PRESETS: Record<string, string[]> = {
+  "Amor e relacionamentos": [
+    "O que preciso compreender sobre esta relação agora?",
+    "Qual é a tendência entre nós neste momento?",
+    "O que está impedindo minha vida amorosa de avançar?",
+  ],
+  Dinheiro: [
+    "O que preciso compreender sobre minha vida financeira agora?",
+    "Qual caminho pode favorecer minhas finanças?",
+    "O que está bloqueando minha prosperidade neste momento?",
+  ],
+  "Trabalho e carreira": [
+    "O que preciso compreender sobre minha carreira agora?",
+    "Qual caminho profissional tende a ser mais favorável?",
+    "O que está impedindo meu crescimento profissional?",
+  ],
+  Decisões: [
+    "O que preciso enxergar antes de tomar esta decisão?",
+    "Qual caminho tende a ser mais favorável para mim?",
+    "O que ainda não estou considerando nesta escolha?",
+  ],
+};
+
 const publicDeck = MAJOR_ARCANA.slice(0, 7);
 const sentEventKeys = new Set<string>();
 
@@ -88,6 +111,7 @@ export default function ConsultaClient() {
   const categoryRef = useRef("");
 
   const cards = useMemo(() => getCards(selected), [selected]);
+  const questionPresets = QUESTION_PRESETS[category] ?? [];
   const preview = useMemo(() => {
     if (cards.length !== 3 || !category) return "";
     return createReading(question, category as Category, cards).cardReadings[0].text;
@@ -99,6 +123,7 @@ export default function ConsultaClient() {
       .then(setPrice)
       .catch(() => undefined);
     emitEvent("onboarding_started");
+    window.setTimeout(() => setEmail(localStorage.getItem("cs_email") || ""), 0);
 
     const abandon = () => {
       if (completedRef.current) return;
@@ -126,6 +151,16 @@ export default function ConsultaClient() {
     go(2);
   }
 
+  function chooseQuestion(value: string) {
+    setQuestion(value);
+    emitEvent(
+      "question_written",
+      { category, length: value.length, mode: "preset" },
+      { dedupe: value },
+    );
+    go(3);
+  }
+
   function saveQuestion() {
     const cleanQuestion = question.trim();
     if (cleanQuestion.length < 10) {
@@ -134,7 +169,7 @@ export default function ConsultaClient() {
     }
     emitEvent(
       "question_written",
-      { category, length: cleanQuestion.length },
+      { category, length: cleanQuestion.length, mode: "custom" },
       { dedupe: cleanQuestion },
     );
     go(3);
@@ -179,6 +214,7 @@ export default function ConsultaClient() {
 
     setLoading(true);
     const context = readAnalyticsContext();
+    localStorage.setItem("cs_email", email.trim());
     emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL" });
     try {
       const response = await fetch("/api/orders", {
@@ -242,11 +278,19 @@ export default function ConsultaClient() {
           <div className="consult-step">
             <p className="consult-progress">2 de 5</p>
             <button className="consult-back" onClick={() => go(1)}>← voltar</button>
-            <h2>Qual pergunta você quer levar às cartas?</h2>
-            <p className="consult-muted">Uma frase curta é suficiente. Sua pergunta orientará a interpretação.</p>
-            <textarea autoFocus maxLength={240} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ex.: O que preciso compreender sobre esta relação agora?" />
-            <small>{question.length}/240</small>
-            <button className="primary-button" onClick={saveQuestion}>CONTINUAR <span>→</span></button>
+            <h2>Escolha uma pergunta pronta</h2>
+            <p className="consult-muted">Um toque é suficiente. Se preferir, você também pode escrever com suas palavras.</p>
+            <div className="consult-question-options">
+              {questionPresets.map((preset) => (
+                <button type="button" key={preset} onClick={() => chooseQuestion(preset)}>{preset}</button>
+              ))}
+            </div>
+            <details className="consult-custom-question" open={question !== "" && !questionPresets.includes(question)}>
+              <summary>Quero escrever minha própria pergunta</summary>
+              <textarea maxLength={240} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ex.: O que preciso compreender sobre esta relação agora?" />
+              <small>{question.length}/240</small>
+              <button className="primary-button" onClick={saveQuestion}>CONTINUAR <span>→</span></button>
+            </details>
           </div>
         )}
 
