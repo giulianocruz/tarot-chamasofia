@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORIES } from "@/lib/tarot";
+import { BOOK_CATALOG, discountPercent, formatBookPrice } from "@/lib/book-catalog";
 
 type Price = {
   cents: number;
@@ -233,15 +234,14 @@ export default function LandingClient() {
         <div className="stars" aria-hidden="true">
           ✦ · ✧ · ✦
         </div>
-        <p className="eyebrow">Livro digital + experiência personalizada</p>
+        <p className="eyebrow">Tarot online + Biblioteca Chama Sofia</p>
         <h1>
           COMECE SUA JORNADA
           <br />
           PELO TAROT
         </h1>
         <p className="hero-copy">
-          Leve o livro Tarot para Iniciantes, com 276 páginas, e receba de
-          presente uma leitura personalizada de 3 cartas.
+          Escolha 3 cartas, receba sua interpretação completa e tenha o acesso enviado por e-mail ou WhatsApp. O Tarot para Iniciantes acompanha como bônus.
         </p>
         <p className="bonus-line">
           <span>✦</span> Bônus incluso: interpretação e PDF da sua leitura.
@@ -251,7 +251,7 @@ export default function LandingClient() {
           QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
         </button>
         <p className="secure-note">
-          Pagamento via Pix · Resultado privado · Sem cadastro
+          Pix seguro · Resultado privado · Receba por e-mail ou WhatsApp
         </p>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
@@ -279,7 +279,7 @@ export default function LandingClient() {
             ["02", "Realize o Pix"],
             ["03", "Revele suas 3 cartas"],
             ["04", "Receba sua interpretação"],
-            ["05", "Baixe o PDF e o e-book"],
+            ["05", "Receba por e-mail ou WhatsApp"],
           ].map(([n, label]) => (
             <div className="step" key={n}>
               <span>{n}</span>
@@ -496,7 +496,7 @@ export default function LandingClient() {
           ],
           [
             "Quando recebo minha leitura?",
-            "Depois da confirmação do Pix no sistema, as três cartas são sorteadas e a leitura é liberada na sua URL privada.",
+            "Depois da confirmação do Pix, a leitura é liberada no seu link privado e enviada pelo canal que você escolher: e-mail ou WhatsApp.",
           ],
           [
             "As cartas podem se repetir?",
@@ -520,15 +520,24 @@ export default function LandingClient() {
           </details>
         ))}
       </section>
-      <section className="collection" data-reveal>
-        <p className="eyebrow">Coleção Chama Sofia</p>
-        <h2>A jornada está apenas começando</h2>
-        <p>O Tarot é o primeiro volume desta experiência. Conheça os próximos títulos da coleção, sem sair do seu caminho de compra.</p>
-        <div className="collection-grid">
-          <article className="available"><img src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="Capa Tarot para Iniciantes" loading="lazy" /><h3>Tarot para Iniciantes</h3><span>Disponível agora</span></article>
-          <article><img src="/assets/books/pomba-gira.jpg" alt="Capa do livro Pomba Gira" loading="lazy" /><h3>Pomba Gira</h3><span>Coleção Chama Sofia</span></article>
-          <article><img src="/assets/books/preto-velho.jpg" alt="Capa do livro Preto Velho" loading="lazy" /><h3>Preto Velho</h3><span>Coleção Chama Sofia</span></article>
+      <section className="collection premium-library" data-reveal>
+        <p className="eyebrow">Biblioteca Chama Sofia</p>
+        <h2>Conhecimento para continuar sua jornada</h2>
+        <p>Além da leitura, você pode conhecer as edições digitais da SofIA Labs. Na consulta, o Tarot para Iniciantes continua incluído como bônus.</p>
+        <div className="collection-grid library-grid">
+          {BOOK_CATALOG.map((book) => (
+            <article className="available library-book-card" key={book.slug}>
+              <img src={book.cover} alt={`Capa ${book.title}`} loading="lazy" />
+              <div>
+                {book.badge && <span className="ebook-badge">{book.badge}</span>}
+                <h3>{book.shortTitle}</h3>
+                <p className="library-price"><del>{formatBookPrice(book.originalCents)}</del><strong>{formatBookPrice(book.promoCents)}</strong></p>
+                <span>{discountPercent(book)}% OFF na oferta da consulta</span>
+              </div>
+            </article>
+          ))}
         </div>
+        <p className="library-note">Oferta opcional. Nada é adicionado automaticamente ao seu pedido.</p>
       </section>
       <section className="final-cta">
         <span>✦</span>

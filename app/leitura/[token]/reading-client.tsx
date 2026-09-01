@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getBook } from "@/lib/book-catalog";
 
 type Card = {
   id: string;
@@ -36,6 +37,9 @@ type Order = {
   pixPayload: string;
   paymentStatus: string;
   readingStatus: string;
+  offerCode?: string | null;
+  productSlug?: string | null;
+  deliveryChannel?: string | null;
   createdAt: string;
   cards: Card[] | null;
   reading: Reading | null;
@@ -86,8 +90,8 @@ export default function ReadingClient({ token }: { token: string }) {
   useEffect(() => {
     if (
       !order ||
-      !order.reading ||
-      !["paid", "reading_generated", "delivered"].includes(order.paymentStatus)
+      !["paid", "reading_generated", "delivered"].includes(order.paymentStatus) ||
+      (order.offerCode !== "ebook" && !order.reading)
     )
       return;
     const key = `cs_purchase_${order.orderNumber}`;
@@ -171,6 +175,22 @@ export default function ReadingClient({ token }: { token: string }) {
         <p>Preparando seu espaço...</p>
       </main>
     );
+  const ebookBook = order.offerCode === "ebook" ? getBook(order.productSlug) : undefined;
+  const orderPaid = ["paid", "reading_generated", "delivered"].includes(order.paymentStatus);
+  if (ebookBook && orderPaid)
+    return (
+      <main className="reading-shell ebook-release-shell">
+        <header className="reading-header"><Link className="brand" href="/"><span className="brand-mark">✦</span><span>CHAMA SOFIA</span></Link><span>Pedido {order.orderNumber}</span></header>
+        <section className="ebook-release-card">
+          <div className="ebook-release-cover"><img src={ebookBook.cover} alt={`Capa ${ebookBook.title}`} /></div>
+          <div><p className="eyebrow">Pagamento confirmado ✨</p><h1>Seu e-book está liberado.</h1>
+            <h2>{ebookBook.title}</h2><p>Seu acesso é privado e está vinculado a este pedido.</p>
+            <a className="primary-button" href={`/api/ebook/${token}/${ebookBook.slug}`}>BAIXAR MEU E-BOOK <span>⇩</span></a>
+            <small>Se escolheu WhatsApp, o agente também envia este acesso automaticamente.</small>
+          </div>
+        </section>
+      </main>
+    );
   const released = Boolean(order.reading && order.cards);
   if (!released)
     return (
@@ -183,10 +203,10 @@ export default function ReadingClient({ token }: { token: string }) {
           <span>Pedido {order.orderNumber}</span>
         </header>
         <section className="checkout-card">
-          <p className="eyebrow">Sua leitura está reservada</p>
-          <h1>Conclua o Pix para receber seu livro e sua leitura</h1>
+          <p className="eyebrow">{ebookBook ? "Seu e-book está reservado" : "Sua leitura está reservada"}</p>
+          <h1>{ebookBook ? "Conclua o Pix para liberar seu e-book" : "Conclua o Pix para receber seu livro e sua leitura"}</h1>
           <div className="order-summary">
-            <span>Tarot para Iniciantes + leitura bônus</span>
+            <span>{ebookBook ? ebookBook.title : "Tarot para Iniciantes + leitura bônus"}</span>
             <strong>{formatBRL(order.price)}</strong>
           </div>
           {order.pixPayload ? (

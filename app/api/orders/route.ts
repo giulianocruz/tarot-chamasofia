@@ -17,6 +17,7 @@ import {
   type AnalyticsContext,
 } from "@/lib/analytics-context";
 import { consultationPrice } from "@/lib/pricing";
+import { formatBookPrice, getBook } from "@/lib/book-catalog";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {
@@ -45,15 +46,22 @@ export async function POST(request: Request) {
   const selectedCards =
     cardIds.length === 3 && new Set(cardIds).size === 3 ? getCards(cardIds) : [];
   const offer = cleanText(body.offer || body.offerCode, 40);
+  const requestedBook = offer === "ebook" ? getBook(cleanText(body.productSlug, 40)) : undefined;
+  const deliveryChannel = cleanText(body.deliveryChannel, 20) === "whatsapp" ? "whatsapp" : "email";
   const isConsultaOffer = ["consulta", "consulta-990"].includes(offer) && selectedCards.length === 3;
+  const isEbookOffer = offer === "ebook" && Boolean(requestedBook);
+  const orderCategory = isEbookOffer ? "Biblioteca" : category;
+  const orderQuestion = isEbookOffer && requestedBook ? `Compra de e-book: ${requestedBook.title}` : question;
 
+  const whatsappDigits = whatsapp.replace(/\D/g, "");
   if (
     name.length < 2 ||
-    question.length < 10 ||
-    !CATEGORIES.includes(category) ||
+    (!isEbookOffer && (question.length < 10 || !CATEGORIES.includes(category))) ||
     (!email && !whatsapp) ||
+    (deliveryChannel === "whatsapp" && whatsappDigits.length < 10) ||
     (cardIds.length > 0 && selectedCards.length !== 3) ||
-    (["consulta", "consulta-990"].includes(offer) && !isConsultaOffer)
+    (["consulta", "consulta-990"].includes(offer) && !isConsultaOffer) ||
+    (offer === "ebook" && !requestedBook)
   ) {
     return Response.json(
       { error: "Confira contato, tema, pergunta e cartas." },
@@ -70,7 +78,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Informe um e-mail válido." }, { status: 400 });
   }
 
-  const price = isConsultaOffer ? consultationPrice() : await getCurrentPrice();
+  const price = isEbookOffer && requestedBook
+    ? { cents: requestedBook.promoCents, formatted: formatBookPrice(requestedBook.promoCents) }
+    : isConsultaOffer ? consultationPrice() : await getCurrentPrice();
   const orderNumber = `CS${new Date().toISOString().slice(2, 10).replace(/-/g, "")}${randomToken(5).slice(0, 7).toUpperCase()}`;
   const publicToken = randomToken(32);
   let pixPayload = env.PIX_KEY
@@ -104,7 +114,7 @@ export async function POST(request: Request) {
   await ensureSchema();
   const result = await getD1()
     .prepare(
-      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,anonymous_id,session_id,is_test) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO orders (order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,pix_payload,payment_status,reading_status,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,anonymous_id,session_id,is_test,offer_code,product_slug,delivery_channel) VALUES (?,?,?,?,?,?,?,?,?,'pending','pending',?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .bind(
       orderNumber,
@@ -112,8 +122,8 @@ export async function POST(request: Request) {
       name,
       email || null,
       whatsapp || null,
-      category,
-      question,
+      orderCategory,
+      orderQuestion,
       price.cents,
       pixPayload,
       new Date().toISOString(),
@@ -126,6 +136,9 @@ export async function POST(request: Request) {
       anonymousId || null,
       sessionId || null,
       isTest ? 1 : 0,
+      isEbookOffer ? "ebook" : (isConsultaOffer ? "consulta" : (offer || "legacy")),
+      requestedBook?.slug || null,
+      deliveryChannel,
     )
     .run();
 
@@ -170,7 +183,12 @@ export async function POST(request: Request) {
     "pix_generated",
     Number(result.meta.last_row_id),
     anonymousId,
-    analyticsMetadata(analyticsContext, { price: price.cents }),
+    analyticsMetadata(analyticsContext, {
+      price: price.cents,
+      offer: isEbookOffer ? "ebook" : (isConsultaOffer ? "consulta" : (offer || "legacy")),
+      product_slug: requestedBook?.slug,
+      delivery_channel: deliveryChannel,
+    }),
   );
   return Response.json(
     {

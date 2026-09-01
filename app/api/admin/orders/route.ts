@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, campaignOrderRows, pricing] = await Promise.all([
     getD1()
       .prepare(
-        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test FROM orders ORDER BY id DESC LIMIT 100",
+        "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test,offer_code,product_slug,delivery_channel FROM orders ORDER BY id DESC LIMIT 100",
       )
       .all(),
     getD1()
@@ -31,7 +31,11 @@ export async function GET(request: Request) {
           SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS sales,
           SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN price ELSE 0 END) AS revenue,
           SUM(CASE WHEN payment_status='pending' THEN 1 ELSE 0 END) AS pending,
-          SUM(CASE WHEN reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS generated,
+          SUM(CASE WHEN reading_status IN ('reading_generated','delivered') AND COALESCE(offer_code,'')<>'ebook' THEN 1 ELSE 0 END) AS generated,
+          SUM(CASE WHEN offer_code='ebook' AND (payment_status='paid' OR reading_status='delivered') THEN 1 ELSE 0 END) AS ebook_sales,
+          SUM(CASE WHEN offer_code='ebook' AND (payment_status='paid' OR reading_status='delivered') THEN price ELSE 0 END) AS ebook_revenue,
+          SUM(CASE WHEN delivery_channel='email' THEN 1 ELSE 0 END) AS delivery_email,
+          SUM(CASE WHEN delivery_channel='whatsapp' THEN 1 ELSE 0 END) AS delivery_whatsapp,
           SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN 1 ELSE 0 END) AS paid_sales,
           SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN price ELSE 0 END) AS paid_revenue
          FROM orders WHERE COALESCE(is_test,0)=0`,
@@ -55,6 +59,7 @@ export async function GET(request: Request) {
           COUNT(DISTINCT CASE WHEN event_name='category_selected' THEN ${actor} END) AS categories,
           COUNT(DISTINCT CASE WHEN event_name IN ('question_completed','question_written') THEN ${actor} END) AS questions,
           COUNT(DISTINCT CASE WHEN event_name IN ('cards_selected','reading_preview') THEN ${actor} END) AS cards,
+          COUNT(DISTINCT CASE WHEN event_name='contact_captured' THEN ${actor} END) AS contacts,
           COUNT(DISTINCT CASE WHEN event_name IN ('offer_view','offer_viewed') THEN ${actor} END) AS offers,
           COUNT(DISTINCT CASE WHEN event_name='pix_generated' THEN ${actor} END) AS pix
          FROM analytics_events WHERE ${nonTestEvent}`,
@@ -132,6 +137,8 @@ export async function GET(request: Request) {
         averageTicket: totalSales ? Math.round(revenue / totalSales) : 0,
         pending: Number(totals?.pending || 0),
         generated: Number(totals?.generated || 0),
+        ebooks: { sales: Number(totals?.ebook_sales || 0), revenue: Number(totals?.ebook_revenue || 0), offerViews: Number(eventCounts.ebook_offer_viewed || 0), selected: Number(eventCounts.ebook_selected || 0), checkoutStarted: Number(eventCounts.ebook_checkout_started || 0), purchases: Number(eventCounts.ebook_purchase || 0) },
+        delivery: { email: Number(totals?.delivery_email || 0), whatsapp: Number(totals?.delivery_whatsapp || 0) },
         conversion: sessions ? totalSales / sessions : 0,
         pricing,
         traffic: {
@@ -147,6 +154,7 @@ export async function GET(request: Request) {
           categories: Number(funnel?.categories || 0),
           questions: Number(funnel?.questions || 0),
           cards: Number(funnel?.cards || 0),
+          contacts: Number(funnel?.contacts || 0),
           offers: Number(funnel?.offers || 0),
           pix: Number(funnel?.pix || 0),
           paid: totalSales,

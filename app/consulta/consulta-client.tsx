@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION_KEYS, normalizeTestFlag, type AnalyticsContext } from "@/lib/analytics-context";
 import { createReading } from "@/lib/reading";
 import { getCards, MAJOR_ARCANA, type Category } from "@/lib/tarot";
+import { BOOK_CATALOG, discountPercent, formatBookPrice, type BookOffer } from "@/lib/book-catalog";
 
 type Price = { cents: number; formatted: string };
 
@@ -104,6 +105,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const [selected, setSelected] = useState<string[]>([]);
   const [price, setPrice] = useState<Price>({ cents: 990, formatted: "R$ 9,90" });
   const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp">("email");
+  const [ebookLoading, setEbookLoading] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const stepRef = useRef(0);
@@ -201,46 +205,82 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
   function showOffer() {
     emitEvent("offer_viewed", { value: price.cents / 100, currency: "BRL" });
+    emitEvent("ebook_offer_viewed", { products: BOOK_CATALOG.map((book) => book.slug) });
     go(6);
   }
 
-  async function checkout(event: React.FormEvent) {
-    event.preventDefault();
+  function selectDelivery(channel: "email" | "whatsapp") {
+    setDeliveryChannel(channel);
     setError("");
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Informe um e-mail válido para receber a leitura.");
-      return;
-    }
+    emitEvent("delivery_channel_selected", { channel }, { dedupe: channel });
+  }
 
+  function validateContact() {
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Informe um e-mail válido para gerar o Pix e recuperar seu pedido.");
+      return false;
+    }
+    if (deliveryChannel === "whatsapp" && whatsapp.replace(/\D/g, "").length < 10) {
+      setError("Informe um WhatsApp válido para receber seu acesso.");
+      return false;
+    }
+    localStorage.setItem("cs_email", email.trim());
+    emitEvent("contact_captured", { channel: deliveryChannel }, { dedupe: email.trim().toLowerCase() });
+    return true;
+  }
+
+  async function checkout(event: React.FormEvent) {    event.preventDefault();
+    setError("");
+    if (!validateContact()) return;
     setLoading(true);
     const context = readAnalyticsContext();
-    localStorage.setItem("cs_email", email.trim());
-    emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL" });
+    emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel });
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Consulente",
-          email: email.trim(),
-          whatsapp: "",
-          category,
-          question: question.trim(),
-          cardIds: selected,
-          offer: "consulta",
-          ...context,
+          name: "Consulente", email: email.trim(),
+          whatsapp: deliveryChannel === "whatsapp" ? whatsapp.trim() : "",
+          deliveryChannel, category, question: question.trim(), cardIds: selected,
+          offer: "consulta", ...context,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Não foi possível gerar o Pix.");
       completedRef.current = true;
-      location.href = data.url;
+      window.location.assign(data.url);
     } catch (checkoutError) {
       setLoading(false);
       setError(checkoutError instanceof Error ? checkoutError.message : "Tente novamente.");
     }
   }
 
+  async function checkoutBook(book: BookOffer) {    setError("");
+    if (!validateContact()) return;
+    setEbookLoading(book.slug);
+    const context = readAnalyticsContext();
+    emitEvent("ebook_selected", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL" }, { dedupe: book.slug });
+    emitEvent("ebook_checkout_started", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL", delivery_channel: deliveryChannel });
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Consulente", email: email.trim(),
+          whatsapp: deliveryChannel === "whatsapp" ? whatsapp.trim() : "",
+          deliveryChannel, offer: "ebook", productSlug: book.slug, ...context,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível gerar o Pix.");
+      completedRef.current = true;
+      window.location.assign(data.url);
+    } catch (checkoutError) {
+      setEbookLoading("");
+      setError(checkoutError instanceof Error ? checkoutError.message : "Tente novamente.");
+    }
+  }
   return (
     <main className="consult-shell">
       <section className="consult-card" aria-live="polite">
@@ -355,27 +395,67 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step consult-offer">
             <p className="consult-progress">5 de 5</p>
             <button className="consult-back" onClick={() => go(5)}>← voltar à prévia</button>
-            <h2>Libere sua leitura completa</h2>
-            <p className="consult-muted">Pagamento único. Você recebe tudo logo após a confirmação do Pix.</p>
-            <ul>
-              <li>✓ 3 cartas escolhidas por você</li>
-              <li>✓ interpretação personalizada para sua pergunta</li>
-              <li>✓ PDF da leitura para guardar</li>
-              <li>✓ e-book Tarot para Iniciantes de bônus</li>
-            </ul>
-            <div className="consult-price">
-              <small>VALOR TOTAL NO PIX</small>
-              <strong>{price.formatted}</strong>
-              <span>pagamento único · sem assinatura</span>
+            <p className="eyebrow">Sua leitura está pronta para ser liberada</p>
+            <h2>Receba a leitura completa do jeito que preferir</h2>
+            <p className="consult-muted">Pagamento único via Pix. Sem assinatura e sem cadastro.</p>
+            <div className="consult-offer-summary">
+              <ul>
+                <li>✓ 3 cartas escolhidas por você</li>
+                <li>✓ interpretação personalizada para sua pergunta</li>
+                <li>✓ PDF da leitura para guardar</li>
+                <li>✓ Tarot para Iniciantes de bônus</li>
+              </ul>
+              <div className="consult-price">
+                <small>VALOR TOTAL NO PIX</small>
+                <strong>{price.formatted}</strong>
+                <span>pagamento único · sem assinatura</span>
+              </div>
             </div>
-            <form onSubmit={checkout}>
-              <label>E-mail para receber a leitura<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
+            <form onSubmit={checkout} className="consult-checkout-form">
+              <label>
+                {deliveryChannel === "email" ? "E-mail para receber a leitura" : "E-mail para gerar o Pix e recuperar seu pedido"}
+                <input required type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="voce@email.com" />
+              </label>              <fieldset className="delivery-choice">
+                <legend>Como quer receber?</legend>
+                <button type="button" aria-pressed={deliveryChannel === "email"} className={deliveryChannel === "email" ? "selected" : ""} onClick={() => selectDelivery("email")}>
+                  <span aria-hidden="true">✉</span><b>E-mail</b><small>Mais rápido, sem outro dado</small>
+                </button>
+                <button type="button" aria-pressed={deliveryChannel === "whatsapp"} className={deliveryChannel === "whatsapp" ? "selected" : ""} onClick={() => selectDelivery("whatsapp")}>
+                  <span aria-hidden="true">◉</span><b>WhatsApp</b><small>Receba o link no celular</small>
+                </button>
+              </fieldset>
+              {deliveryChannel === "whatsapp" && (
+                <label>Seu WhatsApp
+                  <input required type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} placeholder="(14) 99999-9999" />
+                </label>
+              )}
               {error && <p className="consult-error">{error}</p>}
-              <button disabled={loading} className="primary-button">
+              <button disabled={loading || ebookLoading !== ""} className="primary-button">
                 {loading ? "GERANDO PIX..." : `LIBERAR MINHA LEITURA — ${price.formatted}`}
               </button>
+              <small className="consult-payment-note">Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
             </form>
-            <small>Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
+
+            <section className="ebook-downsell" aria-labelledby="ebook-offer-title">
+              <span className="ebook-offer-kicker">OFERTA ESPECIAL DA BIBLIOTECA CHAMA SOFIA</span>
+              <h3 id="ebook-offer-title">Ainda não quer liberar a leitura?</h3>
+              <p>Você pode começar por um e-book. Escolha apenas se fizer sentido para você — nada é adicionado automaticamente.</p>              <div className="ebook-offer-grid">
+                {BOOK_CATALOG.map((book) => (
+                  <article className="ebook-offer-card" key={book.slug}>
+                    <img src={book.cover} alt={`Capa ${book.title}`} loading="lazy" />
+                    <div className="ebook-offer-copy">
+                      {book.badge && <span className="ebook-badge">{book.badge}</span>}
+                      <h4>{book.shortTitle}</h4>
+                      <p className="ebook-pricing"><del>{formatBookPrice(book.originalCents)}</del><strong>{formatBookPrice(book.promoCents)}</strong><span>{discountPercent(book)}% OFF</span></p>
+                      <button type="button" disabled={loading || ebookLoading !== ""} onClick={() => void checkoutBook(book)}>
+                        {ebookLoading === book.slug ? "GERANDO PIX..." : `QUERO POR ${formatBookPrice(book.promoCents)}`}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <small>Tarot para Iniciantes custa R$ 9,90 sozinho e continua incluído como brinde na leitura completa.</small>
+            </section>
           </div>
         )}
 

@@ -17,6 +17,9 @@ type Order = {
   paid_at?: string;
   utm_source?: string;
   utm_campaign?: string;
+  offer_code?: string;
+  product_slug?: string;
+  delivery_channel?: string;
 };
 type Data = {
   orders: Order[];
@@ -28,10 +31,12 @@ type Data = {
     pending: number;
     generated: number;
     conversion: number;
+    ebooks: { sales:number; revenue:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number };
+    delivery: { email:number; whatsapp:number };
     pricing: { formatted: string; remaining: number | null };
     traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
-    funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; offers:number; pix:number; paid:number };
+    funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; contacts:number; offers:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
 };
@@ -148,6 +153,11 @@ export default function AdminClient() {
     );
   if (!data) return <main className="admin-login">Carregando...</main>;
   const d = data.dashboard;
+  const funnelStages = [
+    ['Sessões', d.funnel.sessions], ['Tema', d.funnel.categories], ['Pergunta', d.funnel.questions], ['Cartas', d.funnel.cards], ['E-mail/contato', d.funnel.contacts], ['Oferta', d.funnel.offers], ['Pix', d.funnel.pix], ['Pagamento', d.funnel.paid],
+  ] as const;
+  const stageDrops = funnelStages.slice(1).map((stage,index) => { const previous=funnelStages[index][1]; const current=stage[1]; return { from:funnelStages[index][0], to:stage[0], previous, current, rate:previous ? current/previous : 0, drop:previous ? 1-current/previous : 0 }; }).filter((item)=>item.previous>0);
+  const biggestDrop = stageDrops.sort((a,b)=>b.drop-a.drop)[0];
   return (
     <main className="admin-shell">
       <header>
@@ -177,6 +187,10 @@ export default function AdminClient() {
           ["Conversão", `${(d.conversion * 100).toFixed(1)}%`],
           ["Pendentes", d.pending],
           ["Leituras geradas", d.generated],
+          ["E-books vendidos", d.ebooks.sales],
+          ["Receita e-books", money(d.ebooks.revenue)],
+          ["Entrega por e-mail", d.delivery.email],
+          ["Entrega por WhatsApp", d.delivery.whatsapp],
         ].map(([label, value]) => (
           <article key={label}>
             <span>{label}</span>
@@ -194,17 +208,22 @@ export default function AdminClient() {
         </div>
         <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulário ou objeção antes do pagamento.</p>
       </section>
-      <section className="funnel-panel">
-        <div><span>Sessões</span><strong>{d.funnel.sessions}</strong></div>
-        <b>→</b><div><span>Iniciaram</span><strong>{d.funnel.started}</strong></div>
-        <b>→</b><div><span>Tema</span><strong>{d.funnel.categories}</strong></div>
-        <b>→</b><div><span>Pergunta</span><strong>{d.funnel.questions}</strong></div>
-        <b>→</b><div><span>Cartas</span><strong>{d.funnel.cards}</strong></div>
-        <b>→</b><div><span>Viram oferta</span><strong>{d.funnel.offers}</strong></div>
-        <b>→</b><div><span>Geraram Pix</span><strong>{d.funnel.pix}</strong></div>
-        <b>→</b><div><span>Pagaram</span><strong>{d.funnel.paid}</strong></div>
+      <section className="funnel-panel premium-funnel">
+        {funnelStages.map(([label,value], index) => <div key={label}><span>{label}</span><strong>{value}</strong>{index>0 && <small>{funnelStages[index-1][1] ? `${((value/funnelStages[index-1][1])*100).toFixed(1)}% da etapa anterior` : '—'}</small>}</div>)}
       </section>
+      {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} → {biggestDrop.to} · queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
       <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
+      <section className="orders-panel ebook-panel">
+        <div className="panel-title"><h2>E-books / downsell</h2><span>oferta alternativa após captura do contato</span></div>
+        <div className="behavior-grid ebook-metrics">
+          <div><span>Viram oferta</span><strong>{d.ebooks.offerViews}</strong></div>
+          <div><span>Selecionaram</span><strong>{d.ebooks.selected}</strong></div>
+          <div><span>Iniciaram checkout</span><strong>{d.ebooks.checkoutStarted}</strong></div>
+          <div><span>Compraram</span><strong>{d.ebooks.sales}</strong></div>
+          <div><span>Seleção → compra</span><strong>{d.ebooks.selected ? `${((d.ebooks.sales/d.ebooks.selected)*100).toFixed(1)}%` : '0,0%'}</strong></div>
+          <div><span>Receita</span><strong>{money(d.ebooks.revenue)}</strong></div>
+        </div>
+      </section>
       <section className="orders-panel campaign-panel">
         <div className="panel-title">
           <h2>Resultado por campanha paga</h2>

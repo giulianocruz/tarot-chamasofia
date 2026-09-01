@@ -12,12 +12,29 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   if (order.payment_status === 'cancelled') return { ok:false as const, status:409, error:'Pedido cancelado.' };
   if (!forceRegenerate && (order.reading_status === 'reading_generated' || order.reading_status === 'delivered')) {
     if (order.notification_status === 'sent') return { ok:true as const, alreadyProcessed:true, token:String(order.public_token) };
-    const existing = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at) };
+    const existing = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null };
     const delivery = await notifyReadingReady(existing);
     const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
     const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
     await getD1().prepare('UPDATE orders SET notification_status=?,notification_error=? WHERE id=?').bind(notificationStatus,notificationError,order.id).run();
     return { ok:true as const, alreadyProcessed:true, token:String(order.public_token), delivery };
+  }
+  if (String(order.offer_code || '') === 'ebook') {
+    const analyticsContext = contextFromOrder(order);
+    const firstPayment = order.payment_status !== 'paid';
+    const now = new Date().toISOString();
+    await getD1().prepare("UPDATE orders SET payment_status='paid',reading_status='delivered',paid_at=COALESCE(paid_at,?),delivered_at=COALESCE(delivered_at,?),gateway_name=?,gateway_transaction_id=COALESCE(?,gateway_transaction_id) WHERE id=?")
+      .bind(now,now,gateway,transactionId||null,order.id).run();
+    const productSlug = order.product_slug ? String(order.product_slug) : '';
+    if (firstPayment) await addEvent('payment_confirmed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,transactionId,offer:'ebook',product_slug:productSlug}));
+    if (firstPayment) await addEvent('ebook_purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),product_slug:productSlug}));
+    if (firstPayment) await addEvent('purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),order_id:String(order.order_number),offer:'ebook',product_slug:productSlug}));
+    const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:'ebook', product_slug:productSlug, delivery_channel:order.delivery_channel?String(order.delivery_channel):null };
+    const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
+    const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
+    const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
+    await getD1().prepare('UPDATE orders SET notification_status=?,notification_error=? WHERE id=?').bind(notificationStatus,notificationError,order.id).run();
+    return { ok:true as const, token:String(order.public_token), delivery, meta };
   }
   let cards = drawThreeCards();
   if (order.cards_json) { try { const ids = JSON.parse(String(order.cards_json)); if (Array.isArray(ids) && ids.length === 3 && ids.every((id) => typeof id === "string")) { const chosen = getCards(ids); if (chosen.length === 3) cards = chosen; } } catch {} }
@@ -31,7 +48,7 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   await addEvent('reading_generated',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
   await addEvent('reading_completed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
   if (firstPayment) await addEvent('purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),order_id:String(order.order_number)}));
-  const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at) };
+  const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null };
   const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
   const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
   const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;

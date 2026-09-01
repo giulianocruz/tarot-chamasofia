@@ -39,6 +39,7 @@ async function initialize() {
     ['gateway_name','TEXT'], ['gateway_transaction_id','TEXT'], ['notification_status','TEXT'],
     ['notification_error','TEXT'], ['privacy_consent_at','TEXT'], ['terms_version','TEXT'],
     ['fbclid','TEXT'], ['anonymous_id','TEXT'], ['session_id','TEXT'], ['is_test','INTEGER NOT NULL DEFAULT 0'],
+    ['offer_code','TEXT'], ['product_slug','TEXT'], ['delivery_channel','TEXT'],
   ];
   for (const [name, type] of additions) if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_gateway_transaction ON orders(gateway_transaction_id)').run();
