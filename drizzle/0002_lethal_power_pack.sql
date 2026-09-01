@@ -1,3 +1,3 @@
-ALTER TABLE `orders` ADD `anonymous_id` text;--> statement-breakpoint
-ALTER TABLE `orders` ADD `session_id` text;--> statement-breakpoint
-ALTER TABLE `orders` ADD `is_test` integer DEFAULT false NOT NULL;
+-- These columns are maintained idempotently by lib/database.ts::ensureSchema.
+-- Production already contains them, so this migration only records the schema milestone.
+SELECT 1;
