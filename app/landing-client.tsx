@@ -153,7 +153,7 @@ export default function LandingClient() {
   const start = () => {
     track("cta_click");
     track("tarot_started");
-    document.getElementById("pergunta")?.scrollIntoView({ behavior: "smooth" });
+    window.location.assign(`/consulta${window.location.search}`);
   };
   function continueToContact() {
     setError("");
@@ -236,22 +236,22 @@ export default function LandingClient() {
         </div>
         <p className="eyebrow">Tarot online + Biblioteca Chama Sofia</p>
         <h1>
-          COMECE SUA JORNADA
+          SUA LEITURA ESPIRITUAL
           <br />
-          PELO TAROT
+          EM MINUTOS
         </h1>
         <p className="hero-copy">
-          Escolha 3 cartas, receba sua interpretação completa e tenha o acesso enviado por e-mail ou WhatsApp. O Tarot para Iniciantes acompanha como bônus.
+          Faça poucas escolhas, revele 3 cartas e receba sua leitura completa por e-mail ou WhatsApp. Sem cadastro, sem assinatura e com o mínimo de preenchimento.
         </p>
         <p className="bonus-line">
-          <span>✦</span> Bônus incluso: interpretação e PDF da sua leitura.
+          <span>✦</span> Tarot para Iniciantes incluído como bônus na leitura completa.
         </p>
         <PriceBox price={price} />
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA <span>→</span>
         </button>
         <p className="secure-note">
-          Pix seguro · Resultado privado · Receba por e-mail ou WhatsApp
+          Pix seguro · Resultado privado · Entrega por e-mail ou WhatsApp
         </p>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
@@ -483,7 +483,7 @@ export default function LandingClient() {
           escassez falsa.
         </p>
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA <span>→</span>
         </button>
       </section>
       <section className="faq" data-reveal>
@@ -547,7 +547,7 @@ export default function LandingClient() {
           As cartas convidam você a olhar por outro ângulo.
         </h2>
         <button className="primary-button" onClick={start}>
-          QUERO MEU LIVRO + MINHA LEITURA <span>→</span>
+          FAZER MINHA LEITURA <span>→</span>
         </button>
       </section>
       <footer>
