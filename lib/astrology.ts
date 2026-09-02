@@ -175,3 +175,31 @@ export async function createAstroTarotLayer(input:BirthInput, question:string, c
     precisionNote:birth.timeKnown ? 'Cálculo realizado com data, horário, local e fuso histórico informados.' : 'Como o horário de nascimento não foi informado, usamos 12:00 como referência técnica. Sol e trânsitos continuam úteis, mas Ascendente e casas não devem ser tratados como precisos.',
   };
 }
+
+export async function createFreeNatalPreview(input:BirthInput) {
+  const birth=validateBirthInput(input);
+  const location=await resolveBirthLocation(birth.place,birth.month,birth.day,birth.year);
+  const payload={ day:birth.day, month:birth.month, year:birth.year, hour:birth.hour, min:birth.min, lat:location.lat, lon:location.lon, tzone:location.tzone, house_type:'placidus' };
+  const chart=await astrologyRequest<WesternHoroscope>('western_horoscope',{ ...payload, is_asteroids:false },'pt');
+  const natal={
+    sun:planet(chart.planets,['Sun','Sol']), moon:planet(chart.planets,['Moon','Lua']),
+    mercury:planet(chart.planets,['Mercury','Mercúrio']), venus:planet(chart.planets,['Venus','Vênus']),
+    mars:planet(chart.planets,['Mars','Marte']),
+    ascendantSign:birth.timeKnown ? zodiacSignFromDegree(Number(chart.ascendant)) : undefined,
+    ascendantDegree:birth.timeKnown && Number.isFinite(Number(chart.ascendant)) ? Number(chart.ascendant) : undefined,
+  };
+  return {
+    generatedAt:new Date().toISOString(),
+    birth:{ date:input.birthDate, time:birth.timeKnown?input.birthTime:'horário não informado', place:birth.place, resolvedPlace:location.resolvedPlace, timeKnown:birth.timeKnown },
+    natal,
+    precisionNote:birth.timeKnown
+      ? 'Prévia calculada com data, horário, local e fuso histórico informados.'
+      : 'Sem horário de nascimento, usamos 12:00 apenas como referência técnica. Ascendente e casas não são exibidos como precisos.',
+  };
+}
+
+function zodiacSignFromDegree(value:number) {
+  if (!Number.isFinite(value)) return undefined;
+  const signs=['Áries','Touro','Gêmeos','Câncer','Leão','Virgem','Libra','Escorpião','Sagitário','Capricórnio','Aquário','Peixes'];
+  return signs[Math.floor((((value%360)+360)%360)/30)];
+}

@@ -62,3 +62,24 @@ export type BirthInput = {
   birthPlace: string;
   timeKnown: boolean;
 };
+
+export type FreeNatalPreview = {
+  generatedAt: string;
+  birth: {
+    date: string;
+    time: string;
+    place: string;
+    resolvedPlace: string;
+    timeKnown: boolean;
+  };
+  natal: {
+    sun?: AstroPlanet;
+    moon?: AstroPlanet;
+    mercury?: AstroPlanet;
+    venus?: AstroPlanet;
+    mars?: AstroPlanet;
+    ascendantSign?: string;
+    ascendantDegree?: number;
+  };
+  precisionNote: string;
+};

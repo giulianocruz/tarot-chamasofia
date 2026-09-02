@@ -3,9 +3,10 @@ import { ARTICLES } from "@/lib/articles";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://tarot.chamasofia.com.br";
-  const editorialDate = new Date("2026-09-02T12:00:00-03:00");
+  const editorialDate = new Date("2026-09-02T15:00:00-03:00");
   return [
     { url: base, lastModified: editorialDate, changeFrequency: "weekly", priority: 1 },
+    { url: `${base}/mapa-astral-gratis`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.95 },
     { url: `${base}/astrotarot`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/biblioteca`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.8 },
     { url: `${base}/artigos`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.85 },

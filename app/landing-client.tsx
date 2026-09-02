@@ -599,6 +599,7 @@ export default function LandingClient() {
           © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
         </small>
         <Link className="editorial-link" href="/artigos">Guias de Tarot e Astrologia</Link>
+        <Link className="editorial-link" href="/mapa-astral-gratis">Mapa Astral Grátis</Link>
         <a className="support-link" href="https://wa.me/5514996428874?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Tarot%20Chama%20Sofia" target="_blank" rel="noreferrer" onClick={() => track("contact_click", { channel: "whatsapp" })}>
           Atendimento pelo WhatsApp · (14) 99642-8874
         </a>
