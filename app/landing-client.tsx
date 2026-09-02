@@ -52,6 +52,7 @@ export default function LandingClient() {
   const [question, setQuestion] = useState("");
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [showSticky, setShowSticky] = useState(false);
+  const [availableBooks, setAvailableBooks] = useState(BOOK_CATALOG.slice(0,0));
   const [loading] = useState(false);
   const [error, setError] = useState("");
   const utms = useMemo(
@@ -106,6 +107,13 @@ export default function LandingClient() {
         }
       })
       .catch(() => undefined);
+    fetch("/api/books/status",{cache:"no-store"})
+      .then((response)=>response.json())
+      .then((data:{books?:Array<{slug:string;available:boolean}>})=>{
+        const enabled=new Set((data.books||[]).filter((book)=>book.available).map((book)=>book.slug));
+        setAvailableBooks(BOOK_CATALOG.filter((book)=>enabled.has(book.slug)));
+      })
+      .catch(()=>setAvailableBooks([]));
     track("landing_view");
     const startedAt = Date.now();
     const scrollMarks = new Set<number>();
@@ -167,6 +175,7 @@ export default function LandingClient() {
     event.preventDefault();
     start();
   }
+  const bonusAvailable=availableBooks.some((book)=>book.slug==="tarot-iniciantes");
   return (
     <main className="site-shell">
       <nav className="nav">
@@ -209,9 +218,9 @@ export default function LandingClient() {
         <p className="hero-copy">
           Comece com uma pergunta e 3 cartas. Após o Pix, cruzamos seu Mapa Astral Express com os trânsitos atuais e o Tarot para criar uma orientação personalizada.
         </p>
-        <p className="bonus-line">
+        {bonusAvailable&&<p className="bonus-line">
           <span>✦</span> Tarot para Iniciantes incluído como bônus na leitura completa.
-        </p>
+        </p>}
         <PriceBox price={price} />
         <button className="primary-button" onClick={start}>
           VER MINHA ANÁLISE ASTROTAROT <span>→</span>
@@ -221,7 +230,7 @@ export default function LandingClient() {
         </p>
         <div className="hero-card-fan" aria-hidden="true">
           <img src="/assets/tarot/cards/sacerdotisa.webp" alt="" />
-          <img className="hero-book" src="/assets/books/tarot-para-iniciantes-oficial.jpg" alt="" />
+          <img className="hero-book" src={bonusAvailable?"/assets/books/tarot-para-iniciantes-oficial.jpg":"/assets/tarot/cards/mago.webp"} alt="" />
           <img src="/assets/tarot/cards/sol.webp" alt="" />
         </div>
       </section>
@@ -233,7 +242,7 @@ export default function LandingClient() {
           <b>◈</b> 3 cartas integradas ao seu momento
         </span>
         <span>
-          <b>⇩</b> PDF premium + e-book bônus
+          <b>⇩</b> PDF premium{bonusAvailable?" + e-book bônus":""}
         </span>
       </aside>
       <section className="steps" id="como-funciona" data-reveal>
@@ -465,7 +474,7 @@ export default function LandingClient() {
           ))}
         </div>
       </section>
-      <section className="ebook" id="presente" data-reveal>
+      {bonusAvailable&&<section className="ebook" id="presente" data-reveal>
         <div className="book-visual">
           <img
             src="/assets/books/tarot-para-iniciantes-oficial.jpg"
@@ -489,7 +498,7 @@ export default function LandingClient() {
             adquirido separadamente na Biblioteca Chama Sofia.
           </p>
         </div>
-      </section>
+      </section>}
       <section className="price-section" data-reveal>
         <p className="eyebrow">Condição especial de lançamento</p>
         <h2>Mapa Astral Express + Tarot por um valor de entrada</h2>
@@ -520,7 +529,7 @@ export default function LandingClient() {
           ],
           [
             "O que estou comprando?",
-            "Você recebe Mapa Astral Express, principais trânsitos do momento, leitura de 3 cartas integrada à sua pergunta e PDF premium. O Tarot para Iniciantes entra como bônus.",
+            `Você recebe Mapa Astral Express, principais trânsitos do momento, leitura de 3 cartas integrada à sua pergunta e PDF premium.${bonusAvailable?" O Tarot para Iniciantes entra como bônus.":""}`,
           ],
           [
             "Minha pergunta é pública?",
@@ -536,12 +545,12 @@ export default function LandingClient() {
           </details>
         ))}
       </section>
-      <section className="collection premium-library" data-reveal>
+      {availableBooks.length>0&&<section className="collection premium-library" data-reveal>
         <p className="eyebrow">Biblioteca Chama Sofia</p>
         <h2>Conhecimento para continuar sua jornada</h2>
-        <p>Além da leitura, você pode conhecer as edições digitais da SofIA Labs. Na consulta, o Tarot para Iniciantes continua incluído como bônus.</p>
+        <p>Além da leitura, você pode conhecer as edições digitais da SofIA Labs.{bonusAvailable?" Na consulta, o Tarot para Iniciantes continua incluído como bônus.":""}</p>
         <div className="collection-grid library-grid">
-          {BOOK_CATALOG.map((book) => (
+          {availableBooks.map((book) => (
             <article className="available library-book-card" key={book.slug}>
               <img src={book.cover} alt={`Capa ${book.title}`} loading="lazy" />
               <div>
@@ -557,7 +566,7 @@ export default function LandingClient() {
         <a className="secondary-button library-page-button" href="/biblioteca" onClick={() => track("library_click", { surface: "astrotarot" })}>
           ABRIR BIBLIOTECA CHAMA SOFIA <span>→</span>
         </a>
-      </section>
+      </section>}
       <section className="final-cta">
         <span>✦</span>
         <h2>

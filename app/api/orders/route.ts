@@ -18,6 +18,7 @@ import {
 } from "@/lib/analytics-context";
 import { consultationPrice } from "@/lib/pricing";
 import { formatBookPrice, getBook } from "@/lib/book-catalog";
+import { normalizeBrazilPhone } from "@/lib/phone";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const name = cleanText(body.name, 80);
   const email = cleanText(body.email, 120).toLowerCase();
-  const whatsapp = cleanText(body.whatsapp, 30);
+  const whatsapp = normalizeBrazilPhone(body.whatsapp);
   const category = cleanText(body.category, 50) as Category;
   const question = cleanText(body.question, 500);
   const cardIds = Array.isArray(body.cardIds)
@@ -53,12 +54,11 @@ export async function POST(request: Request) {
   const orderCategory = isEbookOffer ? "Biblioteca" : category;
   const orderQuestion = isEbookOffer && requestedBook ? `Compra de e-book: ${requestedBook.title}` : question;
 
-  const whatsappDigits = whatsapp.replace(/\D/g, "");
   if (
     name.length < 2 ||
     (!isEbookOffer && (question.length < 10 || !CATEGORIES.includes(category))) ||
     (!email && !whatsapp) ||
-    (deliveryChannel === "whatsapp" && whatsappDigits.length < 10) ||
+    (deliveryChannel === "whatsapp" && !whatsapp) ||
     (cardIds.length > 0 && selectedCards.length !== 3) ||
     (["consulta", "consulta-990", "astro-tarot"].includes(offer) && !isConsultaOffer) ||
     (offer === "ebook" && !requestedBook)
@@ -76,6 +76,12 @@ export async function POST(request: Request) {
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return Response.json({ error: "Informe um e-mail válido." }, { status: 400 });
+  }
+  if (isEbookOffer && requestedBook && !(await env.BOOKS.head(requestedBook.r2Key))) {
+    return Response.json(
+      { error: "Este e-book está temporariamente fora do acervo. Nenhuma cobrança foi gerada." },
+      { status: 409 },
+    );
   }
 
   const price = isEbookOffer && requestedBook
@@ -147,6 +153,13 @@ export async function POST(request: Request) {
       .prepare("UPDATE orders SET cards_json=? WHERE id=?")
       .bind(JSON.stringify(cardIds), result.meta.last_row_id)
       .run();
+  }
+
+  if (anonymousId) {
+    await getD1().prepare(`UPDATE abandoned_leads
+      SET converted_order_id=?,stage='pix_generated',updated_at=?
+      WHERE converted_order_id IS NULL AND anonymous_id=?`)
+      .bind(result.meta.last_row_id,new Date().toISOString(),anonymousId).run();
   }
 
   if (env.MERCADO_PAGO_ACCESS_TOKEN && email) {

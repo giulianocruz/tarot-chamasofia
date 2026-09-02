@@ -7,6 +7,8 @@ import {
 } from "@/lib/database";
 import { completePayment } from "@/lib/payment";
 import { cleanText, sameOrigin } from "@/lib/security";
+import { env } from "cloudflare:workers";
+import { BOOK_CATALOG } from "@/lib/book-catalog";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
   const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig','google','youtube','tiktok','bing') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%ppc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%display%')`;
   const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig','google','youtube','tiktok','bing') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%ppc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%display%')`;
 
-  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, campaignOrderRows, pricing] = await Promise.all([
+  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
     getD1()
       .prepare(
         "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test,offer_code,product_slug,delivery_channel FROM orders ORDER BY id DESC LIMIT 100",
@@ -97,6 +99,7 @@ export async function GET(request: Request) {
       )
       .all<Record<string, unknown>>(),
     getCurrentPrice(),
+    Promise.all(BOOK_CATALOG.map(async (book)=>({slug:book.slug,available:Boolean(await env.BOOKS.head(book.r2Key))}))),
   ]);
 
   const totalSales = Number(totals?.sales || 0);
@@ -132,6 +135,7 @@ export async function GET(request: Request) {
   return Response.json(
     {
       orders: ordersResult.results,
+      bookInventory,
       dashboard: {
         salesToday: Number(today?.sales || 0),
         totalSales,

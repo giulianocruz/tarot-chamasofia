@@ -29,5 +29,9 @@ declare namespace Cloudflare {
     ADMIN_SESSION_SECRET?: string;
     EBOOK_DOWNLOAD_NAME?: string;
     EBOOK_UPLOAD_SECRET?: string;
+    RECOVERY_CRON_SECRET?: string;
+    RECOVERY_FIRST_DELAY_MINUTES?: string;
+    RECOVERY_SECOND_DELAY_MINUTES?: string;
+    RECOVERY_RETRY_DELAY_MINUTES?: string;
   }
 }

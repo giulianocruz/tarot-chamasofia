@@ -72,6 +72,18 @@ export default function ReadingClient({ token }: { token: string }) {
   const [astroLoading, setAstroLoading] = useState(false);
   const [astroError, setAstroError] = useState("");
   const [skipAstro, setSkipAstro] = useState(false);
+  const [tarotBonusAvailable, setTarotBonusAvailable] = useState(false);
+  const [availableBookCount, setAvailableBookCount] = useState(0);
+  useEffect(()=>{
+    fetch('/api/books/status',{cache:'no-store'})
+      .then((response)=>response.json())
+      .then((data:{books?:Array<{slug:string;available:boolean}>})=>{
+        const available=(data.books||[]).filter((book)=>book.available);
+        setAvailableBookCount(available.length);
+        setTarotBonusAvailable(available.some((book)=>book.slug==='tarot-iniciantes'));
+      })
+      .catch(()=>setTarotBonusAvailable(false));
+  },[]);
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -297,16 +309,14 @@ export default function ReadingClient({ token }: { token: string }) {
           <span>✦</span>
         </div>
         <p className="eyebrow">Pagamento confirmado ✨</p>
-        <h1>
-          Seu livro já está disponível.
-        </h1>
-        <p>Baixe o produto agora e, quando quiser, comece sua leitura bônus.</p>
-        <a className="primary-button" href={`/api/ebook/${token}`}>
+        <h1>{isAstroTarot ? "Sua análise está pronta." : tarotBonusAvailable ? "Seu livro já está disponível." : "Sua leitura está pronta."}</h1>
+        <p>{isAstroTarot ? "Seu céu e as cartas estão prontos para serem revelados." : tarotBonusAvailable ? "Baixe o produto agora e, quando quiser, comece sua leitura bônus." : "Reserve um momento tranquilo e comece sua leitura."}</p>
+        {tarotBonusAvailable&&<a className="primary-button" href={`/api/ebook/${token}`}>
           BAIXAR TAROT PARA INICIANTES <span>↓</span>
-        </a>
+        </a>}
         <blockquote>“{order.question}”</blockquote>
         <button className="secondary-button ritual-secondary" onClick={begin}>
-          COMEÇAR MINHA LEITURA BÔNUS <span>→</span>
+          COMEÇAR MINHA LEITURA <span>→</span>
         </button>
       </main>
     );
@@ -435,16 +445,16 @@ export default function ReadingClient({ token }: { token: string }) {
       <section className="downloads">
         <div>
           <p className="eyebrow">Guarde este momento</p>
-          <h2>Sua análise e seu presente</h2>
-          <p>Baixe sua análise organizada em PDF e o livro completo de 276 páginas.</p>
+          <h2>{tarotBonusAvailable?"Sua análise e seu presente":"Sua análise em PDF"}</h2>
+          <p>{tarotBonusAvailable?"Baixe sua análise organizada em PDF e o livro completo de 276 páginas.":"Baixe e guarde sua análise organizada em PDF."}</p>
         </div>
         <div className="download-actions">
-          <a
+          {tarotBonusAvailable&&<a
             className="primary-button"
             href={`/api/ebook/${token}`}
           >
             BAIXAR E-BOOK TAROT PARA INICIANTES <span>↓</span>
-          </a>
+          </a>}
           <a className="secondary-button" href={`/api/pdf/${token}`}>
             BAIXAR MINHA LEITURA EM PDF <span>↓</span>
           </a>
@@ -460,12 +470,12 @@ export default function ReadingClient({ token }: { token: string }) {
           WhatsApp
         </a>
       </section>
-      <section className="result-library-cta">
+      {availableBookCount>0&&<section className="result-library-cta">
         <p className="eyebrow">Biblioteca Chama Sofia</p>
         <h2>Quer continuar estudando depois desta análise?</h2>
         <p>Exu, Pomba Gira e Preto Velho estão disponíveis em edições digitais a partir de R$ 4,99.</p>
         <Link className="secondary-button" href="/biblioteca">VER E-BOOKS <span>→</span></Link>
-      </section>
+      </section>}
       <section className="new-reading">
         <p>Surgiu outra pergunta?</p>
         <h2>Faça uma nova análise quando surgir outra questão.</h2>

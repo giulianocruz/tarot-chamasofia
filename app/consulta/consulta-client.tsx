@@ -5,6 +5,7 @@ import { ATTRIBUTION_KEYS, normalizeTestFlag, type AnalyticsContext } from "@/li
 import { createReading } from "@/lib/reading";
 import { getCards, MAJOR_ARCANA, type Category } from "@/lib/tarot";
 import { BOOK_CATALOG, discountPercent, formatBookPrice, type BookOffer } from "@/lib/book-catalog";
+import { formatBrazilPhoneInput } from "@/lib/phone";
 import PreviewDashboard from "./preview-dashboard";
 
 type Price = { cents: number; formatted: string };
@@ -109,6 +110,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const [whatsapp, setWhatsapp] = useState("");
   const [deliveryChannel, setDeliveryChannel] = useState<"email" | "whatsapp">("email");
   const [ebookLoading, setEbookLoading] = useState("");
+  const [availableBooks, setAvailableBooks] = useState<BookOffer[]>([]);
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [resumeNotice, setResumeNotice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const stepRef = useRef(0);
@@ -121,14 +125,49 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     if (cards.length !== 3 || !category) return "";
     return createReading(question, category as Category, cards).cardReadings[0].text;
   }, [cards, category, question]);
+  const visibleProgress = step <= 0 ? 0 : step <= 3 ? step : step <= 5 ? 4 : 5;
+  const bonusAvailable=availableBooks.some((book)=>book.slug==="tarot-iniciantes");
 
   useEffect(() => {
     fetch("/api/pricing?offer=astro-tarot")
       .then((response) => response.json())
       .then(setPrice)
       .catch(() => undefined);
+    fetch("/api/books/status", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data: { books?: Array<{ slug:string; available:boolean }> }) => {
+        const enabled=new Set((data.books||[]).filter((book)=>book.available).map((book)=>book.slug));
+        setAvailableBooks(BOOK_CATALOG.filter((book)=>enabled.has(book.slug)));
+      })
+      .catch(()=>setAvailableBooks([]))
+      .finally(()=>setLibraryReady(true));
     emitEvent("onboarding_started");
     window.setTimeout(() => setEmail(localStorage.getItem("cs_email") || ""), 0);
+
+    const resumeToken=new URLSearchParams(location.search).get("resume");
+    if (resumeToken) {
+      fetch(`/api/leads/${encodeURIComponent(resumeToken)}`,{cache:"no-store"})
+        .then(async (response)=>{
+          const draft=await response.json();
+          if (!response.ok) throw new Error(draft.error||"Jornada indisponível");
+          return draft as {email?:string;whatsapp?:string;category?:string;question?:string};
+        })
+        .then((draft)=>{
+          const restoredCategory=String(draft.category||"");
+          const restoredQuestion=String(draft.question||"");
+          setEmail(String(draft.email||""));
+          setWhatsapp(formatBrazilPhoneInput(String(draft.whatsapp||"")));
+          setDeliveryChannel(draft.whatsapp?"whatsapp":"email");
+          setCategory(restoredCategory);
+          setQuestion(restoredQuestion);
+          categoryRef.current=restoredCategory;
+          stepRef.current=3;
+          setStep(3);
+          setResumeNotice(true);
+          emitEvent("recovery_resumed",{kind:"form"},{dedupe:resumeToken});
+        })
+        .catch(()=>undefined);
+    }
 
     const abandon = () => {
       if (completedRef.current) return;
@@ -206,7 +245,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
   function showOffer() {
     emitEvent("offer_viewed", { value: price.cents / 100, currency: "BRL" });
-    emitEvent("ebook_offer_viewed", { products: BOOK_CATALOG.map((book) => book.slug) });
+    if (availableBooks.length)
+      emitEvent("ebook_offer_viewed", { products: availableBooks.map((book) => book.slug) });
     go(6);
   }
 
@@ -216,7 +256,26 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     emitEvent("delivery_channel_selected", { channel }, { dedupe: channel });
   }
 
-  function validateContact() {
+  async function persistLead(context=readAnalyticsContext()) {
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return;
+    try {
+      await fetch("/api/leads",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          email:email.trim(),
+          whatsapp:deliveryChannel==="whatsapp"?whatsapp.trim():"",
+          category,
+          question:question.trim(),
+          ...context,
+        }),
+      });
+    } catch {
+      // O checkout continua disponível mesmo se a recuperação não puder ser salva.
+    }
+  }
+
+  async function validateContact(context:AnalyticsContext) {
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       setError("Informe um e-mail válido para gerar o Pix e recuperar seu pedido.");
       return false;
@@ -227,14 +286,15 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     }
     localStorage.setItem("cs_email", email.trim());
     emitEvent("contact_captured", { channel: deliveryChannel }, { dedupe: email.trim().toLowerCase() });
+    await persistLead(context);
     return true;
   }
 
   async function checkout(event: React.FormEvent) {    event.preventDefault();
     setError("");
-    if (!validateContact()) return;
-    setLoading(true);
     const context = readAnalyticsContext();
+    if (!(await validateContact(context))) return;
+    setLoading(true);
     emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel });
     try {
       const response = await fetch("/api/orders", {
@@ -258,9 +318,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   }
 
   async function checkoutBook(book: BookOffer) {    setError("");
-    if (!validateContact()) return;
-    setEbookLoading(book.slug);
     const context = readAnalyticsContext();
+    if (!(await validateContact(context))) return;
+    setEbookLoading(book.slug);
     emitEvent("ebook_selected", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL" }, { dedupe: book.slug });
     emitEvent("ebook_checkout_started", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL", delivery_channel: deliveryChannel });
     try {
@@ -289,6 +349,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />
           <span>CHAMA SOFIA · ASTROTAROT</span>
         </header>
+        {visibleProgress>0&&(
+          <div className="consult-progress-rail" aria-label={`Etapa ${visibleProgress} de 5`}>
+            <span style={{width:`${visibleProgress*20}%`}} />
+          </div>
+        )}
 
         {step === 0 && (
           <div className="consult-step hero-consult">
@@ -296,7 +361,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <h1>Descubra o que o seu momento está pedindo de você.</h1>
             <p>Comece pela sua pergunta e por 3 cartas. Depois do Pix, seu Mapa Astral Express e os trânsitos atuais entram na análise para ampliar a leitura.</p>
             <button className="primary-button" onClick={() => go(1)}>COMEÇAR MINHA ANÁLISE <span>→</span></button>
-            <small>Mapa Astral Express · 3 cartas · céu atual · PDF + e-book bônus</small>
+            <small>Mapa Astral Express · 3 cartas · céu atual · PDF{bonusAvailable?" + e-book bônus":""}</small>
           </div>
         )}
 
@@ -340,6 +405,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <p className="consult-progress">3 de 5</p>
             <button className="consult-back" onClick={() => go(2)}>← voltar</button>
             <h2>Escolha 3 cartas pela sua intuição</h2>
+            {resumeNotice && <p className="resume-notice">Sua pergunta foi recuperada. Falta apenas escolher as 3 cartas.</p>}
             <p className="consult-muted">Não existe escolha certa. Toque nas três cartas que mais chamarem sua atenção.</p>
             <div className="consult-deck">
               {publicDeck.map((card) => (
@@ -394,7 +460,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <div><span>Leitura completa preparada para esta pergunta</span><strong>Conecte as 3 cartas ao seu céu e receba sua análise em PDF</strong></div>
             </div>
             <button className="primary-button premium-unlock" onClick={showOffer}>QUERO LIBERAR MINHA ANÁLISE <span>→</span></button>
-            <small className="preview-honesty">Você viu uma prévia simbólica. O pagamento libera Mapa Astral Express, trânsitos atuais, interpretação completa, PDF e e-book bônus.</small>
+            <small className="preview-honesty">Você viu uma prévia simbólica. O pagamento libera Mapa Astral Express, trânsitos atuais, interpretação completa e PDF{bonusAvailable?" + e-book bônus":""}.</small>
           </div>
         )}
 
@@ -410,7 +476,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                 <li>✓ Mapa Astral Express com Sol, Lua e Ascendente*</li>
                 <li>✓ trânsitos atuais cruzados com seu mapa natal</li>
                 <li>✓ 3 cartas integradas à sua situação + PDF premium</li>
-                <li>✓ Tarot para Iniciantes de bônus</li>
+                {bonusAvailable&&<li>✓ Tarot para Iniciantes de bônus</li>}
               </ul>
               <div className="consult-price">
                 <small>VALOR TOTAL NO PIX</small>
@@ -421,7 +487,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <form onSubmit={checkout} className="consult-checkout-form">
               <label>
                 {deliveryChannel === "email" ? "E-mail para receber a leitura" : "E-mail para gerar o Pix e recuperar seu pedido"}
-                <input required type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="voce@email.com" />
+                <input required type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} onBlur={()=>void persistLead()} autoComplete="email" placeholder="voce@email.com" />
               </label>              <fieldset className="delivery-choice">
                 <legend>Como quer receber?</legend>
                 <button type="button" aria-pressed={deliveryChannel === "email"} className={deliveryChannel === "email" ? "selected" : ""} onClick={() => selectDelivery("email")}>
@@ -433,7 +499,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               </fieldset>
               {deliveryChannel === "whatsapp" && (
                 <label>Seu WhatsApp
-                  <input required type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} placeholder="(14) 99999-9999" />
+                  <input required type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} onChange={(event) => setWhatsapp(formatBrazilPhoneInput(event.target.value))} placeholder="(14) 99999-9999" />
                 </label>
               )}
               {error && <p className="consult-error">{error}</p>}
@@ -443,11 +509,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <small className="consult-payment-note">Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
             </form>
 
-            <section className="ebook-downsell" aria-labelledby="ebook-offer-title">
+            {availableBooks.length > 0 && <section className="ebook-downsell" aria-labelledby="ebook-offer-title">
               <span className="ebook-offer-kicker">OFERTA ESPECIAL DA BIBLIOTECA CHAMA SOFIA</span>
               <h3 id="ebook-offer-title">Ainda não quer liberar a análise completa?</h3>
               <p>Você pode começar por um e-book. Escolha apenas se fizer sentido para você — nada é adicionado automaticamente.</p>              <div className="ebook-offer-grid">
-                {BOOK_CATALOG.map((book) => (
+                {availableBooks.map((book) => (
                   <article className="ebook-offer-card" key={book.slug}>
                     <img src={book.cover} alt={`Capa ${book.title}`} loading="lazy" />
                     <div className="ebook-offer-copy">
@@ -463,7 +529,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               </div>
               <small>*Se você não souber o horário de nascimento, ainda entregamos uma análise útil, mas Ascendente e casas ficam limitados. O e-book continua incluído como bônus.</small>
               <a className="library-inline-link" href="/biblioteca">Ver Biblioteca Chama Sofia completa →</a>
-            </section>
+            </section>}
+            {libraryReady && availableBooks.length === 0 && (
+              <p className="library-safety-note">A Biblioteca está sendo atualizada. Por segurança, nenhum e-book avulso é oferecido sem o arquivo pronto para entrega.</p>
+            )}
           </div>
         )}
 

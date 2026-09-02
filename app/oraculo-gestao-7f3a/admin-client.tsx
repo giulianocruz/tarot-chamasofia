@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { BOOK_CATALOG } from "@/lib/book-catalog";
+import { normalizeBrazilPhone } from "@/lib/phone";
 type Order = {
   id: number;
   order_number: string;
@@ -24,6 +25,7 @@ type Order = {
 };
 type Data = {
   orders: Order[];
+  bookInventory: Array<{slug:string;available:boolean}>;
   dashboard: {
     salesToday: number;
     totalSales: number;
@@ -114,7 +116,7 @@ export default function AdminClient() {
     alert("Link privado copiado. Agora você pode enviá-lo ao cliente.");
   }
   function sendByWhatsApp(order: Order) {
-    const phone = (order.customer_whatsapp || "").replace(/\D/g, "");
+    const phone = normalizeBrazilPhone(order.customer_whatsapp);
     const firstName = order.customer_name.trim().split(/\s+/)[0] || "Olá";
     const product = order.offer_code === "astro-tarot" ? "sua análise AstroTarot Chama Sofia" : order.offer_code === "ebook" ? "seu e-book Chama Sofia" : "sua leitura Chama Sofia";
     const message = `${firstName}, ${product} está pronta ✨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nO acesso fica vinculado a este pedido e reúne os conteúdos liberados após o pagamento.`;
@@ -156,6 +158,7 @@ export default function AdminClient() {
     );
   if (!data) return <main className="admin-login">Carregando...</main>;
   const d = data.dashboard;
+  const inventory=new Map(data.bookInventory.map((book)=>[book.slug,book.available]));
   const funnelStages = [
     ['Sessões', d.funnel.sessions], ['Tema', d.funnel.categories], ['Pergunta', d.funnel.questions], ['Cartas', d.funnel.cards], ['E-mail/contato', d.funnel.contacts], ['Oferta', d.funnel.offers], ['Pix', d.funnel.pix], ['Pagamento', d.funnel.paid],
   ] as const;
@@ -181,7 +184,7 @@ export default function AdminClient() {
           {BOOK_CATALOG.map((book) => (
             <article key={book.slug}>
               <img src={book.cover} alt={`Capa ${book.shortTitle}`} />
-              <div><strong>{book.shortTitle}</strong><small>{book.slug}</small></div>
+              <div><strong>{book.shortTitle}</strong><small>{book.slug}</small><span className={inventory.get(book.slug)?"inventory-status is-ready":"inventory-status is-missing"}>{inventory.get(book.slug)?"Pronto para venda":"PDF pendente"}</span></div>
               <label className="admin-upload">Enviar PDF<input type="file" accept="application/pdf" onChange={(event) => void uploadBook(book.slug,event)} /></label>
             </article>
           ))}
