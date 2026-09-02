@@ -18,6 +18,10 @@ function wordCount(article: NonNullable<ReturnType<typeof getArticle>>) { return
 export default async function ArticlePage({ params }: PageProps) {
   const { slug } = await params; const article = getArticle(slug); if (!article) notFound();
   const related = article.relatedSlugs.map(getArticle).filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const tarotTool = ['tarot-do-amor-o-que-ele-sente-por-mim','quais-perguntas-fazer-no-tarot'].includes(slug);
+  const freeTool = tarotTool
+    ? { href:'/tarot-do-amor-gratis', label:'Tarot do Amor Grátis', title:'Aplique a ideia agora em 3 cartas.', text:'Faça sua pergunta, escolha três cartas e veja uma leitura gratuita sem cadastro.', button:'TIRAR 3 CARTAS GRÁTIS' }
+    : { href:'/mapa-astral-gratis', label:'Mapa Astral Grátis', title:'Veja os principais pontos do seu mapa.', text:'Informe seus dados de nascimento e descubra Sol, Lua, planetas pessoais e Ascendente quando houver horário confiável.', button:'CALCULAR MAPA GRÁTIS' };
   const schema = { '@context':'https://schema.org', '@type':'Article', headline:article.title, description:article.description, image:[`https://tarot.chamasofia.com.br${article.heroImage}`], datePublished:article.publishedAt, dateModified:article.updatedAt, author:{'@type':'Organization',name:'Chama Sofia'}, publisher:{'@type':'Organization',name:'Chama Sofia',logo:{'@type':'ImageObject',url:'https://tarot.chamasofia.com.br/assets/brand/chama-sofia-logo.png'}}, mainEntityOfPage:articleUrl(slug) };
   const faqSchema = { '@context':'https://schema.org', '@type':'FAQPage', mainEntity:article.faq.map(f => ({ '@type':'Question', name:f.question, acceptedAnswer:{'@type':'Answer',text:f.answer} })) };
   const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl(slug))}`;
@@ -28,7 +32,7 @@ export default async function ArticlePage({ params }: PageProps) {
     <div className={styles.articleLayout}><div className={styles.content}>
       <div className={styles.intro}>{article.intro.map((paragraph,index)=><p key={index}>{paragraph}</p>)}</div>
       {article.sections.map((section,index)=><section key={section.heading} id={`secao-${index+1}`}><h2>{section.heading}</h2>{section.paragraphs.map((paragraph,pIndex)=><p key={pIndex}>{paragraph}</p>)}{section.bullets&&<ul>{section.bullets.map(item=><li key={item}>{item}</li>)}</ul>}</section>)}
-      <aside className={styles.inlineCta}><span>AstroTarot Chama Sofia</span><h2>Leve uma pergunta real para a prática.</h2><p>Escolha três cartas e veja uma prévia gratuitamente. Se fizer sentido, você decide se quer liberar a análise completa com mapa natal, céu do momento e PDF.</p><Link href={articleCtaUrl(slug)} className={styles.primaryButton}>FAZER MINHA PERGUNTA <b>→</b></Link><small>Pagamento único de R$ 9,90 somente se você decidir aprofundar.</small></aside>
+      <aside className={styles.inlineCta}><span>{freeTool.label}</span><h2>{freeTool.title}</h2><p>{freeTool.text}</p><Link href={freeTool.href} className={styles.primaryButton}>{freeTool.button} <b>→</b></Link><small>Ferramenta gratuita. Se quiser aprofundar depois, o AstroTarot continua disponível.</small></aside>
       <section className={styles.faq}><p className={styles.eyebrow}>Perguntas frequentes</p><h2>Respostas rápidas</h2>{article.faq.map(item=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</section>
       <p className={styles.disclaimer}>Tarot e astrologia são apresentados como ferramentas simbólicas de reflexão e autoconhecimento. Não representam garantia de acontecimentos futuros e não substituem orientação profissional em saúde, direito, finanças ou segurança.</p>
       <div className={styles.share}><span>Este guia ajudou?</span><a href={shareUrl} target="_blank" rel="noreferrer">Compartilhar no Facebook</a></div>
