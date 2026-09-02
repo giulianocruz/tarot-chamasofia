@@ -10,11 +10,7 @@ function resolveBook(request: Request) {
 
 function tokenAuthorized(request: Request) {
   const token = request.headers.get('x-library-upload-token') || request.headers.get('x-upload-token');
-  return Boolean(
-    token &&
-    ((env.EBOOK_UPLOAD_SECRET && token === env.EBOOK_UPLOAD_SECRET) ||
-      (env.EBOOK_UPLOAD_ONCE_SECRET && token === env.EBOOK_UPLOAD_ONCE_SECRET)),
-  );
+  return Boolean(env.EBOOK_UPLOAD_SECRET && token === env.EBOOK_UPLOAD_SECRET);
 }
 
 export async function PUT(request: Request) {
