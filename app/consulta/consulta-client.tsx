@@ -115,8 +115,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const [resumeNotice, setResumeNotice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const stepRef = useRef(0);
+  const stepRef = useRef(paidTraffic ? 1 : 0);
   const completedRef = useRef(false);
+  const leadTokenRef = useRef("");
   const categoryRef = useRef("");
 
   const cards = useMemo(() => getCards(selected), [selected]);
@@ -165,6 +166,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           setCategory(restoredCategory);
           setQuestion(restoredQuestion);
           categoryRef.current=restoredCategory;
+          leadTokenRef.current=resumeToken;
           stepRef.current=3;
           setStep(3);
           setResumeNotice(true);
@@ -268,9 +270,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   }
 
   async function persistLead(context=readAnalyticsContext()) {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return;
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return leadTokenRef.current;
     try {
-      await fetch("/api/leads",{
+      const response=await fetch("/api/leads",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -281,9 +283,13 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           ...context,
         }),
       });
+      const payload=await response.json();
+      if (response.ok&&payload.publicToken)
+        leadTokenRef.current=String(payload.publicToken);
     } catch {
       // O checkout continua disponível mesmo se a recuperação não puder ser salva.
     }
+    return leadTokenRef.current;
   }
 
   async function validateContact(context:AnalyticsContext) {
@@ -305,6 +311,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     setError("");
     const context = readAnalyticsContext();
     if (!(await validateContact(context))) return;
+    const leadToken=leadTokenRef.current;
     setLoading(true);
     emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel });
     try {
@@ -315,7 +322,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           name: "Consulente", email: email.trim(),
           whatsapp: deliveryChannel === "whatsapp" ? whatsapp.trim() : "",
           deliveryChannel, category, question: question.trim(), cardIds: selected,
-          offer: "astro-tarot", ...context,
+          offer: "astro-tarot", leadToken, ...context,
         }),
       });
       const data = await response.json();
@@ -331,6 +338,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   async function checkoutBook(book: BookOffer) {    setError("");
     const context = readAnalyticsContext();
     if (!(await validateContact(context))) return;
+    const leadToken=leadTokenRef.current;
     setEbookLoading(book.slug);
     emitEvent("ebook_selected", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL" }, { dedupe: book.slug });
     emitEvent("ebook_checkout_started", { product_slug: book.slug, value: book.promoCents / 100, currency: "BRL", delivery_channel: deliveryChannel });
@@ -341,7 +349,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
         body: JSON.stringify({
           name: "Consulente", email: email.trim(),
           whatsapp: deliveryChannel === "whatsapp" ? whatsapp.trim() : "",
-          deliveryChannel, offer: "ebook", productSlug: book.slug, ...context,
+          deliveryChannel, offer: "ebook", productSlug: book.slug, leadToken, ...context,
         }),
       });
       const data = await response.json();
@@ -480,8 +488,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <img src="/assets/tarot/ui/reading-seal.svg" alt="" aria-hidden="true" />
               <div><span>Leitura completa preparada para esta pergunta</span><strong>Conecte as 3 cartas ao seu céu e receba sua análise em PDF</strong></div>
             </div>
-            <button className="primary-button premium-unlock" onClick={showOffer}>QUERO LIBERAR MINHA ANÁLISE <span>→</span></button>
-            <small className="preview-honesty">Você viu uma prévia simbólica. O pagamento libera Mapa Astral Express, trânsitos atuais, interpretação completa e PDF{bonusAvailable?" + e-book bônus":""}.</small>
+            <button className="primary-button premium-unlock" onClick={showOffer}>LIBERAR MAPA + TAROT — {price.formatted} <span>→</span></button>
+            <small className="preview-honesty">Você já viu a prévia sem pagar. O Pix libera mapa natal express, céu atual, síntese das 3 cartas e PDF personalizado{bonusAvailable?" + e-book bônus":""}.</small>
           </div>
         )}
 
@@ -536,8 +544,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <small className="consult-payment-note">Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
             </form>
 
-            {availableBooks.length > 0 && <section className="ebook-downsell" aria-labelledby="ebook-offer-title">
-              <span className="ebook-offer-kicker">OFERTA ESPECIAL DA BIBLIOTECA CHAMA SOFIA</span>
+            {availableBooks.length > 0 && <details className="ebook-downsell">
+              <summary>Prefiro começar por um e-book a partir de R$ 4,99</summary>
+              <div className="ebook-downsell-body">
+              <span className="ebook-offer-kicker">ALTERNATIVA MAIS ECONÔMICA</span>
               <h3 id="ebook-offer-title">Ainda não quer liberar a análise completa?</h3>
               <p>Você pode começar por um e-book. Escolha apenas se fizer sentido para você — nada é adicionado automaticamente.</p>              <div className="ebook-offer-grid">
                 {availableBooks.map((book) => (
@@ -556,7 +566,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               </div>
               <small>*Se você não souber o horário de nascimento, ainda entregamos uma análise útil, mas Ascendente e casas ficam limitados. O e-book continua incluído como bônus.</small>
               <a className="library-inline-link" href="/biblioteca">Ver Biblioteca Chama Sofia completa →</a>
-            </section>}
+              </div>
+            </details>}
             {libraryReady && availableBooks.length === 0 && (
               <p className="library-safety-note">A Biblioteca está sendo atualizada. Por segurança, nenhum e-book avulso é oferecido sem o arquivo pronto para entrega.</p>
             )}

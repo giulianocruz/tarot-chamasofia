@@ -148,18 +148,14 @@ export async function POST(request: Request) {
     )
     .run();
 
+  const orderId = Number(result.meta.last_row_id);
+  const leadToken = cleanText(body.leadToken, 80);
+
   if (selectedCards.length === 3) {
     await getD1()
       .prepare("UPDATE orders SET cards_json=? WHERE id=?")
       .bind(JSON.stringify(cardIds), result.meta.last_row_id)
       .run();
-  }
-
-  if (anonymousId) {
-    await getD1().prepare(`UPDATE abandoned_leads
-      SET converted_order_id=?,stage='pix_generated',updated_at=?
-      WHERE converted_order_id IS NULL AND anonymous_id=?`)
-      .bind(result.meta.last_row_id,new Date().toISOString(),anonymousId).run();
   }
 
   if (env.MERCADO_PAGO_ACCESS_TOKEN && email) {
@@ -192,9 +188,14 @@ export async function POST(request: Request) {
     }
   }
 
+  if (leadToken || anonymousId) {
+    await getD1().prepare(`UPDATE abandoned_leads SET converted_order_id=?,stage='pix_generated',updated_at=? WHERE converted_order_id IS NULL AND (public_token=? OR anonymous_id=?)`)
+      .bind(orderId, new Date().toISOString(), leadToken || '', anonymousId || '').run();
+  }
+
   await addEvent(
     "pix_generated",
-    Number(result.meta.last_row_id),
+    orderId,
     anonymousId,
     analyticsMetadata(analyticsContext, {
       price: price.cents,

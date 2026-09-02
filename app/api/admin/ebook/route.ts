@@ -22,8 +22,8 @@ export async function PUT(request: Request) {
   if (request.headers.get('content-type') !== 'application/pdf')
     return Response.json({ error: 'Envie um arquivo PDF.' }, { status: 415 });
   const contentLength = Number(request.headers.get('content-length') || 0);
-  if (contentLength && contentLength > 80 * 1024 * 1024)
-    return Response.json({ error: 'O arquivo excede 80 MB.' }, { status: 413 });
+  if (contentLength && contentLength > 95 * 1024 * 1024)
+    return Response.json({ error: 'O arquivo excede 95 MB.' }, { status: 413 });
   await env.BOOKS.put(book.r2Key, request.body, {
     httpMetadata: {
       contentType: 'application/pdf',

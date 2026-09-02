@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%ppc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%display%')`;
   const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%ppc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%display%')`;
 
-  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, ebookProductRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
+  const [ordersResult, totals, today, events, funnel, paidFunnel, paidTraffic, campaignEventRows, ebookProductRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
     getD1()
       .prepare(
         "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test,offer_code,product_slug,delivery_channel FROM orders ORDER BY id DESC LIMIT 100",
@@ -57,16 +57,64 @@ export async function GET(request: Request) {
       .all<{ event_name: string; count: number }>(),
     getD1()
       .prepare(
-        `SELECT
-          COUNT(DISTINCT CASE WHEN event_name IN ('landing_view','onboarding_started') THEN ${actor} END) AS sessions,
-          COUNT(DISTINCT CASE WHEN event_name IN ('tarot_started','onboarding_started') THEN ${actor} END) AS started,
-          COUNT(DISTINCT CASE WHEN event_name='category_selected' THEN ${actor} END) AS categories,
-          COUNT(DISTINCT CASE WHEN event_name IN ('question_completed','question_written') THEN ${actor} END) AS questions,
-          COUNT(DISTINCT CASE WHEN event_name IN ('cards_selected','reading_preview') THEN ${actor} END) AS cards,
-          COUNT(DISTINCT CASE WHEN event_name='contact_captured' THEN ${actor} END) AS contacts,
-          COUNT(DISTINCT CASE WHEN event_name IN ('offer_view','offer_viewed') THEN ${actor} END) AS offers,
-          COUNT(DISTINCT CASE WHEN event_name='pix_generated' THEN ${actor} END) AS pix
-         FROM analytics_events WHERE ${nonTestEvent}`,
+        `WITH journey AS (
+          SELECT ${actor} AS actor,
+            MAX(CASE
+              WHEN event_name='pix_generated' THEN 9
+              WHEN event_name='checkout_started' THEN 8
+              WHEN event_name='contact_captured' THEN 7
+              WHEN event_name IN ('offer_view','offer_viewed') THEN 6
+              WHEN event_name='reading_preview' THEN 5
+              WHEN event_name='cards_selected' THEN 4
+              WHEN event_name IN ('question_completed','question_written') THEN 3
+              WHEN event_name='category_selected' THEN 2
+              WHEN event_name IN ('landing_view','onboarding_started','tarot_started') THEN 1
+              ELSE 0
+            END) AS max_stage
+          FROM analytics_events WHERE ${nonTestEvent}
+          GROUP BY ${actor}
+        )
+        SELECT COUNT(*) AS sessions, COUNT(*) AS started,
+          SUM(CASE WHEN max_stage>=2 THEN 1 ELSE 0 END) AS categories,
+          SUM(CASE WHEN max_stage>=3 THEN 1 ELSE 0 END) AS questions,
+          SUM(CASE WHEN max_stage>=4 THEN 1 ELSE 0 END) AS cards,
+          SUM(CASE WHEN max_stage>=5 THEN 1 ELSE 0 END) AS previews,
+          SUM(CASE WHEN max_stage>=6 THEN 1 ELSE 0 END) AS offers,
+          SUM(CASE WHEN max_stage>=7 THEN 1 ELSE 0 END) AS contacts,
+          SUM(CASE WHEN max_stage>=8 THEN 1 ELSE 0 END) AS checkouts,
+          SUM(CASE WHEN max_stage>=9 THEN 1 ELSE 0 END) AS pix
+        FROM journey WHERE max_stage>0`,
+      )
+      .first<Record<string, number>>(),
+    getD1()
+      .prepare(
+        `WITH journey AS (
+          SELECT ${actor} AS actor,
+            MAX(CASE
+              WHEN event_name='pix_generated' THEN 9
+              WHEN event_name='checkout_started' THEN 8
+              WHEN event_name='contact_captured' THEN 7
+              WHEN event_name IN ('offer_view','offer_viewed') THEN 6
+              WHEN event_name='reading_preview' THEN 5
+              WHEN event_name='cards_selected' THEN 4
+              WHEN event_name IN ('question_completed','question_written') THEN 3
+              WHEN event_name='category_selected' THEN 2
+              WHEN event_name IN ('landing_view','onboarding_started','tarot_started') THEN 1
+              ELSE 0
+            END) AS max_stage
+          FROM analytics_events WHERE ${nonTestEvent} AND ${paidEvent}
+          GROUP BY ${actor}
+        )
+        SELECT COUNT(*) AS sessions, COUNT(*) AS started,
+          SUM(CASE WHEN max_stage>=2 THEN 1 ELSE 0 END) AS categories,
+          SUM(CASE WHEN max_stage>=3 THEN 1 ELSE 0 END) AS questions,
+          SUM(CASE WHEN max_stage>=4 THEN 1 ELSE 0 END) AS cards,
+          SUM(CASE WHEN max_stage>=5 THEN 1 ELSE 0 END) AS previews,
+          SUM(CASE WHEN max_stage>=6 THEN 1 ELSE 0 END) AS offers,
+          SUM(CASE WHEN max_stage>=7 THEN 1 ELSE 0 END) AS contacts,
+          SUM(CASE WHEN max_stage>=8 THEN 1 ELSE 0 END) AS checkouts,
+          SUM(CASE WHEN max_stage>=9 THEN 1 ELSE 0 END) AS pix
+        FROM journey WHERE max_stage>0`,
       )
       .first<Record<string, number>>(),
     getD1()
@@ -176,10 +224,25 @@ export async function GET(request: Request) {
           categories: Number(funnel?.categories || 0),
           questions: Number(funnel?.questions || 0),
           cards: Number(funnel?.cards || 0),
-          contacts: Number(funnel?.contacts || 0),
+          previews: Number(funnel?.previews || 0),
           offers: Number(funnel?.offers || 0),
+          contacts: Number(funnel?.contacts || 0),
+          checkouts: Number(funnel?.checkouts || 0),
           pix: Number(funnel?.pix || 0),
-          paid: totalSales,
+          paid: Number(totals?.astro_sales || 0),
+        },
+        paidFunnel: {
+          sessions: Number(paidFunnel?.sessions || 0),
+          started: Number(paidFunnel?.started || 0),
+          categories: Number(paidFunnel?.categories || 0),
+          questions: Number(paidFunnel?.questions || 0),
+          cards: Number(paidFunnel?.cards || 0),
+          previews: Number(paidFunnel?.previews || 0),
+          offers: Number(paidFunnel?.offers || 0),
+          contacts: Number(paidFunnel?.contacts || 0),
+          checkouts: Number(paidFunnel?.checkouts || 0),
+          pix: Number(paidFunnel?.pix || 0),
+          paid: paidSales,
         },
         behavior: {
           depth25: Number(eventCounts.scroll_depth_25 || 0), depth50: Number(eventCounts.scroll_depth_50 || 0),

@@ -40,7 +40,8 @@ type Data = {
     pricing: { formatted: string; remaining: number | null };
     traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
-    funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; contacts:number; offers:number; pix:number; paid:number };
+    funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
+    paidFunnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
 };
@@ -159,11 +160,41 @@ export default function AdminClient() {
   if (!data) return <main className="admin-login">Carregando...</main>;
   const d = data.dashboard;
   const inventory=new Map(data.bookInventory.map((book)=>[book.slug,book.available]));
+  const usePaidFunnel = d.traffic.paidSessions > 0;
+  const activeFunnel = usePaidFunnel ? d.paidFunnel : d.funnel;
+  const funnelScope = usePaidFunnel ? "Funil de mídia paga" : "Funil geral";
   const funnelStages = [
-    ['Sessões', d.funnel.sessions], ['Tema', d.funnel.categories], ['Pergunta', d.funnel.questions], ['Cartas', d.funnel.cards], ['E-mail/contato', d.funnel.contacts], ['Oferta', d.funnel.offers], ['Pix', d.funnel.pix], ['Pagamento', d.funnel.paid],
+    ["sessions", "Sessões", activeFunnel.sessions],
+    ["category", "Tema", activeFunnel.categories],
+    ["question", "Pergunta", activeFunnel.questions],
+    ["cards", "Cartas", activeFunnel.cards],
+    ["preview", "Prévia", activeFunnel.previews],
+    ["offer", "Oferta", activeFunnel.offers],
+    ["contact", "Contato", activeFunnel.contacts],
+    ["checkout", "Checkout", activeFunnel.checkouts],
+    ["pix", "Pix", activeFunnel.pix],
+    ["paid", "Pagamento", activeFunnel.paid],
   ] as const;
-  const stageDrops = funnelStages.slice(1).map((stage,index) => { const previous=funnelStages[index][1]; const current=stage[1]; return { from:funnelStages[index][0], to:stage[0], previous, current, rate:previous ? current/previous : 0, drop:previous ? 1-current/previous : 0 }; }).filter((item)=>item.previous>0);
-  const biggestDrop = stageDrops.sort((a,b)=>b.drop-a.drop)[0];
+  const stageDrops = funnelStages.slice(1).map((stage,index) => {
+    const previous=funnelStages[index][2];
+    const current=stage[2];
+    return { fromId:funnelStages[index][0], toId:stage[0], from:funnelStages[index][1], to:stage[1], previous, current, drop:previous ? Math.max(0,1-current/previous) : 0 };
+  }).filter((item)=>item.previous>0);
+  const biggestDrop = [...stageDrops].sort((a,b)=>b.drop-a.drop)[0];
+  const diagnosticByStage: Record<string,{title:string;text:string}> = {
+    "sessions>category": {title:"A primeira decisão está travando.",text:"Revise a promessa do anúncio e a primeira tela. Deixe explícito: prévia antes do Pix, valor do completo e pagamento apenas se a pessoa quiser aprofundar."},
+    "category>question": {title:"As perguntas prontas não estão puxando a pessoa adiante.",text:"Use opções mais específicas por tema e mantenha a escrita livre como alternativa secundária."},
+    "question>cards": {title:"Há fricção antes da experiência mais envolvente.",text:"Reforce que não existe carta certa e leve a pessoa às três escolhas sem texto extra."},
+    "cards>preview": {title:"A revelação precisa ser imediata e confiável.",text:"Essa queda aponta para carregamento, erro de renderização ou expectativa quebrada."},
+    "preview>offer": {title:"A prévia interessa, mas o aprofundamento ainda não parece valioso.",text:"Mostre no CTA o preço e as camadas abertas: mapa natal, céu atual, síntese das três cartas e PDF."},
+    "offer>contact": {title:"A objeção está na oferta final ou na confiança.",text:"Mantenha apenas e-mail obrigatório, WhatsApp opcional e prova clara de pagamento único."},
+    "contact>checkout": {title:"O formulário está impedindo a geração do pedido.",text:"Verifique validação de contato, erros silenciosos e resposta da criação do pedido."},
+    "checkout>pix": {title:"O problema está na criação ou apresentação do Pix.",text:"Audite gateway, QR Code, copia e cola e o tempo até a tela de pagamento."},
+    "pix>paid": {title:"O Pix é gerado, mas a compra não fecha.",text:"Reforce segurança e valor entregue, e verifique a confirmação automática do pagamento."},
+  };
+  const diagnostic=biggestDrop
+    ? diagnosticByStage[`${biggestDrop.fromId}>${biggestDrop.toId}`] || {title:`Gargalo principal: ${biggestDrop.from} → ${biggestDrop.to}`,text:"Acompanhe essa transição antes de alterar preço ou criativo; o funil é cumulativo por sessão."}
+    : {title:"O funil ainda precisa de mais sessões para apontar um gargalo.",text:"Acompanhe as próximas visitas e priorize o funil da mídia paga quando houver campanhas ativas."};
   return (
     <main className="admin-shell">
       <header>
@@ -222,8 +253,8 @@ export default function AdminClient() {
         ))}
       </section>
       <section className="admin-insight">
-        <div><p className="eyebrow">Leitura rápida do funil</p><h2>{d.traffic.paidSessions > 0 && d.funnel.categories === 0 ? "O primeiro toque é o gargalo agora." : d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? "Já existe tráfego. Agora precisamos fazer a oferta convencer." : "Acompanhe tráfego, intenção e venda no mesmo lugar."}</h2></div>
-        <p>{d.traffic.paidSessions > 0 && d.funnel.categories === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio, mas nenhuma escolha de tema registrada. A primeira tela foi compactada; acompanhe as próximas visitas para confirmar se o avanço melhorou.` : d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio e nenhuma venda atribuída. Priorize clareza de oferta, prova de valor e menos atrito antes do Pix.` : "Use os eventos abaixo para descobrir em qual etapa a pessoa desiste e melhorar a experiência com base em comportamento real."}</p>
+        <div><p className="eyebrow">Leitura rápida do funil</p><h2>{diagnostic.title}</h2></div>
+        <p>{diagnostic.text}</p>
       </section>
       <section className="behavior-panel">
         <div className="panel-title"><h2>Comportamento na página</h2><span>visitantes únicos por evento</span></div>
@@ -235,8 +266,9 @@ export default function AdminClient() {
         </div>
         <p className="behavior-tip">A maior queda entre etapas aponta o gargalo: mensagem/CTA, formulário ou objeção antes do pagamento.</p>
       </section>
+      <div className="panel-title" style={{maxWidth:1400, margin:"0 auto 12px"}}><h2>{funnelScope}</h2><span>{usePaidFunnel ? `${d.traffic.paidSessions} sessões atribuídas a mídia paga` : "todas as sessões não marcadas como teste"}</span></div>
       <section className="funnel-panel premium-funnel">
-        {funnelStages.map(([label,value], index) => <div key={label}><span>{label}</span><strong>{value}</strong>{index>0 && <small>{funnelStages[index-1][1] ? `${((value/funnelStages[index-1][1])*100).toFixed(1)}% da etapa anterior` : '—'}</small>}</div>)}
+        {funnelStages.map(([id,label,value], index) => <div key={id}><span>{label}</span><strong>{value}</strong>{index>0 && <small>{funnelStages[index-1][2] ? `${((value/funnelStages[index-1][2])*100).toFixed(1)}% da etapa anterior` : '—'}</small>}</div>)}
       </section>
       {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} → {biggestDrop.to} · queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
       <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
