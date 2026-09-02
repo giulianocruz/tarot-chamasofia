@@ -28,6 +28,10 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   const paid = ['paid','reading_generated','delivered'].includes(String(order.payment_status)) || ['reading_generated','delivered'].includes(String(order.reading_status));
   if (!paid) return Response.json({ error: 'O mapa é liberado após a confirmação do pagamento.' }, { status: 403 });
   if (String(order.offer_code || '') === 'ebook') return Response.json({ error: 'Este pedido é apenas de e-book.' }, { status: 409 });
+  if (String(order.astrology_status || '') === 'generated' && order.astrology_json) {
+    try { return Response.json({ ok: true, astrology: JSON.parse(String(order.astrology_json)), cached: true }, { headers: { 'Cache-Control': 'private, no-store' } }); }
+    catch { /* regenera apenas se o JSON salvo estiver inválido */ }
+  }
   if (!order.cards_json) return Response.json({ error: 'As cartas deste pedido ainda não estão disponíveis.' }, { status: 409 });
 
   let cardIds: string[] = [];

@@ -32,7 +32,8 @@ type Data = {
     pending: number;
     generated: number;
     conversion: number;
-    ebooks: { sales:number; revenue:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number };
+    astro: { sales:number; revenue:number; profiles:number };
+    ebooks: { sales:number; revenue:number; libraryViews:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number };
     delivery: { email:number; whatsapp:number };
     pricing: { formatted: string; remaining: number | null };
     traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
@@ -115,7 +116,8 @@ export default function AdminClient() {
   function sendByWhatsApp(order: Order) {
     const phone = (order.customer_whatsapp || "").replace(/\D/g, "");
     const firstName = order.customer_name.trim().split(/\s+/)[0] || "Olá";
-    const message = `${firstName}, sua leitura de Tarot Chama Sofia está pronta ✨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nNeste link você pode revelar suas cartas, ler a interpretação e baixar o PDF e o e-book.`;
+    const product = order.offer_code === "astro-tarot" ? "sua análise AstroTarot Chama Sofia" : order.offer_code === "ebook" ? "seu e-book Chama Sofia" : "sua leitura Chama Sofia";
+    const message = `${firstName}, ${product} está pronta ✨\n\nAcesse seu link privado:\n${readingUrl(order.public_token)}\n\nO acesso fica vinculado a este pedido e reúne os conteúdos liberados após o pagamento.`;
     window.open(
       `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
       "_blank",
@@ -164,7 +166,7 @@ export default function AdminClient() {
       <header>
         <div>
           <p className="eyebrow">Painel administrativo</p>
-          <h1>Tarot Chama Sofia</h1>
+          <h1>AstroTarot Chama Sofia</h1>
         </div>
         <div className="admin-actions">
           <a className="admin-download" href="/assets/social/anuncio-tarot-livro-v2.png" download>Baixar arte do anúncio</a>
@@ -202,6 +204,9 @@ export default function AdminClient() {
           ["Pendentes", d.pending, "Pix ainda não confirmado"],
           ["Leituras geradas", d.generated, "entregas produzidas"],
           ["E-books vendidos", d.ebooks.sales, "vendas da biblioteca"],
+          ["Vendas AstroTarot", d.astro.sales, "pedidos pagos do produto principal"],
+          ["Receita AstroTarot", money(d.astro.revenue), "receita do produto principal"],
+          ["Perfis astrológicos", d.astro.profiles, "clientes que concluíram nascimento/cidade"],
           ["Receita e-books", money(d.ebooks.revenue), "receita da biblioteca"],
           ["Entrega por e-mail", d.delivery.email, "pedidos com e-mail"],
           ["Entrega WhatsApp", d.delivery.whatsapp, "pedidos com WhatsApp"],
@@ -233,8 +238,9 @@ export default function AdminClient() {
       {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} → {biggestDrop.to} · queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
       <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
       <section className="orders-panel ebook-panel">
-        <div className="panel-title"><h2>E-books / downsell</h2><span>oferta alternativa após captura do contato</span></div>
+        <div className="panel-title"><h2>Biblioteca / e-books</h2><span>canal de entrada, downsell e continuidade pós-compra</span></div>
         <div className="behavior-grid ebook-metrics">
+          <div><span>Visitaram biblioteca</span><strong>{d.ebooks.libraryViews}</strong></div>
           <div><span>Viram oferta</span><strong>{d.ebooks.offerViews}</strong></div>
           <div><span>Selecionaram</span><strong>{d.ebooks.selected}</strong></div>
           <div><span>Iniciaram checkout</span><strong>{d.ebooks.checkoutStarted}</strong></div>

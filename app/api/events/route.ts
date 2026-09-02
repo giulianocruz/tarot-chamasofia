@@ -16,6 +16,8 @@ const allowed = new Set([
   "scroll_depth_90", "faq_open", "contact_click", "page_exit", "form_step_view",
   "form_abandon", "onboarding_started", "category_selected", "question_written",
   "cards_selected", "reading_preview", "offer_viewed", "onboarding_abandon",
+  "contact_captured", "delivery_channel_selected", "astrology_profile_completed",
+  "ebook_offer_viewed", "ebook_selected", "ebook_checkout_started", "library_view",
 ]);
 
 export async function POST(request: Request) {

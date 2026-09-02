@@ -462,6 +462,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                 ))}
               </div>
               <small>*Se você não souber o horário de nascimento, ainda entregamos uma análise útil, mas Ascendente e casas ficam limitados. O e-book continua incluído como bônus.</small>
+              <a className="library-inline-link" href="/biblioteca">Ver Biblioteca Chama Sofia completa →</a>
             </section>
           </div>
         )}
