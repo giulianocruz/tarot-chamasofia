@@ -52,7 +52,7 @@ export default function LandingClient() {
   const [question, setQuestion] = useState("");
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [showSticky, setShowSticky] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [error, setError] = useState("");
   const utms = useMemo(
     () =>
@@ -162,44 +162,10 @@ export default function LandingClient() {
       return;
     }
     setFormStep(2);
-    track("form_step_view", { step: 2 });
-    track("question_completed");
-    track("offer_view", { value: price.cents / 100, currency: "BRL" });
-    requestAnimationFrame(() =>
-      document.getElementById("dados-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" }),
-    );
   }
-  async function submit(event: React.FormEvent) {
+  function submit(event: React.FormEvent) {
     event.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          whatsapp,
-          category,
-          question,
-          anonymousId: getAnonymousId(),
-          ...utms,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Não foi possível criar o pedido.");
-      track("checkout_started", {
-        value: price.cents / 100,
-        currency: "BRL",
-        order_id: data.orderNumber,
-      });
-      location.href = data.url;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Tente novamente.");
-      setLoading(false);
-    }
+    start();
   }
   return (
     <main className="site-shell">
@@ -216,7 +182,7 @@ export default function LandingClient() {
         </a>
         <div className="nav-menu">
           <a href="#como-funciona">Como funciona</a>
-          <a href="#presente">Seu presente</a>
+          <a href="/biblioteca">Biblioteca</a>
           <button onClick={start}>Começar leitura</button>
         </div>
       </nav>
@@ -286,7 +252,59 @@ export default function LandingClient() {
           ))}
         </div>
       </section>
-      <section className="question-section" id="pergunta" data-reveal>
+      <section className="question-section journey-entry" id="pergunta" data-reveal>
+        <div className="question-intro">
+          <p className="eyebrow">Sua pergunta, sua jornada</p>
+          <h2>O que você gostaria de compreender?</h2>
+          <p>
+            A experiência guiada ajuda você a começar sem precisar escrever
+            muito. Escolha um tema, toque em uma pergunta pronta e revele três
+            cartas pela sua intuição.
+          </p>
+          <ul>
+            <li>3 cartas sem repetição</li>
+            <li>Prévia antes do pagamento</li>
+            <li>Resultado privado + PDF</li>
+          </ul>
+        </div>
+        <div className="reading-form journey-entry-card">
+          <div className="form-progress">
+            <span>✦</span>
+            <b>Comece com poucos toques</b>
+            <small>Sem criar conta</small>
+          </div>
+          <p className="journey-card-copy">
+            Seus dados só são pedidos depois que você conhecer as cartas e vir
+            a primeira camada da sua leitura.
+          </p>
+          <div className="journey-theme-grid" aria-label="Temas disponíveis">
+            {["Amor", "Dinheiro", "Trabalho", "Decisões"].map((item, index) => (
+              <span key={item}>
+                <b aria-hidden="true">{["♡", "◇", "✦", "◉"][index]}</b>
+                {item}
+              </span>
+            ))}
+          </div>
+          <div className="journey-flow" aria-label="Etapas da experiência">
+            <span>1 · Tema</span><i aria-hidden="true">→</i>
+            <span>2 · Pergunta</span><i aria-hidden="true">→</i>
+            <span>3 · Cartas</span><i aria-hidden="true">→</i>
+            <span>4 · Prévia</span>
+          </div>
+          <button type="button" className="primary-button form-submit" onClick={start}>
+            COMEÇAR EXPERIÊNCIA GUIADA <span>→</span>
+          </button>
+          <div className="checkout-confidence">
+            <span>✓ Mínima digitação</span>
+            <span>✓ Prévia antes do Pix</span>
+            <span>✓ Resultado privado</span>
+          </div>
+          <a className="journey-library-link" href="/biblioteca">
+            Prefere começar por um e-book? Conheça a Biblioteca Chama Sofia
+          </a>
+        </div>
+      </section>
+      <section className="legacy-question-section" aria-hidden="true">
         <div className="question-intro">
           <p className="eyebrow">Sua pergunta, sua jornada</p>
           <h2>O que você gostaria de compreender?</h2>
@@ -458,7 +476,7 @@ export default function LandingClient() {
           />
         </div>
         <div>
-          <p className="eyebrow">O produto principal</p>
+          <p className="eyebrow">Seu presente na análise completa</p>
           <h2>Aprenda Tarot. Experimente. Guarde sua jornada.</h2>
           <h3>Tarot para Iniciantes</h3>
           <p>
@@ -467,8 +485,8 @@ export default function LandingClient() {
             confirmação do pagamento.
           </p>
           <p className="ebook-note">
-            Inclui como bônus uma leitura personalizada de 3 cartas e o PDF do
-            resultado. Também publicado no Google Play Books.
+            Na análise AstroTarot ele é incluído como bônus. Também pode ser
+            adquirido separadamente na Biblioteca Chama Sofia.
           </p>
         </div>
       </section>
@@ -536,6 +554,9 @@ export default function LandingClient() {
           ))}
         </div>
         <p className="library-note">Oferta opcional. Nada é adicionado automaticamente ao seu pedido.</p>
+        <a className="secondary-button library-page-button" href="/biblioteca" onClick={() => track("library_click", { surface: "astrotarot" })}>
+          ABRIR BIBLIOTECA CHAMA SOFIA <span>→</span>
+        </a>
       </section>
       <section className="final-cta">
         <span>✦</span>

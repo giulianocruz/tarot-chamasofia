@@ -177,3 +177,37 @@
 .result-library-cta h2{margin:7px 0 10px;font:clamp(28px,4vw,39px) Georgia,serif}.result-library-cta>p:not(.eyebrow){color:#a99bac;line-height:1.6}.result-library-cta .secondary-button{display:inline-flex;margin-top:14px;text-decoration:none}
 .library-inline-link{display:inline-block;margin-top:16px;color:#d9bd7d;font-size:9px;text-decoration:none;border-bottom:1px solid rgba(217,189,125,.35)}
 .library-inline-link:hover{color:#f3dfa8;border-color:#f3dfa8}
+
+/* Página independente AstroTarot */
+.legacy-question-section{display:none}
+.site-shell .question-section.journey-entry{display:grid}
+.site-shell .step-grid{grid-template-columns:repeat(3,1fr)}
+.journey-entry-card{align-self:center;text-align:center}
+.journey-card-copy{max-width:590px;margin:0 auto;color:#c8bbcb;font-size:16px;line-height:1.75}
+.journey-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:25px 0}
+.journey-theme-grid span{min-height:88px;display:grid;place-items:center;align-content:center;gap:7px;padding:12px;border:1px solid rgba(215,181,109,.2);border-radius:13px;background:rgba(255,255,255,.025);color:#eadfec;font-size:14px;font-weight:750}
+.journey-theme-grid b{color:#f0d797;font-size:23px;font-weight:500}
+.journey-flow{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:18px auto 2px;color:#9e90a2;font-size:12px}
+.journey-flow span{padding:7px 9px;border-radius:999px;background:rgba(215,181,109,.07)}
+.journey-flow i{color:#d7b56d;font-style:normal}
+.journey-library-link{display:inline-block;margin-top:19px;color:#ddc889;font-size:13px;line-height:1.45;border-bottom:1px solid rgba(221,200,137,.35)}
+.library-page-button{display:inline-flex;align-items:center;justify-content:center;gap:12px;margin:24px auto 0;padding:14px 20px;border:1px solid #d7b56d;border-radius:9px;color:#ead394;font-size:12px;font-weight:850;letter-spacing:.07em}
+.library-page-button span{font-size:18px}
+
+@media(max-width:640px){
+  .site-shell .step-grid{grid-template-columns:1fr}
+  .site-shell .hero{min-height:100svh;padding:106px 18px 300px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+  .site-shell .hero h1,.site-shell .hero-copy,.site-shell .bonus-line,.site-shell .secure-note{width:100%;max-width:430px;margin-left:auto;margin-right:auto;text-align:center}
+  .site-shell .hero .primary-button{max-width:430px}
+  .journey-entry{text-align:center}
+  .journey-entry .question-intro{max-width:430px;margin:auto}
+  .journey-entry .question-intro ul{max-width:390px;margin:26px auto;text-align:left}
+  .journey-entry-card{max-width:440px;margin:auto;padding:24px 16px}
+  .journey-card-copy{font-size:15px}
+  .journey-theme-grid{grid-template-columns:1fr 1fr}
+  .journey-theme-grid span{min-height:82px}
+  .journey-flow{gap:6px}
+  .journey-flow i{display:none}
+  .journey-library-link{font-size:14px}
+  .library-page-button{width:100%;max-width:420px}
+}
