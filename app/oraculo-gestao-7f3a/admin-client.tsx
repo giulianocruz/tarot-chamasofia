@@ -35,7 +35,7 @@ type Data = {
     generated: number;
     conversion: number;
     astro: { sales:number; revenue:number; profiles:number };
-    ebooks: { sales:number; revenue:number; libraryViews:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number };
+    ebooks: { sales:number; revenue:number; libraryViews:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number; products:Array<{slug:string;sales:number;revenue:number}> };
     delivery: { email:number; whatsapp:number };
     pricing: { formatted: string; remaining: number | null };
     traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
@@ -248,9 +248,16 @@ export default function AdminClient() {
           <div><span>Selecionaram</span><strong>{d.ebooks.selected}</strong></div>
           <div><span>Iniciaram checkout</span><strong>{d.ebooks.checkoutStarted}</strong></div>
           <div><span>Compraram</span><strong>{d.ebooks.sales}</strong></div>
+          <div><span>Visita → compra</span><strong>{d.ebooks.libraryViews ? `${((d.ebooks.sales/d.ebooks.libraryViews)*100).toFixed(1)}%` : '0,0%'}</strong></div>
           <div><span>Seleção → compra</span><strong>{d.ebooks.selected ? `${((d.ebooks.sales/d.ebooks.selected)*100).toFixed(1)}%` : '0,0%'}</strong></div>
           <div><span>Receita</span><strong>{money(d.ebooks.revenue)}</strong></div>
         </div>
+        {d.ebooks.products.length > 0 && <div className="ebook-product-results">
+          {d.ebooks.products.map((product) => {
+            const book=BOOK_CATALOG.find((item)=>item.slug===product.slug);
+            return <article key={product.slug}><span>{book?.shortTitle || product.slug}</span><strong>{product.sales} venda(s)</strong><small>{money(product.revenue)}</small></article>;
+          })}
+        </div>}
       </section>
       <section className="orders-panel campaign-panel">
         <div className="panel-title">

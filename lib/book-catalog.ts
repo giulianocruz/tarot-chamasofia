@@ -24,7 +24,7 @@ export const BOOK_CATALOG: BookOffer[] = [
     originalCents: 2190,
     promoCents: 499,
     r2Key: "pomba-gira-premium.pdf",
-    cover: "/assets/books/pomba-gira-premium.jpg",
+    cover: "/assets/books/pomba-gira.jpg",
     description: "Guardiãs, falanges, símbolos e caminhos da espiritualidade umbandista.",
   },
   {

@@ -380,6 +380,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step consult-theme-step">
             <p className="consult-progress">1 de 5</p>
             {!paidTraffic && <button className="consult-back" onClick={() => go(0)}>← voltar</button>}
+            <div className="consult-mini-deck" aria-hidden="true">
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
+            </div>
             <p className="eyebrow">Sua análise começa com um toque</p>
             <h2>Qual tema você quer entender agora?</h2>
             <p className="consult-muted consult-theme-guide">Escolha o assunto mais importante deste momento. Depois você poderá usar uma pergunta pronta.</p>
@@ -487,6 +492,12 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <p className="eyebrow">Seu Mapa Astral Express + Tarot está pronto para ser liberado</p>
             <h2>Receba uma análise do seu momento, não apenas uma tiragem</h2>
             <p className="consult-muted">Pagamento único via Pix. Sem assinatura e sem cadastro.</p>
+            <div className="consult-offer-art" aria-hidden="true">
+              <div className="consult-selected-fan">
+                {cards.map((card) => <img key={card.id} src={card.image} alt="" />)}
+              </div>
+              {bonusAvailable && <img className="consult-bonus-book" src="/assets/books/tarot-para-iniciantes-mockup.jpg" alt="" />}
+            </div>
             <div className="consult-offer-summary">
               <ul>
                 <li>✓ Mapa Astral Express com Sol, Lua e Ascendente*</li>

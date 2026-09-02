@@ -19,6 +19,9 @@ export default function BibliotecaClient() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const upcomingBooks = catalogLoading
+    ? []
+    : BOOK_CATALOG.filter((book) => !availableBooks.some((available) => available.slug === book.slug));
   const attribution = useMemo(() => {
     if (typeof window === "undefined") return {};
     const query = new URLSearchParams(window.location.search);
@@ -102,7 +105,7 @@ export default function BibliotecaClient() {
         {availableBooks.map((book) => (
           <article className={selected?.slug === book.slug ? "library-product is-selected" : "library-product"} key={book.slug}>
             <img src={book.cover} alt={`Capa ${book.title}`} />
-            <div>{book.badge && <span className="ebook-badge">{book.badge}</span>}<h2>{book.shortTitle}</h2><p>{book.description}</p></div>
+            <div>{book.badge && <span className="ebook-badge">{book.badge}</span>}<h2>{book.shortTitle}</h2><p>{book.description}</p><small className="library-delivery-ready">✓ Entrega liberada após a confirmação do Pix</small></div>
             <div className="library-product-buy">
               <small>de <del>{formatBookPrice(book.originalCents)}</del></small>
               <strong>{formatBookPrice(book.promoCents)}</strong>
@@ -116,6 +119,21 @@ export default function BibliotecaClient() {
       {catalogLoading && <section className="library-catalog-state"><span className="status-orb pulse">✦</span><p>Organizando o acervo disponível...</p></section>}
       {!catalogLoading && availableBooks.length===0 && (
         <section className="library-catalog-state"><span className="status-orb">✦</span><h2>O acervo está sendo atualizado.</h2><p>Para proteger sua compra, os e-books avulsos só aparecem quando o arquivo está pronto para entrega imediata.</p></section>
+      )}
+
+      {upcomingBooks.length > 0 && (
+        <section className="library-upcoming" aria-labelledby="upcoming-title">
+          <div><p className="eyebrow">Coleção SofIA Labs</p><h2 id="upcoming-title">Próximos títulos</h2><p>Estes livros aparecem como prévia da coleção e só serão liberados para compra quando o PDF final estiver pronto para entrega.</p></div>
+          <div className="library-upcoming-grid">
+            {upcomingBooks.map((book) => (
+              <article key={book.slug}>
+                <img src={book.cover} alt={`Capa ${book.title}`} loading="lazy" />
+                <strong>{book.shortTitle}</strong>
+                <span>Em preparação</span>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
 
       {selected && (

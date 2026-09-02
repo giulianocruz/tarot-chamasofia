@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%ppc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%display%')`;
   const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%ppc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%display%')`;
 
-  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
+  const [ordersResult, totals, today, events, funnel, paidTraffic, campaignEventRows, ebookProductRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
     getD1()
       .prepare(
         "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test,offer_code,product_slug,delivery_channel FROM orders ORDER BY id DESC LIMIT 100",
@@ -89,6 +89,16 @@ export async function GET(request: Request) {
       .all<Record<string, unknown>>(),
     getD1()
       .prepare(
+        `SELECT product_slug,
+          SUM(CASE WHEN payment_status='paid' OR reading_status='delivered' THEN 1 ELSE 0 END) AS sales,
+          SUM(CASE WHEN payment_status='paid' OR reading_status='delivered' THEN price ELSE 0 END) AS revenue
+         FROM orders
+         WHERE COALESCE(is_test,0)=0 AND offer_code='ebook'
+         GROUP BY product_slug ORDER BY revenue DESC`,
+      )
+      .all<Record<string, unknown>>(),
+    getD1()
+      .prepare(
         `SELECT
           LOWER(COALESCE(NULLIF(utm_source,''),CASE WHEN COALESCE(fbclid,'')<>'' THEN 'meta' ELSE 'pago' END)) AS source,
           COALESCE(NULLIF(utm_campaign,''),'sem campanha') AS campaign,
@@ -131,6 +141,11 @@ export async function GET(request: Request) {
     .map((row) => ({ ...row, conversion: row.sessions ? row.sales / row.sessions : 0 }))
     .sort((a, b) => b.revenue - a.revenue || b.sessions - a.sessions)
     .slice(0, 20);
+  const ebookProducts = ebookProductRows.results.map((row) => ({
+    slug: String(row.product_slug || "sem-produto"),
+    sales: Number(row.sales || 0),
+    revenue: Number(row.revenue || 0),
+  }));
 
   return Response.json(
     {
@@ -144,7 +159,7 @@ export async function GET(request: Request) {
         pending: Number(totals?.pending || 0),
         generated: Number(totals?.generated || 0),
         astro: { sales: Number(totals?.astro_sales || 0), revenue: Number(totals?.astro_revenue || 0), profiles: Number(eventCounts.astrology_profile_completed || 0) },
-        ebooks: { sales: Number(totals?.ebook_sales || 0), revenue: Number(totals?.ebook_revenue || 0), libraryViews: Number(eventCounts.library_view || 0), offerViews: Number(eventCounts.ebook_offer_viewed || 0), selected: Number(eventCounts.ebook_selected || 0), checkoutStarted: Number(eventCounts.ebook_checkout_started || 0), purchases: Number(eventCounts.ebook_purchase || 0) },
+        ebooks: { sales: Number(totals?.ebook_sales || 0), revenue: Number(totals?.ebook_revenue || 0), libraryViews: Number(eventCounts.library_view || 0), offerViews: Number(eventCounts.ebook_offer_viewed || 0), selected: Number(eventCounts.ebook_selected || 0), checkoutStarted: Number(eventCounts.ebook_checkout_started || 0), purchases: Number(eventCounts.ebook_purchase || 0), products: ebookProducts },
         delivery: { email: Number(totals?.delivery_email || 0), whatsapp: Number(totals?.delivery_whatsapp || 0) },
         conversion: sessions ? totalSales / sessions : 0,
         pricing,
