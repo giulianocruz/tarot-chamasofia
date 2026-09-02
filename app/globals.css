@@ -203,8 +203,17 @@
 .library-catalog-state .status-orb{margin:0 auto 18px}.library-catalog-state h2{margin:0 0 10px;font-size:30px}.library-catalog-state p{max-width:520px;margin:0 auto;color:#9f91a4;line-height:1.65}
 .inventory-status{display:inline-flex!important;width:max-content;margin-top:7px;padding:4px 7px;border-radius:999px;font-size:8px!important;font-weight:800}.inventory-status.is-ready{color:#4d8b5d!important;background:#e7f6e9}.inventory-status.is-missing{color:#a76435!important;background:#fff0df}
 .library-checkout .delivery-choice{margin:2px 0 0}.library-checkout .delivery-choice button{color:#d9cddd}
+.consult-theme-step{margin-top:32px}.consult-theme-step>.eyebrow{margin-top:6px;margin-bottom:9px}.consult-theme-guide{max-width:470px;margin:0 auto!important;font-size:13px}
+.consult-entry-trust{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:18px auto 0}.consult-entry-trust span{padding:7px 10px;border:1px solid rgba(215,181,109,.15);border-radius:999px;background:rgba(255,255,255,.025);color:#9f91a4;font-size:9px}.consult-entry-trust span::before{content:'✓';margin-right:5px;color:#d8bd75}
+.is-paid-entry.consult-step-1 .consult-card{min-height:min(740px,calc(100vh - 36px))}.is-paid-entry .consult-theme-step .consult-options{margin-top:22px}
 
 @media(max-width:520px){
+  .consult-shell{background-attachment:scroll}
+  .is-paid-entry.consult-step-1 .consult-card{min-height:100dvh;padding-top:max(12px,env(safe-area-inset-top))}
+  .is-paid-entry .consult-theme-step{margin-top:23px}
+  .consult-theme-step>.eyebrow{font-size:9px}.consult-theme-guide{font-size:12px!important;line-height:1.5!important}
+  .is-paid-entry .consult-options{margin-top:17px!important;gap:8px}.is-paid-entry .consult-options button{min-height:88px;padding:11px 8px}.is-paid-entry .consult-options b{font-size:23px;margin-bottom:6px}.is-paid-entry .consult-options button span small{margin-top:4px}
+  .consult-entry-trust{gap:5px;margin-top:14px}.consult-entry-trust span{padding:6px 7px;font-size:8px}
   .consult-progress-rail{margin-top:13px;margin-bottom:-8px}
   .consult-step{display:flex;flex-direction:column;align-items:center}
   .consult-step>*{max-width:100%}

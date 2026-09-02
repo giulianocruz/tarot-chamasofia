@@ -141,7 +141,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       })
       .catch(()=>setAvailableBooks([]))
       .finally(()=>setLibraryReady(true));
-    emitEvent("onboarding_started");
+    emitEvent("landing_view", { surface: "consulta", paid_traffic: paidTraffic });
+    if (paidTraffic) {
+      emitEvent("onboarding_started", { entry: "paid" });
+      emitEvent("form_step_view", { step: 1, entry: "paid" }, { dedupe: "paid-step-1" });
+    }
     window.setTimeout(() => setEmail(localStorage.getItem("cs_email") || ""), 0);
 
     const resumeToken=new URLSearchParams(location.search).get("resume");
@@ -179,7 +183,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     };
     window.addEventListener("pagehide", abandon, { once: true });
     return () => window.removeEventListener("pagehide", abandon);
-  }, []);
+  }, [paidTraffic]);
 
   function go(nextStep: number) {
     setError("");
@@ -188,7 +192,14 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function startOnboarding() {
+    emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic" });
+    emitEvent("form_step_view", { step: 1, entry: paidTraffic ? "paid" : "organic" }, { dedupe: "step-1" });
+    go(1);
+  }
+
   function chooseCategory(value: string) {
+    emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic" });
     categoryRef.current = value;
     setCategory(value);
     emitEvent("category_selected", { category: value }, { dedupe: value });
@@ -343,7 +354,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     }
   }
   return (
-    <main className="consult-shell">
+    <main className={`consult-shell consult-step-${step}${paidTraffic ? " is-paid-entry" : ""}`}>
       <section className="consult-card" aria-live="polite">
         <header className="consult-brand">
           <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />
@@ -360,22 +371,27 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <p className="eyebrow">Seu céu, sua pergunta e três cartas em uma leitura só.</p>
             <h1>Descubra o que o seu momento está pedindo de você.</h1>
             <p>Comece pela sua pergunta e por 3 cartas. Depois do Pix, seu Mapa Astral Express e os trânsitos atuais entram na análise para ampliar a leitura.</p>
-            <button className="primary-button" onClick={() => go(1)}>COMEÇAR MINHA ANÁLISE <span>→</span></button>
+            <button className="primary-button" onClick={startOnboarding}>COMEÇAR MINHA ANÁLISE <span>→</span></button>
             <small>Mapa Astral Express · 3 cartas · céu atual · PDF{bonusAvailable?" + e-book bônus":""}</small>
           </div>
         )}
 
         {step === 1 && (
-          <div className="consult-step">
+          <div className="consult-step consult-theme-step">
             <p className="consult-progress">1 de 5</p>
-            <button className="consult-back" onClick={() => go(0)}>← voltar</button>
-            <h2>O que está pesando mais hoje?</h2>
+            {!paidTraffic && <button className="consult-back" onClick={() => go(0)}>← voltar</button>}
+            <p className="eyebrow">Sua análise começa com um toque</p>
+            <h2>Qual tema você quer entender agora?</h2>
+            <p className="consult-muted consult-theme-guide">Escolha o assunto mais importante deste momento. Depois você poderá usar uma pergunta pronta.</p>
             <div className="consult-options">
               {CATEGORY_MAP.map(([value, icon, label, description]) => (
                 <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
                   <b aria-hidden="true">{icon}</b><span>{label}<small>{description}</small></span>
                 </button>
               ))}
+            </div>
+            <div className="consult-entry-trust" aria-label="Informações da experiência">
+              <span>menos de 2 minutos</span><span>sem cadastro</span><span>prévia antes do Pix</span>
             </div>
           </div>
         )}

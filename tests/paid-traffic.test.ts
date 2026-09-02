@@ -15,6 +15,11 @@ test("encaminha tráfego pago conhecido para a consulta", () => {
   assert.equal(shouldUseConsulta({}), false);
 });
 
+test("reconhece placements da Meta mesmo sem fbclid", () => {
+  assert.equal(shouldUseConsulta({ utm_source: "an" }), true);
+  assert.equal(shouldUseConsulta({ utm_source: "msg" }), true);
+});
+
 test("preserva a atribuição no encaminhamento", () => {
   assert.equal(
     consultationUrl({ utm_source: "meta", utm_campaign: "amor", fbclid: "abc" }),

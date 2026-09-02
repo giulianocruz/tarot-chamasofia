@@ -222,8 +222,8 @@ export default function AdminClient() {
         ))}
       </section>
       <section className="admin-insight">
-        <div><p className="eyebrow">Leitura rápida do funil</p><h2>{d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? "Já existe tráfego. Agora precisamos fazer a oferta convencer." : "Acompanhe tráfego, intenção e venda no mesmo lugar."}</h2></div>
-        <p>{d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio e nenhuma venda atribuída. Priorize clareza de oferta, prova de valor e menos atrito antes do Pix.` : "Use os eventos abaixo para descobrir em qual etapa a pessoa desiste e melhorar a experiência com base em comportamento real."}</p>
+        <div><p className="eyebrow">Leitura rápida do funil</p><h2>{d.traffic.paidSessions > 0 && d.funnel.categories === 0 ? "O primeiro toque é o gargalo agora." : d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? "Já existe tráfego. Agora precisamos fazer a oferta convencer." : "Acompanhe tráfego, intenção e venda no mesmo lugar."}</h2></div>
+        <p>{d.traffic.paidSessions > 0 && d.funnel.categories === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio, mas nenhuma escolha de tema registrada. A primeira tela foi compactada; acompanhe as próximas visitas para confirmar se o avanço melhorou.` : d.traffic.paidSessions > 0 && d.traffic.paidSales === 0 ? `Há ${d.traffic.paidSessions} sessão(ões) de anúncio e nenhuma venda atribuída. Priorize clareza de oferta, prova de valor e menos atrito antes do Pix.` : "Use os eventos abaixo para descobrir em qual etapa a pessoa desiste e melhorar a experiência com base em comportamento real."}</p>
       </section>
       <section className="behavior-panel">
         <div className="panel-title"><h2>Comportamento na página</h2><span>visitantes únicos por evento</span></div>
