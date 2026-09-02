@@ -291,3 +291,6 @@
 }
 
 @media(prefers-reduced-motion:reduce){.consult-card::after,.consult-step,.consult-mini-deck img,.consult-step .primary-button::before,.consult-selected-fan img,.consult-bonus-book{animation:none!important}}
+
+/* Editorial SEO */
+.site-shell footer .editorial-link{display:inline-block;margin:12px 8px 0;color:#d9bd7d;font-size:10px;font-weight:800;border-bottom:1px solid rgba(217,189,125,.35)}.site-shell footer .editorial-link:hover{color:#f1dda6;border-color:#f1dda6}
