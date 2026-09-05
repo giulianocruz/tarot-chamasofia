@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const paidOrder = `(COALESCE(fbclid,'')<>'' OR LOWER(COALESCE(utm_source,'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(utm_medium,'')) LIKE '%paid%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%cpc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%ppc%' OR LOWER(COALESCE(utm_medium,'')) LIKE '%display%')`;
   const paidEvent = `(COALESCE(json_extract(metadata_json,'$.fbclid'),'')<>'' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_source'),'')) IN ('meta','facebook','instagram','fb','ig','an','audience_network','messenger','msg','threads','google','youtube','tiktok','bing') OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%paid%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%cpc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%ppc%' OR LOWER(COALESCE(json_extract(metadata_json,'$.utm_medium'),'')) LIKE '%display%')`;
 
-  const [ordersResult, totals, today, events, funnel, paidFunnel, paidTraffic, campaignEventRows, ebookProductRows, campaignOrderRows, pricing, bookInventory] = await Promise.all([
+  const [ordersResult, totals, today, events, funnel, paidFunnel, paidTraffic, campaignEventRows, ebookProductRows, campaignOrderRows, pricing, bookInventory, visitorTraffic] = await Promise.all([
     getD1()
       .prepare(
         "SELECT id,order_number,public_token,customer_name,customer_email,customer_whatsapp,category,question,price,payment_status,reading_status,cards_json,created_at,paid_at,utm_source,utm_medium,utm_campaign,notification_status,notification_error,gateway_name,is_test,offer_code,product_slug,delivery_channel FROM orders ORDER BY id DESC LIMIT 100",
@@ -158,6 +158,7 @@ export async function GET(request: Request) {
       .all<Record<string, unknown>>(),
     getCurrentPrice(),
     Promise.all(BOOK_CATALOG.map(async (book)=>({slug:book.slug,available:Boolean(await env.BOOKS.head(book.r2Key))}))),
+    getD1().prepare(`SELECT COUNT(*) AS sessions, SUM(CASE WHEN ${paidOrder.replace("fbclid", "fbclid").replace("utm_source", "utm_source").replace("utm_medium", "utm_medium")} THEN 1 ELSE 0 END) AS paid_sessions, MAX(last_activity_at) AS last_visit FROM visitor_sessions WHERE COALESCE(is_test,0)=0`).first<Record<string, number | string>>().catch(()=>null),
   ]);
 
   const totalSales = Number(totals?.sales || 0);
@@ -212,6 +213,9 @@ export async function GET(request: Request) {
         conversion: sessions ? totalSales / sessions : 0,
         pricing,
         traffic: {
+          sessionsObserved: Number(visitorTraffic?.sessions || sessions),
+          paidSessionsObserved: Number(visitorTraffic?.paid_sessions || paidSessions),
+          lastVisit: visitorTraffic?.last_visit ? String(visitorTraffic.last_visit) : null,
           paidSessions,
           paidSales,
           paidRevenue,

@@ -38,7 +38,7 @@ type Data = {
     ebooks: { sales:number; revenue:number; libraryViews:number; offerViews:number; selected:number; checkoutStarted:number; purchases:number; products:Array<{slug:string;sales:number;revenue:number}> };
     delivery: { email:number; whatsapp:number };
     pricing: { formatted: string; remaining: number | null };
-    traffic: { paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
+    traffic: { sessionsObserved:number; paidSessionsObserved:number; lastVisit:string|null; paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
     funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     paidFunnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
@@ -225,6 +225,8 @@ export default function AdminClient() {
       <section className="metrics">
         {[
           ["Vendas hoje", d.salesToday, "pagamentos confirmados hoje"],
+          ["Acessos registrados", d.traffic.sessionsObserved, "sessões reais registradas na base"],
+          ["Acessos de anúncios", d.traffic.paidSessionsObserved, "sessões com origem paga identificada"],
           ["Vendas totais", d.totalSales, "pedidos pagos na base"],
           ["Sessões Ads", d.traffic.paidSessions, "visitas atribuídas às campanhas"],
           ["Vendas Ads", d.traffic.paidSales, "compras vindas de mídia paga"],
@@ -251,6 +253,10 @@ export default function AdminClient() {
             {hint && <small>{hint}</small>}
           </article>
         ))}
+      </section>
+      <section className="admin-insight">
+        <div><p className="eyebrow">Saúde da captação</p><h2>{d.traffic.sessionsObserved > 0 ? `${d.traffic.sessionsObserved} acessos reais já registrados` : "Ainda não há acessos reais registrados"}</h2></div>
+        <p>{d.traffic.lastVisit ? `Último acesso registrado: ${new Date(d.traffic.lastVisit).toLocaleString("pt-BR")}. ${d.traffic.paidSessionsObserved} sessão(ões) foram atribuídas a anúncios.` : "A instrumentação está ativa e passará a registrar novas sessões com identificador próprio."}</p>
       </section>
       <section className="admin-insight">
         <div><p className="eyebrow">Leitura rápida do funil</p><h2>{diagnostic.title}</h2></div>

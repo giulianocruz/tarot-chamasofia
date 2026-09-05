@@ -21,12 +21,22 @@ function getAnonymousId() {
   return id;
 }
 
+function getSessionId() {
+  let id = sessionStorage.getItem("cs_session");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("cs_session", id);
+  }
+  return id;
+}
+
 function track(event: string, metadata?: unknown) {
   const anonymousId = getAnonymousId();
+  const session_id = getSessionId();
   void fetch("/api/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event, anonymousId, metadata }),
+    body: JSON.stringify({ event, anonymousId, session_id, metadata }),
   });
   const w = window as typeof window & { fbq?: (...args: unknown[]) => void };
   const map: Record<string, string> = {
