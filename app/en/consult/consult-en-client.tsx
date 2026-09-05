@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCards } from "@/lib/tarot";
 import { englishCardCopy } from "@/lib/reading-en";
 
@@ -22,24 +22,27 @@ function ids() {
   localStorage.setItem("cs_anon", anonymous_id); sessionStorage.setItem("cs_session", session_id);
   return { anonymous_id, session_id };
 }
+function attribution(){const params=new URLSearchParams(location.search);let previous:Record<string,string|null>={};try{previous=JSON.parse(localStorage.getItem("cs_intl_attribution")||"{}") as Record<string,string|null>}catch{}return {utm_source:params.get("utm_source")||previous.utm_source||null,utm_medium:params.get("utm_medium")||previous.utm_medium||null,utm_campaign:params.get("utm_campaign")||previous.utm_campaign||null,fbclid:params.get("fbclid")||previous.fbclid||null};}
 function emit(event:string, metadata:Record<string,unknown>={}) {
-  const context=ids(); const params=new URLSearchParams(location.search);
-  void fetch("/api/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event,...context,metadata:{locale:"en-US",currency:"USD",market:"international",...metadata,utm_source:params.get("utm_source"),utm_medium:params.get("utm_medium"),utm_campaign:params.get("utm_campaign"),fbclid:params.get("fbclid")}})});
+  const context=ids(); const source=attribution();
+  void fetch("/api/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event,...context,metadata:{locale:"en-US",currency:"USD",market:"international",...metadata,...source}})});
 }
 
 export default function ConsultEnClient() {
   const deck=useMemo(()=>getCards(DECK_IDS),[]);
   const [step,setStep]=useState(1); const [category,setCategory]=useState(""); const [question,setQuestion]=useState("");
   const [picked,setPicked]=useState<string[]>([]); const [name,setName]=useState(""); const [email,setEmail]=useState("");
-  const [loading,setLoading]=useState(false); const [error,setError]=useState("");
+  const [loading,setLoading]=useState(false); const [error,setError]=useState(""); const [hydrated,setHydrated]=useState(false);
+  useEffect(()=>{try{const raw=JSON.parse(sessionStorage.getItem("cs_intl_draft")||"null");if(raw){if(Number(raw.step)>=1&&Number(raw.step)<=5)setStep(Number(raw.step));if(typeof raw.category==="string")setCategory(raw.category);if(typeof raw.question==="string")setQuestion(raw.question);if(Array.isArray(raw.picked))setPicked(raw.picked.slice(0,3));if(typeof raw.name==="string")setName(raw.name);if(typeof raw.email==="string")setEmail(raw.email);}}catch{}setHydrated(true);},[]);
+  useEffect(()=>{if(!hydrated)return;sessionStorage.setItem("cs_intl_draft",JSON.stringify({step,category,question,picked,name,email}));},[hydrated,step,category,question,picked,name,email]);
   const chooseTheme=(key:string)=>{setCategory(key);setStep(2);emit("category_selected",{category:key});};
   const chooseQuestion=(value:string)=>{setQuestion(value);setStep(3);emit("question_written",{category,source:"preset"});};
   const toggleCard=(id:string)=>{setPicked((current)=>current.includes(id)?current.filter(x=>x!==id):current.length<3?[...current,id]:current);};
   const reveal=()=>{if(picked.length!==3)return;setStep(4);emit("cards_selected",{category,card_ids:picked});};
   async function checkout(e:React.FormEvent){e.preventDefault();setError("");setLoading(true);try{
-    const context=ids(); const params=new URLSearchParams(location.search);
+    const context=ids(); const source=attribution();
     emit("checkout_started",{category,value:1.99});
-    const response=await fetch("/api/international/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,category,question,cardIds:picked,...context,utm_source:params.get("utm_source"),utm_medium:params.get("utm_medium"),utm_campaign:params.get("utm_campaign"),fbclid:params.get("fbclid")})});
+    const response=await fetch("/api/international/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,category,question,cardIds:picked,...context,...source})});
     const data=await response.json(); if(!response.ok) throw new Error(data.error||"Unable to start checkout."); location.href=data.url;
   }catch(err){setError(err instanceof Error?err.message:"Unable to start checkout.");}finally{setLoading(false);}}
 

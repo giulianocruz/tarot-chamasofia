@@ -16,3 +16,7 @@
 .en-pdf-box{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:28px;padding:18px;border:1px solid rgba(215,181,109,.2);border-radius:16px;background:rgba(215,181,109,.05)}
 .en-pdf-box>div{display:grid;gap:5px}.en-pdf-box strong{color:#ecd18a;font-size:16px}.en-pdf-box span{color:#a99bac;font-size:12px}.en-pdf-box .en-cta{margin:0;white-space:nowrap}
 @media(max-width:680px){.en-pdf-box{align-items:stretch;flex-direction:column}.en-pdf-box .en-cta{width:100%}}
+
+.en-return-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1040px;margin:16px auto 0;padding:13px 16px;border:1px solid rgba(215,181,109,.22);border-radius:14px;background:rgba(215,181,109,.07)}
+.en-return-banner>div{display:grid;gap:2px}.en-return-banner strong{color:#ecd18a;font-size:13px}.en-return-banner span{color:#a99bac;font-size:11px}.en-return-banner a{color:#ecd18a;font-size:11px;font-weight:800;letter-spacing:.06em;white-space:nowrap}
+@media(max-width:640px){.en-return-banner{align-items:flex-start;flex-direction:column;margin:10px 12px 0}.en-return-banner a{white-space:normal}}
