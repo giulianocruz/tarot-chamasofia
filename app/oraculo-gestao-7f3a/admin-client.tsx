@@ -40,11 +40,13 @@ type Data = {
     pricing: { formatted: string; remaining: number | null };
     traffic: { sessionsObserved:number; paidSessionsObserved:number; lastVisit:string|null; paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
+    international: { orders:number; sales:number; revenue:number; pending:number };
     funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     paidFunnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
   };
 };
+const usd = (c: number) => new Intl.NumberFormat("en-US", { style:"currency", currency:"USD" }).format(c / 100);
 const money = (c: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     c / 100,
@@ -253,6 +255,10 @@ export default function AdminClient() {
             {hint && <small>{hint}</small>}
           </article>
         ))}
+      </section>
+      <section className="admin-insight">
+        <div><p className="eyebrow">Operação internacional · EN/US</p><h2>{d.international.sales > 0 ? `${d.international.sales} venda(s) internacional(is)` : "Produto internacional pronto para validação"}</h2></div>
+        <p>{d.international.orders} pedido(s) · {d.international.pending} pendente(s) · receita confirmada {usd(d.international.revenue)}. Oferta atual: US$ 1.99. Checkout Stripe permanece protegido até a credencial de produção ser ativada.</p>
       </section>
       <section className="admin-insight">
         <div><p className="eyebrow">Saúde da captação</p><h2>{d.traffic.sessionsObserved > 0 ? `${d.traffic.sessionsObserved} acessos reais já registrados` : "Ainda não há acessos reais registrados"}</h2></div>
