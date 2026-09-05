@@ -50,6 +50,7 @@ async function initialize() {
     ['recovery_last_attempt_at','TEXT'], ['recovery_error','TEXT'],
     ['birth_date','TEXT'], ['birth_time','TEXT'], ['birth_place','TEXT'], ['birth_time_known','INTEGER'],
     ['astrology_status','TEXT'], ['astrology_json','TEXT'], ['astrology_generated_at','TEXT'],
+    ['locale','TEXT'], ['currency','TEXT'],
   ];
   for (const [name, type] of additions) if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${type}`).run();
   await db.prepare('CREATE INDEX IF NOT EXISTS idx_orders_gateway_transaction ON orders(gateway_transaction_id)').run();
