@@ -11,27 +11,27 @@ import PreviewDashboard from "./preview-dashboard";
 type Price = { cents: number; formatted: string };
 
 const CATEGORY_MAP = [
-  ["Amor e relacionamentos", "♡", "Amor", "Vínculos, reciprocidade e o que você sente"],
-  ["Dinheiro", "◇", "Dinheiro", "Segurança, escolhas e vida material"],
-  ["Trabalho e carreira", "✦", "Trabalho", "Carreira, reconhecimento e próximos passos"],
-  ["Decisões", "◉", "Decisão", "Caminhos, consequências e clareza para escolher"],
+  ["Amor e relacionamentos", "♡", "Amor", "Desejo, atração, reciprocidade e o que existe entre vocês"],
+  ["Dinheiro", "◇", "Dinheiro", "Prosperidade, poder de escolha e expansão material"],
+  ["Trabalho e carreira", "✦", "Trabalho", "Reconhecimento, ambição e o próximo salto"],
+  ["Decisões", "◉", "Decisão", "O caminho que pode mudar o rumo da sua história"],
 ] as const;
 
 const QUESTION_PRESETS: Record<string, string[]> = {
   "Amor e relacionamentos": [
     "O que preciso compreender sobre esta relação agora?",
-    "Qual é a tendência entre nós neste momento?",
-    "O que está impedindo minha vida amorosa de avançar?",
+    "Existe desejo e reciprocidade entre nós?",
+    "O que essa pessoa sente, mas ainda não demonstra?",
   ],
   Dinheiro: [
     "O que preciso compreender sobre minha vida financeira agora?",
-    "Qual caminho pode favorecer minhas finanças?",
-    "O que está bloqueando minha prosperidade neste momento?",
+    "Onde está minha maior oportunidade de crescimento financeiro?",
+    "O que pode estar me impedindo de prosperar mais?",
   ],
   "Trabalho e carreira": [
     "O que preciso compreender sobre minha carreira agora?",
-    "Qual caminho profissional tende a ser mais favorável?",
-    "O que está impedindo meu crescimento profissional?",
+    "Qual movimento pode elevar meu reconhecimento profissional?",
+    "Onde está meu potencial de crescimento que ainda não estou usando?",
   ],
   Decisões: [
     "O que preciso enxergar antes de tomar esta decisão?",
@@ -393,9 +393,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
             </div>
-            <p className="eyebrow">Sua análise começa com um toque</p>
-            <h2>Qual tema você quer entender agora?</h2>
-            <p className="consult-muted consult-theme-guide">Escolha o assunto mais importante deste momento. Depois você poderá usar uma pergunta pronta.</p>
+            <p className="eyebrow">Esta leitura começa pelo que mais mexe com você</p>
+            <h2>O que ocupa sua mente quando ninguém está olhando?</h2>
+            <p className="consult-muted consult-theme-guide">Escolha o tema que mais desperta desejo, ambição ou inquietação agora. Sua leitura será construída a partir dessa intenção.</p>
             <div className="consult-options">
               {CATEGORY_MAP.map(([value, icon, label, description]) => (
                 <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
@@ -413,8 +413,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step">
             <p className="consult-progress">2 de 5</p>
             <button className="consult-back" onClick={() => go(1)}>← voltar</button>
-            <h2>Escolha uma pergunta pronta</h2>
-            <p className="consult-muted">Um toque é suficiente. Se preferir, você também pode escrever com suas palavras.</p>
+            <p className="eyebrow">Agora torne a intenção específica</p>
+            <h2>Qual resposta faria diferença para você hoje?</h2>
+            <p className="consult-muted">Escolha a pergunta que provoca mais curiosidade. Se nenhuma disser exatamente o que você sente, escreva a sua.</p>
             <div className="consult-question-options">
               {questionPresets.map((preset) => (
                 <button type="button" key={preset} onClick={() => chooseQuestion(preset)}>{preset}</button>
@@ -433,9 +434,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step">
             <p className="consult-progress">3 de 5</p>
             <button className="consult-back" onClick={() => go(2)}>← voltar</button>
-            <h2>Escolha 3 cartas pela sua intuição</h2>
+            <p className="eyebrow">Sua pergunta já tornou esta tiragem única</p>
+            <h2>Três cartas vão revelar forças diferentes do seu momento</h2>
             {resumeNotice && <p className="resume-notice">Sua pergunta foi recuperada. Falta apenas escolher as 3 cartas.</p>}
-            <p className="consult-muted">Não existe escolha certa. Toque nas três cartas que mais chamarem sua atenção.</p>
+            <p className="consult-muted">Não tente escolher racionalmente. Observe por alguns segundos e toque nas três que provocarem primeiro curiosidade, atração ou estranhamento.</p>
             <div className="consult-deck">
               {publicDeck.map((card) => (
                 <button
@@ -459,8 +461,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
         {step === 4 && (
           <div className="consult-step consult-loading">
             <div className="orb" aria-hidden="true">✦</div>
-            <h2>Preparando sua leitura...</h2>
-            <p>Conectando sua pergunta aos símbolos e à posição de cada carta.</p>
+            <h2>Há uma combinação só sua se formando...</h2>
+            <p>Cruzando sua intenção com as três posições para encontrar padrões, tensões e possibilidades que merecem sua atenção.</p>
           </div>
         )}
 
@@ -469,9 +471,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <p className="consult-progress">4 de 5 · sua prévia</p>
             <button className="consult-back" onClick={() => go(3)}>← escolher outras cartas</button>
             <div className="preview-reveal-heading">
-              <p className="eyebrow">As três cartas responderam de formas diferentes</p>
-              <h2>Seu mapa inicial está pronto.</h2>
-              <p className="consult-muted">Veja a primeira camada antes de decidir se quer aprofundar.</p>
+              <p className="eyebrow">Sua combinação não se repete nesta leitura</p>
+              <h2>Existe uma tensão interessante entre o que você quer e o que está se formando.</h2>
+              <p className="consult-muted">Esta é apenas a primeira camada. Observe o que ressoa — e principalmente o que desperta vontade de saber mais.</p>
             </div>
             <div className="consult-reveal premium-reveal">
               {cards.map((card, index) => (
