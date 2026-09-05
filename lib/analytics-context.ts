@@ -13,6 +13,9 @@ export type AnalyticsContext = Partial<Record<AttributionKey, string>> & {
   anonymous_id: string;
   session_id: string;
   is_test: boolean;
+  locale?: string;
+  currency?: string;
+  market?: string;
 };
 
 export function normalizeTestFlag(value: unknown) {
@@ -39,5 +42,10 @@ export function contextFromOrder(order: Record<string, unknown>): AnalyticsConte
     const value = String(order[key] ?? "").trim();
     if (value) context[key] = value;
   }
+  const locale = String(order.locale ?? "").trim();
+  const currency = String(order.currency ?? "").trim();
+  if (locale) context.locale = locale;
+  if (currency) context.currency = currency;
+  if (locale || currency) context.market = locale.toLowerCase().startsWith("en") || currency === "USD" ? "international" : "brazil";
   return context;
 }
