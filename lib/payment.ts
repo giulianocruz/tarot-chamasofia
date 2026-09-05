@@ -2,6 +2,7 @@ import { addEvent, ensureSchema, getD1 } from './database';
 import { notifyReadingReady } from './notifications';
 import { sendMetaPurchase } from './meta';
 import { createReading } from './reading';
+import { createReadingEn } from './reading-en';
 import { drawThreeCards, getCards, type Category } from './tarot';
 import { analyticsMetadata, contextFromOrder } from './analytics-context';
 
@@ -38,7 +39,9 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   }
   let cards = drawThreeCards();
   if (order.cards_json) { try { const ids = JSON.parse(String(order.cards_json)); if (Array.isArray(ids) && ids.length === 3 && ids.every((id) => typeof id === "string")) { const chosen = getCards(ids); if (chosen.length === 3) cards = chosen; } } catch {} }
-  const reading = createReading(String(order.question), String(order.category) as Category, cards);
+  const reading = String(order.locale || '').toLowerCase().startsWith('en')
+    ? createReadingEn(String(order.question), String(order.category) as Category, cards)
+    : createReading(String(order.question), String(order.category) as Category, cards);
   const analyticsContext = contextFromOrder(order);
   const firstPayment = order.payment_status !== 'paid';
   const now = new Date().toISOString();

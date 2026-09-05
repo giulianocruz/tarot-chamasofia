@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import type { Category, TarotCard } from './tarot';
 import type { AstroPlanet, AstroTarotLayer, AstroTransitHighlight, BirthInput } from './astrology-types';
+import { localizeAstrologyEn } from './astrology-en';
 
 const API_BASE = 'https://json.astrologyapi.com/v1';
 type RawPlanet = { name?: string; sign?: string; house?: number; norm_degree?: number; is_retro?: string | boolean };
@@ -151,12 +152,12 @@ function buildSolution(cards:TarotCard[], highlights:AstroTransitHighlight[]):As
   };
 }
 
-export async function createAstroTarotLayer(input:BirthInput, question:string, category:Category, cards:TarotCard[]):Promise<AstroTarotLayer> {
+export async function createAstroTarotLayer(input:BirthInput, question:string, category:Category, cards:TarotCard[], locale='pt-BR'):Promise<AstroTarotLayer> {
   const birth=validateBirthInput(input);
   const location=await resolveBirthLocation(birth.place,birth.month,birth.day,birth.year);
   const payload={ day:birth.day, month:birth.month, year:birth.year, hour:birth.hour, min:birth.min, lat:location.lat, lon:location.lon, tzone:location.tzone, house_type:'placidus' };
   const [chart,transits]=await Promise.all([
-    astrologyRequest<WesternHoroscope>('western_horoscope',{ ...payload, is_asteroids:false },'pt'),
+    astrologyRequest<WesternHoroscope>('western_horoscope',{ ...payload, is_asteroids:false },locale.toLowerCase().startsWith('en')?'en':'pt'),
     astrologyRequest<TransitResponse>('natal_transits/daily',payload,'en'),
   ]);
   const natal={
@@ -166,7 +167,7 @@ export async function createAstroTarotLayer(input:BirthInput, question:string, c
   };
   const highlights=selectHighlights(transits.transit_relation);
   const situation=buildSituation(category,highlights,natal);
-  return {
+  const layer: AstroTarotLayer = {
     generatedAt:new Date().toISOString(), transitDate:String(transits.transit_date||new Date().toISOString().slice(0,10)),
     birth:{ date:input.birthDate, time:birth.timeKnown?input.birthTime:'horário não informado', place:birth.place, resolvedPlace:location.resolvedPlace, timeKnown:birth.timeKnown },
     natal, current:{ ascendant:transits.ascendant||undefined, highlights }, situation,
@@ -174,6 +175,7 @@ export async function createAstroTarotLayer(input:BirthInput, question:string, c
     reflection:`Se o céu descreve o clima e as cartas descrevem sua posição dentro dele, qual escolha de hoje preserva mais a sua autonomia?`,
     precisionNote:birth.timeKnown ? 'Cálculo realizado com data, horário, local e fuso histórico informados.' : 'Como o horário de nascimento não foi informado, usamos 12:00 como referência técnica. Sol e trânsitos continuam úteis, mas Ascendente e casas não devem ser tratados como precisos.',
   };
+  return locale.toLowerCase().startsWith('en') ? localizeAstrologyEn(layer,cards,category) : layer;
 }
 
 export async function createFreeNatalPreview(input:BirthInput) {

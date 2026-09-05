@@ -42,7 +42,7 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   const cards = getCards(cardIds);
   if (cards.length !== 3) return Response.json({ error: 'Não foi possível recuperar as três cartas.' }, { status: 409 });
   try {
-    const layer = await createAstroTarotLayer(input, String(order.question), String(order.category) as Category, cards);
+    const layer = await createAstroTarotLayer(input, String(order.question), String(order.category) as Category, cards, String(order.locale || 'pt-BR'));
     const now = new Date().toISOString();
     await getD1().prepare(`UPDATE orders SET birth_date=?,birth_time=?,birth_place=?,birth_time_known=?,astrology_status='generated',astrology_json=?,astrology_generated_at=? WHERE id=?`)
       .bind(input.birthDate, input.timeKnown ? input.birthTime : null, input.birthPlace, input.timeKnown ? 1 : 0, JSON.stringify(layer), now, order.id).run();
