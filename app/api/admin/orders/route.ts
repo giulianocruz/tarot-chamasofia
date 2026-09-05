@@ -9,6 +9,7 @@ import { completePayment } from "@/lib/payment";
 import { cleanText, sameOrigin } from "@/lib/security";
 import { env } from "cloudflare:workers";
 import { BOOK_CATALOG } from "@/lib/book-catalog";
+import { internationalReadiness } from "@/lib/international-readiness";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
@@ -224,7 +225,7 @@ export async function GET(request: Request) {
           paidConversion: paidSessions ? paidSales / paidSessions : 0,
         },
         campaigns,
-        international: { orders:Number(international?.orders || 0), sales:Number(international?.sales || 0), revenue:Number(international?.revenue || 0), pending:Number(international?.pending || 0), interests:(upsellInterest?.results || []).map((row:any)=>({product:String(row.product||"unknown"),count:Number(row.count||0)})) },
+        international: { orders:Number(international?.orders || 0), sales:Number(international?.sales || 0), revenue:Number(international?.revenue || 0), pending:Number(international?.pending || 0), interests:(upsellInterest?.results || []).map((row:any)=>({product:String(row.product||"unknown"),count:Number(row.count||0)})), readiness:internationalReadiness() },
         funnel: {
           sessions,
           started: Number(funnel?.started || 0),

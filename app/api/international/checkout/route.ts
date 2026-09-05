@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { addEvent, checkRateLimit, ensureSchema, getD1 } from "@/lib/database";
 import { getCards } from "@/lib/tarot";
 import { cleanText, randomToken, sameOrigin, sha256 } from "@/lib/security";
-import { createStripeCheckout, stripeConfigured } from "@/lib/stripe";
+import { createStripeCheckout } from "@/lib/stripe";
+import { internationalReadiness } from "@/lib/international-readiness";
 
 const CATEGORY_MAP: Record<string, string> = {
   love: "Amor e relacionamentos",
@@ -13,7 +14,7 @@ const CATEGORY_MAP: Record<string, string> = {
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Invalid origin." }, { status: 403 });
-  if (!stripeConfigured()) return Response.json({ error: "International checkout is not active yet." }, { status: 503 });
+  if (!internationalReadiness().ready) return Response.json({ error: "International checkout is not active yet." }, { status: 503 });
 
   const ip = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "local";
   if (!(await checkRateLimit(`intl:${await sha256(ip)}`, 6))) return Response.json({ error: "Too many attempts. Please try again shortly." }, { status: 429 });

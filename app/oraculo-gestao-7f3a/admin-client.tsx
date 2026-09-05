@@ -40,7 +40,7 @@ type Data = {
     pricing: { formatted: string; remaining: number | null };
     traffic: { sessionsObserved:number; paidSessionsObserved:number; lastVisit:string|null; paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
-    international: { orders:number; sales:number; revenue:number; pending:number; interests:Array<{product:string;count:number}> };
+    international: { orders:number; sales:number; revenue:number; pending:number; interests:Array<{product:string;count:number}>; readiness:{stripe:boolean;webhook:boolean;email:boolean;astrology:boolean;ready:boolean} };
     funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     paidFunnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     behavior: { depth25:number; depth50:number; depth75:number; depth90:number; faqOpened:number; contactClicks:number; exits:number; step2:number };
@@ -258,7 +258,7 @@ export default function AdminClient() {
       </section>
       <section className="admin-insight">
         <div><p className="eyebrow">Operação internacional · EN/US</p><h2>{d.international.sales > 0 ? `${d.international.sales} venda(s) internacional(is)` : "Produto internacional pronto para validação"}</h2></div>
-        <p>{d.international.orders} pedido(s) · {d.international.pending} pendente(s) · receita confirmada {usd(d.international.revenue)}. Oferta atual: US$ 1.99. Checkout Stripe permanece protegido até a credencial de produção ser ativada.</p>{d.international.interests.length>0&&<div className="behavior-grid" style={{marginTop:14}}>{d.international.interests.map(item=><div key={item.product}><span>Interesse · {item.product}</span><strong>{item.count}</strong></div>)}</div>}
+        <p>{d.international.orders} pedido(s) · {d.international.pending} pendente(s) · receita confirmada {usd(d.international.revenue)}. Oferta atual: US$ 1.99. {d.international.readiness.ready ? "Checkout internacional pronto para venda." : "Checkout protegido até todos os componentes estarem ativos."}</p><div className="behavior-grid" style={{marginTop:14}}>{[["Stripe",d.international.readiness.stripe],["Webhook",d.international.readiness.webhook],["E-mail",d.international.readiness.email],["Astrologia",d.international.readiness.astrology]].map(([label,ok])=><div key={String(label)}><span>{label}</span><strong>{ok?"OK":"PENDENTE"}</strong></div>)}</div>{d.international.interests.length>0&&<div className="behavior-grid" style={{marginTop:14}}>{d.international.interests.map(item=><div key={item.product}><span>Interesse · {item.product}</span><strong>{item.count}</strong></div>)}</div>}
       </section>
       <section className="admin-insight">
         <div><p className="eyebrow">Saúde da captação</p><h2>{d.traffic.sessionsObserved > 0 ? `${d.traffic.sessionsObserved} acessos reais já registrados` : "Ainda não há acessos reais registrados"}</h2></div>
