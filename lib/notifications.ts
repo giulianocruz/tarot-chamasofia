@@ -5,7 +5,7 @@ import { normalizeBrazilPhone } from './phone';
 type DeliveryOrder = {
   customer_name:string; customer_email?:string|null; customer_whatsapp?:string|null;
   public_token:string; order_number:string; offer_code?:string|null;
-  product_slug?:string|null; delivery_channel?:string|null;
+  product_slug?:string|null; delivery_channel?:string|null; locale?:string|null; currency?:string|null;
 };
 
 type LifecycleMessage = {
@@ -46,7 +46,8 @@ async function sendEmail(input: { email:string; name:string; subject:string; htm
 
 export async function notifyReadingReady(order: DeliveryOrder) {
   const appUrl = (env.APP_URL || 'https://tarot.chamasofia.com.br').replace(/\/$/, '');
-  const readingUrl = `${appUrl}/leitura/${order.public_token}`;
+  const isEnglish = String(order.locale || '').toLowerCase().startsWith('en');
+  const readingUrl = isEnglish ? `${appUrl}/en/reading/${order.public_token}` : `${appUrl}/leitura/${order.public_token}`;
   const pdfUrl = `${appUrl}/api/pdf/${order.public_token}`;
   const book = order.offer_code === 'ebook' ? getBook(order.product_slug) : undefined;
   const ebookUrl = book ? `${appUrl}/api/ebook/${order.public_token}/${book.slug}` : `${appUrl}/api/ebook/${order.public_token}`;
@@ -54,9 +55,9 @@ export async function notifyReadingReady(order: DeliveryOrder) {
   const preference = order.delivery_channel || 'legacy';
   const shouldSendEmail = preference !== 'whatsapp';
   const shouldSendWhatsApp = preference !== 'email';
-  const subject = book ? `Seu e-book ${book.shortTitle} está liberado ✦` : 'Sua leitura de Tarot está pronta ✦';
-  const intro = book ? `Seu pagamento foi confirmado e o e-book <strong>${escapeHtml(book.title)}</strong> está liberado.` : 'Seu pagamento foi confirmado e sua leitura está pronta.';
-  const actionLabel = book ? 'Baixar meu e-book' : 'Acessar minha leitura';
+  const subject = isEnglish ? 'Your Chama Sofia reading is ready ✦' : (book ? `Seu e-book ${book.shortTitle} está liberado ✦` : 'Sua leitura de Tarot está pronta ✦');
+  const intro = isEnglish ? 'Your payment was confirmed and your private reading is ready.' : (book ? `Seu pagamento foi confirmado e o e-book <strong>${escapeHtml(book.title)}</strong> está liberado.` : 'Seu pagamento foi confirmado e sua leitura está pronta.');
+  const actionLabel = isEnglish ? 'Open my private reading' : (book ? 'Baixar meu e-book' : 'Acessar minha leitura');
   const actionUrl = book ? ebookUrl : readingUrl;
 
   if (shouldSendEmail && order.customer_email) {
@@ -64,7 +65,7 @@ export async function notifyReadingReady(order: DeliveryOrder) {
       email:order.customer_email,
       name:order.customer_name,
       subject,
-      html:`<p>Olá, ${escapeHtml(order.customer_name)}.</p><p>${intro}</p><p><a href="${actionUrl}">${actionLabel}</a></p><p>Pedido ${escapeHtml(order.order_number)} · Chama Sofia</p>`,
+      html:isEnglish ? `<p>Hello, ${escapeHtml(order.customer_name)}.</p><p>${intro}</p><p><a href="${actionUrl}">${actionLabel}</a></p><p>Order ${escapeHtml(order.order_number)} · Chama Sofia</p>` : `<p>Olá, ${escapeHtml(order.customer_name)}.</p><p>${intro}</p><p><a href="${actionUrl}">${actionLabel}</a></p><p>Pedido ${escapeHtml(order.order_number)} · Chama Sofia</p>`,
     });
     if (result) results.push(result);
   }
