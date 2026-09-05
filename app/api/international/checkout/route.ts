@@ -24,11 +24,12 @@ export async function POST(request: Request) {
   const email = cleanText(body.email, 120).toLowerCase();
   const question = cleanText(body.question, 500);
   const categoryKey = cleanText(body.category, 20);
+  const acceptedTerms = body.acceptedTerms === true;
   const category = CATEGORY_MAP[categoryKey];
   const cardIds = Array.isArray(body.cardIds) ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 3) : [];
   const cards = cardIds.length === 3 && new Set(cardIds).size === 3 ? getCards(cardIds) : [];
 
-  if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || question.length < 10 || !category || cards.length !== 3) {
+  if (!acceptedTerms || name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || question.length < 10 || !category || cards.length !== 3) {
     return Response.json({ error: "Please check your name, email, question and three selected cards." }, { status: 400 });
   }
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       attribution.utm_content || null, attribution.utm_term || null, attribution.fbclid || null, anonymousId, sessionId).run();
 
   const orderId = Number(result.meta.last_row_id);
+  await getD1().prepare("UPDATE orders SET privacy_consent_at=?,terms_version=? WHERE id=?").bind(now,"2026-09-05-en-v1",orderId).run();
   const appUrl = String((env as Record<string, unknown>).APP_URL || "https://tarot.chamasofia.com.br").replace(/\/$/, "");
   try {
     const checkout = await createStripeCheckout({

@@ -7,6 +7,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: base, lastModified: editorialDate, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/en`, lastModified: new Date("2026-09-05T14:20:00-03:00"), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/en/terms`, lastModified: new Date("2026-09-05T15:40:00-03:00"), changeFrequency: "yearly", priority: 0.3 },
+    { url: `${base}/en/privacy`, lastModified: new Date("2026-09-05T15:40:00-03:00"), changeFrequency: "yearly", priority: 0.3 },
+    { url: `${base}/en/refunds`, lastModified: new Date("2026-09-05T15:40:00-03:00"), changeFrequency: "yearly", priority: 0.3 },
     { url: `${base}/mapa-astral-gratis`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.95 },
     { url: `${base}/tarot-do-amor-gratis`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.95 },
     { url: `${base}/astrotarot`, lastModified: editorialDate, changeFrequency: "weekly", priority: 0.9 },

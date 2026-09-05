@@ -43,7 +43,7 @@ export async function GET(request: Request) {
           SUM(CASE WHEN delivery_channel='whatsapp' THEN 1 ELSE 0 END) AS delivery_whatsapp,
           SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN 1 ELSE 0 END) AS paid_sales,
           SUM(CASE WHEN (payment_status='paid' OR reading_status IN ('reading_generated','delivered')) AND ${paidOrder} THEN price ELSE 0 END) AS paid_revenue
-         FROM orders WHERE COALESCE(is_test,0)=0`,
+         FROM orders WHERE COALESCE(is_test,0)=0 AND COALESCE(currency,'BRL')='BRL'`,
       )
       .first<Record<string, number>>(),
     getD1()
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
           COALESCE(NULLIF(utm_campaign,''),'sem campanha') AS campaign,
           SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN 1 ELSE 0 END) AS sales,
           SUM(CASE WHEN payment_status='paid' OR reading_status IN ('reading_generated','delivered') THEN price ELSE 0 END) AS revenue
-         FROM orders WHERE COALESCE(is_test,0)=0 AND ${paidOrder}
+         FROM orders WHERE COALESCE(is_test,0)=0 AND COALESCE(currency,'BRL')='BRL' AND ${paidOrder}
          GROUP BY source,campaign ORDER BY sales DESC LIMIT 20`,
       )
       .all<Record<string, unknown>>(),
