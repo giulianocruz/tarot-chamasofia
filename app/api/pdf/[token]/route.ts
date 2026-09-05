@@ -1,5 +1,6 @@
 import { addEvent, ensureSchema, getD1 } from '@/lib/database';
 import { createReadingPdf } from '@/lib/pdf';
+import { createReadingPdfEn } from '@/lib/pdf-en';
 import type { Reading } from '@/lib/reading';
 import type { AstroTarotLayer } from '@/lib/astrology-types';
 import { cleanText } from '@/lib/security';
@@ -19,7 +20,12 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
     if (logoResponse.ok) logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
   } catch { logoBytes = undefined; }
   const astrology = order.astrology_json ? JSON.parse(String(order.astrology_json)) as AstroTarotLayer : null;
-  const bytes = await createReadingPdf(order as never, cards, JSON.parse(String(order.reading_json)) as Reading, logoBytes, astrology);
-  await addEvent('reading_pdf_download', Number(order.id));
-  return new Response(bytes as BodyInit, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="analise-astrotarot-chama-sofia-${order.order_number}.pdf"`, 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
+  const isEnglish = String(order.locale || '').toLowerCase().startsWith('en');
+  const reading = JSON.parse(String(order.reading_json)) as Reading;
+  const bytes = isEnglish
+    ? await createReadingPdfEn(order as never, cards, reading, logoBytes, astrology)
+    : await createReadingPdf(order as never, cards, reading, logoBytes, astrology);
+  await addEvent('reading_pdf_download', Number(order.id), order.anonymous_id ? String(order.anonymous_id) : null, { locale:String(order.locale||'pt-BR'), currency:String(order.currency||'BRL'), market:isEnglish?'international':'brazil' });
+  const filename = isEnglish ? `chama-sofia-astrotarot-${order.order_number}.pdf` : `analise-astrotarot-chama-sofia-${order.order_number}.pdf`;
+  return new Response(bytes as BodyInit, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="${filename}"`, 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
 }
