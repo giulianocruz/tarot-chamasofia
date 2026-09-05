@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   title: 'Birth Chart + Tarot Reading | Chama Sofia',
   description: 'A personalized reading combining your birth chart, current transits and three Tarot cards. Private, reflective and made for your question.',
   alternates: { canonical: '/en' },
-  openGraph: { title: 'Birth Chart + Tarot Reading | Chama Sofia', description: 'Your sky, your question and three cards in one personalized reading.', url: '/en', locale: 'en_US', type: 'website' },
+  openGraph: { title: 'Birth Chart + Tarot Reading | Chama Sofia', description: 'Your sky, your question and three cards in one personalized reading.', url: '/en', locale: 'en_US', type: 'website', images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Birth Chart + Tarot Reading - Chama Sofia' }] },
+  twitter: { card: 'summary_large_image', title: 'Birth Chart + Tarot Reading | Chama Sofia', description: 'Your sky, your question and three cards in one personalized reading.', images: ['/og.png'] },
 };
 
 export default function EnglishHome() {
