@@ -22,7 +22,7 @@ type LifecycleMessage = {
 type DeliveryResult = { channel:string; ok:boolean; error?:string };
 
 function emailSender() {
-  if (!env.BREVO_API_KEY || !env.EMAIL_FROM) return null;
+  if (!env.EMAIL_FROM) return null;
   const match = env.EMAIL_FROM.match(/^(.*?)\s*<([^>]+)>$/);
   return match
     ? { name: match[1].trim() || 'Chama Sofia', email: match[2] }
@@ -33,11 +33,13 @@ async function sendEmail(input: { email:string; name:string; subject:string; htm
   const sender = emailSender();
   if (!sender) return null;
   try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','api-key':env.BREVO_API_KEY!},
-      body:JSON.stringify({ sender, to:[{email:input.email,name:input.name}], subject:input.subject, htmlContent:input.html }),
-    });
+    const values = env as unknown as Record<string,string|undefined>;
+    let response: Response;
+    if (values.RESEND_API_KEY) {
+      response = await fetch('https://api.resend.com/emails', { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${values.RESEND_API_KEY}`}, body:JSON.stringify({ from:`${sender.name} <${sender.email}>`, to:[input.email], subject:input.subject, html:input.html }) });
+    } else if (env.BREVO_API_KEY) {
+      response = await fetch('https://api.brevo.com/v3/smtp/email', { method:'POST', headers:{'Content-Type':'application/json','api-key':env.BREVO_API_KEY!}, body:JSON.stringify({ sender, to:[{email:input.email,name:input.name}], subject:input.subject, htmlContent:input.html }) });
+    } else return null;
     return { channel:'email', ok:response.ok, error:response.ok?undefined:`HTTP ${response.status}` } satisfies DeliveryResult;
   } catch (error) {
     return { channel:'email', ok:false, error:error instanceof Error?error.message:'Falha desconhecida' } satisfies DeliveryResult;
