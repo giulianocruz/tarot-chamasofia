@@ -605,9 +605,13 @@ export default function LandingClient() {
           entretenimento, reflexão e autoconhecimento. As interpretações não
           representam garantia de acontecimentos futuros.
         </p>
-        <small>
-          © {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br
-        </small>
+        <div className="operation-trust">
+          <strong>Operação identificada</strong>
+          <span>Próxima Digital · CNPJ 68.964.484/0001-22</span>
+          <span>Pagamento via Pix com identificação do recebedor no seu banco.</span>
+        </div>
+        <small>© {new Date().getFullYear()} Chama Sofia · tarot.chamasofia.com.br</small>
+        <small className="built-with-love">Construído com amor por <a href="https://proximaera.com.br" target="_blank" rel="noreferrer">proximaera.com.br</a></small>
         <Link className="editorial-link" href="/artigos">Guias de Tarot e Astrologia</Link>
         <Link className="editorial-link" href="/mapa-astral-gratis">Mapa Astral Grátis</Link>
         <Link className="editorial-link" href="/tarot-do-amor-gratis">Tarot do Amor Grátis</Link>

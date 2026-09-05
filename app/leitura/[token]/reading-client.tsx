@@ -261,6 +261,11 @@ export default function ReadingClient({ token }: { token: string }) {
                   ? "Pix copiado! Abra seu banco e conclua o pagamento."
                   : "Após pagar, aguarde a confirmação. Esta página atualiza automaticamente."}
               </p>
+              <div className="pix-operator-trust">
+                <strong>Pagamento identificado</strong>
+                <span>Próxima Digital · CNPJ 68.964.484/0001-22</span>
+                <span>Antes de pagar, confira no app do seu banco os dados do recebedor exibidos pelo Pix.</span>
+              </div>
             </>
           ) : (
             <div className="payment-warning">
@@ -488,10 +493,9 @@ export default function ReadingClient({ token }: { token: string }) {
         </Link>
       </section>
       <footer>
-        <p>
-          {order.reading!.disclaimer} Não substitui orientação médica,
-          psicológica, jurídica, financeira ou profissional.
-        </p>
+        <p>{order.reading!.disclaimer} Não substitui orientação médica, psicológica, jurídica, financeira ou profissional.</p>
+        <small>Operação: Próxima Digital · CNPJ 68.964.484/0001-22</small>
+        <small className="built-with-love">Construído com amor por <a href="https://proximaera.com.br" target="_blank" rel="noreferrer">proximaera.com.br</a></small>
       </footer>
     </main>
   );

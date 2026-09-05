@@ -294,3 +294,7 @@
 
 /* Editorial SEO */
 .site-shell footer .editorial-link{display:inline-block;margin:12px 8px 0;color:#d9bd7d;font-size:10px;font-weight:800;border-bottom:1px solid rgba(217,189,125,.35)}.site-shell footer .editorial-link:hover{color:#f1dda6;border-color:#f1dda6}
+
+/* Confiança operacional e identificação comercial */
+.operation-trust,.checkout-operator-trust,.pix-operator-trust{display:grid;gap:4px;margin:16px auto 10px;padding:12px 14px;border:1px solid rgba(215,181,109,.18);border-radius:12px;background:rgba(215,181,109,.05);font-size:9px;line-height:1.5}.operation-trust{max-width:560px}.operation-trust strong,.checkout-operator-trust strong,.pix-operator-trust strong{color:#ecd18a}.operation-trust span,.checkout-operator-trust span,.pix-operator-trust span{color:#a99bac}.built-with-love{display:block;margin-top:8px!important}.built-with-love a{color:#d9bd7d;border-bottom:1px solid rgba(217,189,125,.32)}.checkout-operator-trust{max-width:430px;text-align:center}.pix-operator-trust{margin-top:16px;text-align:left}.result-shell footer small{display:block;margin-top:7px}.result-shell footer .built-with-love{margin-top:7px!important}
+@media(max-width:520px){.operation-trust,.checkout-operator-trust,.pix-operator-trust{font-size:8px;padding:10px 11px}}

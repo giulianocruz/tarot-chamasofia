@@ -548,6 +548,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                 {loading ? "GERANDO PIX..." : `LIBERAR MAPA + TAROT — ${price.formatted}`}
               </button>
               <small className="consult-payment-note">Pagamento seguro via Pix. Nenhuma cobrança acontece antes da sua confirmação.</small>
+              <div className="checkout-operator-trust">
+                <strong>Operação comercial identificada</strong>
+                <span>Próxima Digital · CNPJ 68.964.484/0001-22</span>
+                <span>Confira o nome do recebedor antes de confirmar o Pix no seu banco.</span>
+              </div>
             </form>
 
             {availableBooks.length > 0 && <details className="ebook-downsell">
