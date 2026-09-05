@@ -191,6 +191,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     setError("");
     stepRef.current = nextStep;
     setStep(nextStep);
+    if (nextStep > 0 && nextStep <= 6) {
+      emitEvent("form_step_view", { step: nextStep, category: categoryRef.current || undefined }, { dedupe: `step-${nextStep}` });
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -313,7 +316,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     if (!(await validateContact(context))) return;
     const leadToken=leadTokenRef.current;
     setLoading(true);
-    emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel });
+    emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel, category });
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -327,6 +330,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Não foi possível gerar o Pix.");
+      emitEvent("pix_generated", { value: price.cents / 100, currency: "BRL", category, delivery_channel: deliveryChannel }, { dedupe: String(data.orderNumber || data.url || "pix") });
       completedRef.current = true;
       window.location.assign(data.url);
     } catch (checkoutError) {
