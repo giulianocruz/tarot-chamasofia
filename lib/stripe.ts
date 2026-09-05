@@ -38,3 +38,31 @@ export async function getStripeCheckout(sessionId: string) {
   if (!response.ok) throw new Error(data.error?.message || "Unable to read Stripe checkout");
   return data;
 }
+
+
+function stripeWebhookSecret() {
+  return String((env as Record<string, unknown>).STRIPE_WEBHOOK_SECRET || "");
+}
+
+export function stripeWebhookConfigured() { return Boolean(stripeWebhookSecret()); }
+
+function timingSafeHex(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+export async function verifyStripeWebhook(payload: string, signatureHeader: string) {
+  const secret = stripeWebhookSecret();
+  if (!secret || !signatureHeader) return false;
+  const parts = signatureHeader.split(",").map((part) => part.trim().split("="));
+  const timestamp = parts.find(([key]) => key === "t")?.[1] || "";
+  const signatures = parts.filter(([key]) => key === "v1").map(([, value]) => value);
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) return false;
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name:"HMAC", hash:"SHA-256" }, false, ["sign"]);
+  const signed = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${timestamp}.${payload}`));
+  const expected = Array.from(new Uint8Array(signed)).map((byte) => byte.toString(16).padStart(2,"0")).join("");
+  return signatures.some((signature) => timingSafeHex(signature, expected));
+}
