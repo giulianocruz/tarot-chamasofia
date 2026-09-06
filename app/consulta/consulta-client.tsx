@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION_KEYS, normalizeTestFlag, type AnalyticsContext } from "@/lib/analytics-context";
@@ -440,8 +440,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
             </div>
             <p className="eyebrow">Esta leitura começa pelo que mais mexe com você</p>
-            <h2>O que ocupa sua mente quando ninguém está olhando?</h2>
-            <p className="consult-muted consult-theme-guide">Escolha o tema que mais desperta desejo, ambição ou inquietação agora. Sua leitura será construída a partir dessa intenção.</p>
+            <h2>Escolha o tema da sua pergunta</h2>
+            <p className="consult-muted consult-theme-guide">Toque em uma opção para continuar. Você poderá escolher uma pergunta pronta ou escrever a sua na próxima etapa.</p>
             <div className="consult-options">
               {CATEGORY_MAP.map(([value, icon, label, description]) => (
                 <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
@@ -632,3 +632,4 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     </main>
   );
 }
+

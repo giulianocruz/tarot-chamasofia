@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
@@ -30,3 +30,10 @@ test('CAPI preserva atribuicao da Meta e ignora pedidos de teste',()=>{
   assert.match(payment,/metaAttribution\(order\)/);
   assert.match(payment,/fbclid:order\.fbclid/);
 });
+
+
+test('copy do primeiro passo deixa a acao explicita',()=>{
+  assert.match(consulta,/Escolha o tema da sua pergunta/);
+  assert.match(consulta,/Toque em uma opção para continuar/);
+});
+
