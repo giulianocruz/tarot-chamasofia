@@ -1,0 +1,68 @@
+name: Private share and astrology retry CI
+
+on:
+  push:
+    branches:
+      - fix/private-share-astro-retry-20260906
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply guarded privacy patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/leitura/[token]/reading-client.tsx')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              '    const url = location.href;',
+              '    const url = "https://tarot.chamasofia.com.br/consulta?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada";'
+          )
+          s = s.replace(
+              '${typeof location !== "undefined" ? location.href : ""}',
+              'https://tarot.chamasofia.com.br/consulta?utm_source=whatsapp&utm_medium=referral&utm_campaign=leitura_compartilhada'
+          )
+          anchor = '      <section className="result-cards">'
+          if 'GERAR MINHA PARTE ASTROLÓGICA' not in s:
+              if anchor not in s:
+                  raise SystemExit('result-cards anchor not found')
+              retry = '''      {isAstroTarot && !order.astrology && skipAstro && (
+        <section className="astro-onboarding-card astro-result-retry">
+          <p className="eyebrow">Sua compra continua completa</p>
+          <h2>A parte astrológica ainda pode ser gerada.</h2>
+          <p>O Tarot já está liberado. Quando quiser, retome seus dados de nascimento para acrescentar mapa natal, trânsitos e a síntese AstroTarot ao resultado e ao PDF.</p>
+          <button className="secondary-button" onClick={()=>{ setAstroError(""); setSkipAstro(false); }}>
+            GERAR MINHA PARTE ASTROLÓGICA <span>→</span>
+          </button>
+        </section>
+      )}
+'''
+              s = s.replace(anchor, retry + anchor, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Commit validated patch
+        run: |
+          if git diff --quiet; then
+            echo "No patch changes to commit"
+            exit 0
+          fi
+          git config user.name "factory-ci"
+          git config user.email "factory-ci@users.noreply.github.com"
+          git add app/leitura/'[token]'/reading-client.tsx
+          git commit -m "fix: keep paid reading token private when sharing"
+          git push origin HEAD:fix/private-share-astro-retry-20260906
