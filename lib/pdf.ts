@@ -72,17 +72,11 @@ function footer(page: PDFPage, regular: PDFFont, pageNumber: number, total: numb
   page.drawText(`${pageNumber}/${total}`, { x: 530, y: 17, font: regular, size: 7, color: C.muted });
 }
 
-function symbolicScore(cards: TarotCard[], salt: number) {
-  const base = cards.reduce((total, card, index) => total + (card.number + 3) * (index + salt + 1), 0);
-  return 44 + (base % 47);
-}
-
-function metric(page: PDFPage, label: string, value: number, x: number, y: number, width: number, regular: PDFFont, bold: PDFFont) {
-  page.drawText(label.toUpperCase(), { x, y, font: bold, size: 7.5, color: C.muted });
-  page.drawText(String(value), { x: x + width - 24, y: y - 1, font: bold, size: 15, color: C.goldSoft });
-  page.drawRectangle({ x, y: y - 17, width, height: 5, color: rgb(0.13, 0.09, 0.15) });
-  page.drawRectangle({ x, y: y - 17, width: width * (value / 100), height: 5, color: C.gold });
-  page.drawText('indicador simb\u00f3lico', { x, y: y - 31, font: regular, size: 6.5, color: C.muted });
+function insightPanel(page: PDFPage, label: string, card: TarotCard, description: string, x: number, y: number, width: number, regular: PDFFont, bold: PDFFont) {
+  panel(page, x, y, width, 92, C.panel2);
+  page.drawText(label.toUpperCase(), { x: x + 14, y: y + 69, font: bold, size: 7, color: C.gold });
+  textBlock(page, card.keywords.slice(0, 2).join(' \u00b7 '), x + 14, y + 51, width - 28, bold, 8.5, C.goldSoft, 11);
+  textBlock(page, description, x + 14, y + 28, width - 28, regular, 6.6, C.muted, 9);
 }
 
 function cardTile(page: PDFPage, card: TarotCard, index: number, x: number, y: number, width: number, regular: PDFFont, bold: PDFFont) {
@@ -131,22 +125,15 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
   panel(map, 40, 610, 515, 72, C.panel);
   map.drawText('PERGUNTA CENTRAL', { x: 57, y: 660, font: bold, size: 7, color: C.gold });
   textBlock(map, order.question, 57, 639, 480, italic, 11, C.cream, 15);
-  const metrics = [
-    ['Clareza', symbolicScore(cards, 1)],
-    ['Movimento', symbolicScore(cards, 2)],
-    ['Tens\u00e3o', symbolicScore([...cards].reverse(), 3)],
-    ['Autonomia', symbolicScore([cards[2], cards[0], cards[1]].filter(Boolean) as TarotCard[], 4)],
-  ] as const;
-  metric(map, metrics[0][0], metrics[0][1], 52, 567, 215, regular, bold);
-  metric(map, metrics[1][0], metrics[1][1], 328, 567, 215, regular, bold);
-  metric(map, metrics[2][0], metrics[2][1], 52, 509, 215, regular, bold);
-  metric(map, metrics[3][0], metrics[3][1], 328, 509, 215, regular, bold);
+  insightPanel(map, 'Agora', cards[0], cards[0].general, 40, 493, 159, regular, bold);
+  insightPanel(map, 'Influência', cards[1], cards[1].alert, 218, 493, 159, regular, bold);
+  insightPanel(map, 'Direção', cards[2], cards[2].constructive, 396, 493, 159, regular, bold);
+  map.drawText('Sinais extraídos das próprias cartas escolhidas — não são pontuações nem medições objetivas.', { x: 57, y: 468, font: regular, size: 6.7, color: C.muted });
   const cardW = 159;
   cards.forEach((card, index) => cardTile(map, card, index, 40 + index * 178, 260, cardW, regular, bold));
   panel(map, 40, 100, 515, 124, rgb(0.09, 0.04, 0.11));
   map.drawText('PRIMEIRA S\u00cdNTESE', { x: 57, y: 196, font: bold, size: 7, color: C.gold });
   textBlock(map, reading.summary, 57, 173, 480, regular, 9.5, C.cream, 14.5);
-  map.drawText('Os indicadores acima s\u00e3o simb\u00f3licos: organizam visualmente os temas das cartas e n\u00e3o medem fatos objetivos.', { x: 57, y: 116, font: regular, size: 6.5, color: C.muted });
 
   if (astrology) {
     const astro = pdf.addPage(PAGE);
@@ -158,6 +145,7 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
     textBlock(astro, `${astrology.birth.date} · ${astrology.birth.time} · ${astrology.birth.resolvedPlace}`, 57,630,480,regular,9,C.cream,13);
     const natalItems=[['SOL',astrology.natal.sun?.sign],['LUA',astrology.natal.moon?.sign],['ASCENDENTE',astrology.natal.ascendantSign]] as const;
     natalItems.forEach(([label,value],index)=>{ panel(astro,40+index*178,515,159,62,C.panel2); astro.drawText(label,{x:54+index*178,y:554,font:bold,size:6.5,color:C.gold}); astro.drawText(value||'—',{x:54+index*178,y:532,font:bold,size:15,color:C.cream}); });
+    textBlock(astro, astrology.precisionNote, 40, 495, 515, regular, 6.7, C.muted, 9);
     panel(astro,40,330,515,150,C.panel); astro.drawText('O CÉU DO MOMENTO', {x:57,y:452,font:bold,size:7,color:C.gold});
     let y=428; astrology.current.highlights.slice(0,3).forEach((item)=>{ astro.drawText(`${item.transitPlanet} · ${item.aspectType} · ${item.natalPlanet}`,{x:57,y,font:bold,size:8,color:C.goldSoft}); y=textBlock(astro,item.meaning,57,y-15,478,regular,8.3,C.cream,12)-8; });
     panel(astro,40,188,515,112,rgb(0.105,0.045,0.12)); astro.drawText('ASTRO + TAROT', {x:57,y:274,font:bold,size:7,color:C.goldSoft});

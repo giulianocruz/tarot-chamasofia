@@ -88,37 +88,37 @@ function normalize(value:string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 }
 
-function planet(planets:RawPlanet[]|undefined, names:string[]):AstroPlanet|undefined {
+function planet(planets:RawPlanet[]|undefined, names:string[], includeHouse=true):AstroPlanet|undefined {
   const wanted=names.map(normalize);
   const raw=(planets||[]).find((item)=>wanted.includes(normalize(String(item.name||''))));
   if (!raw) return undefined;
-  return { name:String(raw.name||names[0]), sign:String(raw.sign||''), house:raw.house?Number(raw.house):undefined, degree:Number.isFinite(Number(raw.norm_degree))?Number(raw.norm_degree):undefined, retrograde:String(raw.is_retro).toLowerCase()==='true' };
+  return { name:String(raw.name||names[0]), sign:String(raw.sign||''), house:includeHouse && raw.house?Number(raw.house):undefined, degree:Number.isFinite(Number(raw.norm_degree))?Number(raw.norm_degree):undefined, retrograde:String(raw.is_retro).toLowerCase()==='true' };
 }
 
 const PLANET_WEIGHT:Record<string,number>={ Pluto:10, Neptune:9, Uranus:9, Saturn:8, Jupiter:7, Mars:6, Venus:6, Mercury:5, Sun:5, Moon:4 };
 const ASPECT_WEIGHT:Record<string,number>={ Conjunction:6, Opposition:5, Square:5, Trine:4, Sextile:3 };
 
-function transitMeaning(item:TransitRelation) {
+function transitMeaning(item:TransitRelation, includeHouse=true) {
   const tp=String(item.transit_planet||'Planeta'), np=String(item.natal_planet||'ponto natal'), aspect=String(item.aspect_type||'aspecto');
-  const house=item.natal_house ? ` na casa ${item.natal_house}` : '';
+  const house=includeHouse && item.natal_house ? ` na casa ${item.natal_house}` : '';
   const tension=['Square','Opposition'].includes(aspect);
   return `${tp} em ${aspect.toLowerCase()} com ${np}${house} ${tension?'pede ajuste consciente, limites e revisão de padrões':'favorece integração, percepção e movimento intencional'}.`;
 }
-function highlightTransit(item:TransitRelation):AstroTransitHighlight {
+function highlightTransit(item:TransitRelation, includeHouse=true):AstroTransitHighlight {
   return {
     transitPlanet:String(item.transit_planet||'Planeta'), natalPlanet:String(item.natal_planet||'Ponto natal'),
     aspectType:String(item.aspect_type||'Aspecto'), transitSign:String(item.transit_sign||''),
-    natalHouse:item.natal_house?Number(item.natal_house):undefined, retrograde:Boolean(item.is_retrograde),
-    exactTime:item.exact_time?String(item.exact_time):undefined, meaning:transitMeaning(item),
+    natalHouse:includeHouse && item.natal_house?Number(item.natal_house):undefined, retrograde:Boolean(item.is_retrograde),
+    exactTime:item.exact_time?String(item.exact_time):undefined, meaning:transitMeaning(item,includeHouse),
   };
 }
 
-function selectHighlights(relations:TransitRelation[]|undefined) {
+function selectHighlights(relations:TransitRelation[]|undefined, includeHouse=true) {
   return [...(relations||[])].sort((a,b)=>{
     const aw=(PLANET_WEIGHT[String(a.transit_planet)]||2)+(ASPECT_WEIGHT[String(a.aspect_type)]||1);
     const bw=(PLANET_WEIGHT[String(b.transit_planet)]||2)+(ASPECT_WEIGHT[String(b.aspect_type)]||1);
     return bw-aw;
-  }).slice(0,5).map(highlightTransit);
+  }).slice(0,5).map((item)=>highlightTransit(item,includeHouse));
 }
 
 function categoryFocus(category:Category) {
@@ -161,19 +161,20 @@ export async function createAstroTarotLayer(input:BirthInput, question:string, c
     astrologyRequest<TransitResponse>('natal_transits/daily',payload,'en'),
   ]);
   const natal={
-    sun:planet(chart.planets,['Sun','Sol']), moon:planet(chart.planets,['Moon','Lua']), mercury:planet(chart.planets,['Mercury','Mercúrio']),
-    venus:planet(chart.planets,['Venus','Vênus']), mars:planet(chart.planets,['Mars','Marte']), jupiter:planet(chart.planets,['Jupiter','Júpiter']), saturn:planet(chart.planets,['Saturn','Saturno']),
-    ascendantSign:transits.ascendant || undefined, ascendantDegree:Number.isFinite(Number(chart.ascendant))?Number(chart.ascendant):undefined,
+    sun:planet(chart.planets,['Sun','Sol'],birth.timeKnown), moon:planet(chart.planets,['Moon','Lua'],birth.timeKnown), mercury:planet(chart.planets,['Mercury','Mercúrio'],birth.timeKnown),
+    venus:planet(chart.planets,['Venus','Vênus'],birth.timeKnown), mars:planet(chart.planets,['Mars','Marte'],birth.timeKnown), jupiter:planet(chart.planets,['Jupiter','Júpiter'],birth.timeKnown), saturn:planet(chart.planets,['Saturn','Saturno'],birth.timeKnown),
+    ascendantSign:birth.timeKnown ? zodiacSignFromDegree(Number(chart.ascendant)) : undefined,
+    ascendantDegree:birth.timeKnown && Number.isFinite(Number(chart.ascendant)) ? Number(chart.ascendant) : undefined,
   };
-  const highlights=selectHighlights(transits.transit_relation);
+  const highlights=selectHighlights(transits.transit_relation,birth.timeKnown);
   const situation=buildSituation(category,highlights,natal);
   const layer: AstroTarotLayer = {
     generatedAt:new Date().toISOString(), transitDate:String(transits.transit_date||new Date().toISOString().slice(0,10)),
     birth:{ date:input.birthDate, time:birth.timeKnown?input.birthTime:'horário não informado', place:birth.place, resolvedPlace:location.resolvedPlace, timeKnown:birth.timeKnown },
-    natal, current:{ ascendant:transits.ascendant||undefined, highlights }, situation,
+    natal, current:{ ascendant:birth.timeKnown ? transits.ascendant||undefined : undefined, highlights }, situation,
     cardsBridge:buildCardsBridge(cards,highlights), solution:buildSolution(cards,highlights),
     reflection:`Se o céu descreve o clima e as cartas descrevem sua posição dentro dele, qual escolha de hoje preserva mais a sua autonomia?`,
-    precisionNote:birth.timeKnown ? 'Cálculo realizado com data, horário, local e fuso histórico informados.' : 'Como o horário de nascimento não foi informado, usamos 12:00 como referência técnica. Sol e trânsitos continuam úteis, mas Ascendente e casas não devem ser tratados como precisos.',
+    precisionNote:birth.timeKnown ? 'Cálculo realizado com data, horário, local e fuso histórico informados.' : 'Como o horário de nascimento não foi informado, usamos 12:00 como referência técnica. Sol e trânsitos planetários continuam úteis, mas Ascendente, casas e qualquer interpretação dependente deles são omitidos.',
   };
   return locale.toLowerCase().startsWith('en') ? localizeAstrologyEn(layer,cards,category) : layer;
 }
@@ -184,9 +185,9 @@ export async function createFreeNatalPreview(input:BirthInput) {
   const payload={ day:birth.day, month:birth.month, year:birth.year, hour:birth.hour, min:birth.min, lat:location.lat, lon:location.lon, tzone:location.tzone, house_type:'placidus' };
   const chart=await astrologyRequest<WesternHoroscope>('western_horoscope',{ ...payload, is_asteroids:false },'pt');
   const natal={
-    sun:planet(chart.planets,['Sun','Sol']), moon:planet(chart.planets,['Moon','Lua']),
-    mercury:planet(chart.planets,['Mercury','Mercúrio']), venus:planet(chart.planets,['Venus','Vênus']),
-    mars:planet(chart.planets,['Mars','Marte']),
+    sun:planet(chart.planets,['Sun','Sol'],birth.timeKnown), moon:planet(chart.planets,['Moon','Lua'],birth.timeKnown),
+    mercury:planet(chart.planets,['Mercury','Mercúrio'],birth.timeKnown), venus:planet(chart.planets,['Venus','Vênus'],birth.timeKnown),
+    mars:planet(chart.planets,['Mars','Marte'],birth.timeKnown),
     ascendantSign:birth.timeKnown ? zodiacSignFromDegree(Number(chart.ascendant)) : undefined,
     ascendantDegree:birth.timeKnown && Number.isFinite(Number(chart.ascendant)) ? Number(chart.ascendant) : undefined,
   };

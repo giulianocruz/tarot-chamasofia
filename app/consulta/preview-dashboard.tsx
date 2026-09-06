@@ -7,20 +7,17 @@ type PreviewDashboardProps = {
   preview: string;
 };
 
-function symbolicBand(cards: TarotCard[], salt: number) {
-  const base = cards.reduce((total, card, index) => total + (card.number + 3) * (index + salt + 1), 0);
-  const value = 44 + (base % 47);
-  if (value >= 76) return { label: "forte", level: 3 };
-  if (value >= 60) return { label: "presente", level: 2 };
-  return { label: "em formação", level: 1 };
+function compact(text: string | undefined, max = 132) {
+  const clean = String(text || "").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max).trimEnd()}…`;
 }
 
 export default function PreviewDashboard({ cards, category, question, preview }: PreviewDashboardProps) {
-  const indicators = [
-    ["Clareza", symbolicBand(cards, 1), "O jogo chama atenção para fatos e padrões."],
-    ["Movimento", symbolicBand(cards, 2), "Há sinais de impulso para sair do ponto atual."],
-    ["Tensão", symbolicBand([...cards].reverse(), 3), "Mostra onde vale desacelerar e observar limites."],
-    ["Autonomia", symbolicBand([cards[2], cards[0], cards[1]].filter(Boolean), 4), "Destaca o que ainda depende de uma escolha sua."],
+  const signals = [
+    ["Agora", cards[0]?.keywords.slice(0, 2).join(" · "), cards[0]?.general],
+    ["Influência", cards[1]?.keywords.slice(0, 2).join(" · "), cards[1]?.alert],
+    ["Direção", cards[2]?.keywords.slice(0, 2).join(" · "), cards[2]?.constructive],
   ] as const;
   const layers = [
     ["01", "Tarot inicial", "aberta", "Sua pergunta + a primeira leitura das 3 cartas."],
@@ -42,15 +39,16 @@ export default function PreviewDashboard({ cards, category, question, preview }:
         </div>
       </div>
 
-      <div className="preview-indicators">
-        {indicators.map(([label, band, description], index) => (
-          <article key={label} data-level={band.level} style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
-            <div><span>{label}</span><b>{band.label}</b></div>
-            <div className="preview-meter" aria-hidden="true"><i /></div>
-            <small>{description}</small>
+      <div className="preview-indicators" aria-label="Sinais extraídos das cartas escolhidas">
+        {signals.map(([position, keywords, description]) => (
+          <article key={position} data-level="2">
+            <div><span>{position}</span><b>{keywords || "símbolo em leitura"}</b></div>
+            <small>{compact(description)}</small>
           </article>
         ))}
       </div>
+      <p className="preview-interpretation-note">Esses sinais vêm das próprias cartas que você escolheu. A relação entre elas, o mapa natal e os trânsitos fica reservada para a análise completa.</p>
+
       <div className="preview-focus-grid">
         <article className="preview-open-insight">
           <span className="preview-card-kicker">Primeiro sinal aberto</span>
