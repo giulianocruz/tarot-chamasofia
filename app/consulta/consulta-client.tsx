@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION_KEYS, normalizeTestFlag, type AnalyticsContext } from "@/lib/analytics-context";
@@ -632,4 +632,3 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     </main>
   );
 }
-
