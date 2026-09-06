@@ -20,3 +20,13 @@ test('CAPI usa Graph atual e Purchase permanece deduplicado',()=>{
   assert.match(meta,/event_id:`purchase-\$\{order\.order_number\}`/);
   assert.match(reading,/eventID: `purchase-\$\{order\.orderNumber\}`/);
 });
+
+test('CAPI preserva atribuicao da Meta e ignora pedidos de teste',()=>{
+  assert.match(meta,/normalizeTestFlag\(order\.is_test\)/);
+  assert.match(meta,/userData\.fbc = fbc/);
+  assert.match(meta,/userData\.external_id/);
+  assert.match(meta,/sourcePath = isEnglish \? '\/en\/consult' : '\/consulta'/);
+  const payment=readFileSync(new URL('../lib/payment.ts',import.meta.url),'utf8');
+  assert.match(payment,/metaAttribution\(order\)/);
+  assert.match(payment,/fbclid:order\.fbclid/);
+});

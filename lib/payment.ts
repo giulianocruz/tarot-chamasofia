@@ -6,6 +6,16 @@ import { createReadingEn } from './reading-en';
 import { drawThreeCards, getCards, type Category } from './tarot';
 import { analyticsMetadata, contextFromOrder } from './analytics-context';
 
+function metaAttribution(order: Record<string,unknown>) {
+  return {
+    fbclid:order.fbclid?String(order.fbclid):null, anonymous_id:order.anonymous_id?String(order.anonymous_id):null,
+    is_test:order.is_test as boolean|number|string|null|undefined,
+    utm_source:order.utm_source?String(order.utm_source):null, utm_medium:order.utm_medium?String(order.utm_medium):null,
+    utm_campaign:order.utm_campaign?String(order.utm_campaign):null, utm_content:order.utm_content?String(order.utm_content):null,
+    utm_term:order.utm_term?String(order.utm_term):null,
+  };
+}
+
 export async function completePayment(orderNumber: string, transactionId?: string, gateway = 'manual', forceRegenerate = false) {
   await ensureSchema();
   const order = await getD1().prepare('SELECT * FROM orders WHERE order_number=?').bind(orderNumber).first<Record<string,unknown>>();
@@ -13,7 +23,7 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   if (order.payment_status === 'cancelled') return { ok:false as const, status:409, error:'Pedido cancelado.' };
   if (!forceRegenerate && (order.reading_status === 'reading_generated' || order.reading_status === 'delivered')) {
     if (order.notification_status === 'sent') return { ok:true as const, alreadyProcessed:true, token:String(order.public_token) };
-    const existing = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null };
+    const existing = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null, ...metaAttribution(order) };
     const delivery = await notifyReadingReady(existing);
     const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
     const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
@@ -30,7 +40,7 @@ export async function completePayment(orderNumber: string, transactionId?: strin
     if (firstPayment) await addEvent('payment_confirmed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,transactionId,offer:'ebook',product_slug:productSlug}));
     if (firstPayment) await addEvent('ebook_purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),product_slug:productSlug}));
     if (firstPayment) await addEvent('purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),order_id:String(order.order_number),offer:'ebook',product_slug:productSlug}));
-    const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:'ebook', product_slug:productSlug, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null };
+    const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:'ebook', product_slug:productSlug, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null, ...metaAttribution(order) };
     const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
     const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
     const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
@@ -51,7 +61,7 @@ export async function completePayment(orderNumber: string, transactionId?: strin
   await addEvent('reading_generated',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
   await addEvent('reading_completed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
   if (firstPayment) await addEvent('purchase',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,price:Number(order.price),order_id:String(order.order_number)}));
-  const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null };
+  const fresh = { order_number:String(order.order_number), price:Number(order.price), customer_name:String(order.customer_name), customer_email:order.customer_email?String(order.customer_email):null, customer_whatsapp:order.customer_whatsapp?String(order.customer_whatsapp):null, public_token:String(order.public_token), created_at:String(order.created_at), offer_code:order.offer_code?String(order.offer_code):null, product_slug:order.product_slug?String(order.product_slug):null, delivery_channel:order.delivery_channel?String(order.delivery_channel):null, locale:order.locale?String(order.locale):null, currency:order.currency?String(order.currency):null, ...metaAttribution(order) };
   const [delivery,meta] = await Promise.all([notifyReadingReady(fresh),sendMetaPurchase(fresh)]);
   const notificationStatus = !delivery.attempted?'not_configured':delivery.ok?'sent':'failed';
   const notificationError = delivery.results.filter((item)=>!item.ok).map((item)=>`${item.channel}:${item.error}`).join('; ').slice(0,500) || null;
