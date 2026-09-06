@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import BibliotecaClient from "./biblioteca-client";
+import { BOOK_CATALOG } from "@/lib/book-catalog";
 
 export const metadata: Metadata = {
   title: "Biblioteca Chama Sofia | E-books digitais",
@@ -21,5 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default function BibliotecaPage() {
-  return <BibliotecaClient />;
+  const collectionSchema = { '@context':'https://schema.org', '@type':'CollectionPage', name:'Biblioteca Chama Sofia', url:'https://tarot.chamasofia.com.br/biblioteca', description:'Acervo digital de e-books sobre Tarot e tradições da Umbanda.' };
+  const booksSchema = { '@context':'https://schema.org', '@type':'ItemList', numberOfItems:BOOK_CATALOG.length, itemListElement:BOOK_CATALOG.map((book,index)=>({ '@type':'ListItem', position:index+1, item:{ '@type':'Book', name:book.title, description:book.description, image:`https://tarot.chamasofia.com.br${book.cover}`, publisher:{'@type':'Organization',name:'Chama Sofia'} } })) };
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(collectionSchema)}}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(booksSchema)}}/><BibliotecaClient /></>;
 }

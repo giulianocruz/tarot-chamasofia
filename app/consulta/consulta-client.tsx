@@ -43,6 +43,45 @@ const QUESTION_PRESETS: Record<string, string[]> = {
 const publicDeck = MAJOR_ARCANA.slice(0, 7);
 const sentEventKeys = new Set<string>();
 
+type MetaFacebookWindow = typeof window & {
+  fbq?: (...args: unknown[]) => void;
+  _fbq?: unknown;
+  __csMetaConsultaPixelId?: string;
+};
+let metaPixelPromise: Promise<MetaFacebookWindow["fbq"] | undefined> | null = null;
+
+function ensureMetaPixel() {
+  if (typeof window === "undefined") return Promise.resolve(undefined);
+  if (metaPixelPromise) return metaPixelPromise;
+  metaPixelPromise = fetch("/api/config")
+    .then((response) => response.json())
+    .then((config: { metaPixelId?: string }) => {
+      if (!config.metaPixelId) return undefined;
+      const w = window as MetaFacebookWindow;
+      if (!w.fbq) {
+        const queue: unknown[][] = [];
+        w.fbq = (...args: unknown[]) => queue.push(args);
+        (w.fbq as unknown as { queue: unknown[][] }).queue = queue;
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = "https://connect.facebook.net/en_US/fbevents.js";
+        document.head.appendChild(script);
+      }
+      if (w.__csMetaConsultaPixelId !== config.metaPixelId) {
+        w.fbq?.("init", config.metaPixelId);
+        w.__csMetaConsultaPixelId = config.metaPixelId;
+      }
+      return w.fbq;
+    })
+    .catch(() => undefined);
+  return metaPixelPromise;
+}
+
+function trackMeta(event: string, metadata: Record<string, unknown> = {}) {
+  if (readAnalyticsContext().is_test) return;
+  void ensureMetaPixel().then((fbq) => fbq?.("track", event, metadata));
+}
+
 function storedId(storage: Storage, key: string) {
   let id = storage.getItem(key);
   if (!id) {
@@ -143,6 +182,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       .catch(()=>setAvailableBooks([]))
       .finally(()=>setLibraryReady(true));
     emitEvent("landing_view", { surface: "consulta", paid_traffic: paidTraffic });
+    trackMeta("PageView");
+    trackMeta("ViewContent", { content_name: "AstroTarot Consulta", content_category: "AstroTarot" });
     if (paidTraffic) {
       emitEvent("onboarding_started", { entry: "paid" });
       emitEvent("form_step_view", { step: 1, entry: "paid" }, { dedupe: "paid-step-1" });
@@ -317,6 +358,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     const leadToken=leadTokenRef.current;
     setLoading(true);
     emitEvent("checkout_started", { value: price.cents / 100, currency: "BRL", delivery_channel: deliveryChannel, category });
+    trackMeta("InitiateCheckout", { value: price.cents / 100, currency: "BRL", content_name: "AstroTarot" });
     try {
       const response = await fetch("/api/orders", {
         method: "POST",

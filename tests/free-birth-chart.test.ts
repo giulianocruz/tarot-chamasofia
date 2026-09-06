@@ -25,4 +25,4 @@ test('ferramenta gratuita preserva conversão e proteção da API',()=>{
 test('sitemap inclui a ferramenta orgânica',()=>assert.match(sitemap,/mapa-astral-gratis/));
 
 const home=readFileSync(new URL('../app/page.tsx',import.meta.url),'utf8');
-test('home preserva SEO orgânico e envia apenas mídia paga ao funil',()=>{assert.match(home,/LandingClient/);assert.match(home,/shouldUseConsulta/);});
+test('home redireciona todo tráfego para a consulta preservando atribuição',()=>{assert.match(home,/redirect\(consultationUrl\(params\)\)/);assert.doesNotMatch(home,/LandingClient/);});

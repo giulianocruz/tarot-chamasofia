@@ -7,12 +7,14 @@ export const metadata: Metadata = {
   title: 'Tarot e Astrologia: Guias Práticos | Chama Sofia',
   description: 'Guias de Tarot, relacionamentos e mapa astral para transformar dúvidas em perguntas melhores e reflexões mais claras.',
   alternates: { canonical: '/artigos' },
-  openGraph: { title: 'Guias de Tarot e Astrologia | Chama Sofia', description: 'Conteúdo prático sobre Tarot, mapa astral, relacionamentos e decisões.', url: '/artigos', type: 'website' },
-  twitter: { card: 'summary_large_image', title: 'Guias de Tarot e Astrologia | Chama Sofia', description: 'Conteúdo prático sobre Tarot, mapa astral, relacionamentos e decisões.' },
+  openGraph: { title: 'Guias de Tarot e Astrologia | Chama Sofia', description: 'Conteúdo prático sobre Tarot, mapa astral, relacionamentos e decisões.', url: '/artigos', type: 'website', images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Guias de Tarot e Astrologia — Chama Sofia' }] },
+  twitter: { card: 'summary_large_image', title: 'Guias de Tarot e Astrologia | Chama Sofia', description: 'Conteúdo prático sobre Tarot, mapa astral, relacionamentos e decisões.', images: ['/og.png'] },
 };
 
 export default function ArticlesPage() {
-  return <main className={styles.shell}>
+  const collectionSchema = { '@context':'https://schema.org', '@type':'CollectionPage', name:'Guias de Tarot e Astrologia | Chama Sofia', url:'https://tarot.chamasofia.com.br/artigos', description:'Guias práticos de Tarot, mapa astral, relacionamentos e decisões.' };
+  const itemListSchema = { '@context':'https://schema.org', '@type':'ItemList', numberOfItems:ARTICLES.length, itemListElement:ARTICLES.map((article,index)=>({ '@type':'ListItem', position:index+1, url:`https://tarot.chamasofia.com.br/artigos/${article.slug}`, name:article.title })) };
+  return <main className={styles.shell}><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(collectionSchema)}}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(itemListSchema)}}/>
     <header className={styles.header}><Link href="/consulta" className={styles.brand}><img src="/assets/brand/chama-sofia-logo.png" alt="" /> <span>CHAMA SOFIA</span></Link><Link href="/consulta" className={styles.headerCta}>Fazer uma leitura</Link></header>
     <section className={styles.hubHero}><p className={styles.eyebrow}>Biblioteca editorial Chama Sofia</p><h1>Perguntas melhores.<br />Leituras mais claras.</h1><p>Guias para usar Tarot e astrologia como ferramentas de reflexão — com contexto, limites e aplicações práticas para amor, trabalho e decisões.</p></section>
     <section className={styles.grid} aria-label="Ferramentas gratuitas">

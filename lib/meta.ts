@@ -5,7 +5,7 @@ type MetaOrder = { order_number:string; price:number; customer_email?:string|nul
 
 export async function sendMetaPurchase(order: MetaOrder) {
   if (!env.META_PIXEL_ID || !env.META_CAPI_TOKEN) return { attempted:false, ok:false };
-  const version = env.META_GRAPH_VERSION || 'v23.0';
+  const version = env.META_GRAPH_VERSION || 'v26.0';
   const userData: Record<string,string[]> = {};
   if (order.customer_email) userData.em = [await sha256(order.customer_email.trim().toLowerCase())];
   if (order.customer_whatsapp) userData.ph = [await sha256(order.customer_whatsapp.replace(/\D/g,''))];

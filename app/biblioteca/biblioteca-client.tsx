@@ -154,6 +154,19 @@ export default function BibliotecaClient() {
         </section>
       )}
 
+      <section className="library-editorial" aria-labelledby="library-editorial-title">
+        <p className="eyebrow">ACERVO DIGITAL · LEITURA E ESTUDO</p>
+        <h2 id="library-editorial-title">E-books para aprofundar Tarot e tradições da Umbanda.</h2>
+        <p>A Biblioteca Chama Sofia reúne edições digitais para quem quer estudar com mais calma depois de uma consulta, de uma tiragem gratuita ou de uma pesquisa sobre espiritualidade. O acervo é separado da leitura personalizada: você escolhe um título, paga uma única vez e recebe acesso privado quando o arquivo estiver liberado.</p>
+        <p>Nos títulos de Tarot, o foco está em compreender cartas, perguntas e formas responsáveis de interpretação. Nos livros ligados à Umbanda, o conteúdo apresenta símbolos, histórias e referências devocionais sem substituir orientação de terreiro, prática religiosa ou acompanhamento de dirigentes espirituais.</p>
+        <div className="library-editorial-links">
+          <a href="/artigos">Ler guias de Tarot e astrologia</a>
+          <a href="/tarot-do-amor-gratis">Fazer Tarot do Amor grátis</a>
+          <a href="/mapa-astral-gratis">Calcular mapa astral grátis</a>
+        </div>
+        <p className="library-editorial-note">Os produtos digitais aparecem para compra somente quando o arquivo está disponível para entrega. Assim, a vitrine editorial pode crescer sem vender um PDF que ainda esteja em preparação.</p>
+      </section>
+
       <section className="library-astro-cta">
         <p className="eyebrow">Quer uma resposta para o seu momento?</p>
         <h2>Mapa Astral Express + Tarot por R$ 9,90</h2>
