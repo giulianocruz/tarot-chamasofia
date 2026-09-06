@@ -47,6 +47,10 @@ type MetaFacebookWindow = typeof window & {
   fbq?: (...args: unknown[]) => void;
   _fbq?: unknown;
   __csMetaConsultaPixelId?: string;
+  __csMetaProxyPage?: boolean;
+  __csMetaProxyCheckout?: boolean;
+  __csMetaProxyLead?: boolean;
+  __csMetaNativeLead?: boolean;
 };
 let metaPixelPromise: Promise<MetaFacebookWindow["fbq"] | undefined> | null = null;
 
@@ -79,6 +83,13 @@ function ensureMetaPixel() {
 
 function trackMeta(event: string, metadata: Record<string, unknown> = {}) {
   if (readAnalyticsContext().is_test) return;
+  const w = window as MetaFacebookWindow;
+  if ((event === "PageView" || event === "ViewContent") && w.__csMetaProxyPage) return;
+  if (event === "InitiateCheckout" && w.__csMetaProxyCheckout) return;
+  if (event === "Lead") {
+    if (w.__csMetaProxyLead || w.__csMetaNativeLead) return;
+    w.__csMetaNativeLead = true;
+  }
   void ensureMetaPixel().then((fbq) => fbq?.("track", event, metadata));
 }
 
@@ -259,6 +270,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       { category, length: value.length, mode: "preset" },
       { dedupe: value },
     );
+    trackMeta("Lead", { content_name: "AstroTarot" });
     go(3);
   }
 
@@ -273,6 +285,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       { category, length: cleanQuestion.length, mode: "custom" },
       { dedupe: cleanQuestion },
     );
+    trackMeta("Lead", { content_name: "AstroTarot" });
     go(3);
   }
 

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const consulta=readFileSync(new URL('../app/consulta/consulta-client.tsx',import.meta.url),'utf8');
 const meta=readFileSync(new URL('../lib/meta.ts',import.meta.url),'utf8');
 const reading=readFileSync(new URL('../app/leitura/[token]/reading-client.tsx',import.meta.url),'utf8');
+const globals=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8');
 
 test('consulta carrega Meta Pixel e sinaliza topo do funil',()=>{
   assert.match(consulta,/connect\.facebook\.net\/en_US\/fbevents\.js/);
@@ -35,4 +36,13 @@ test('CAPI preserva atribuicao da Meta e ignora pedidos de teste',()=>{
 test('copy do primeiro passo deixa a acao explicita',()=>{
   assert.match(consulta,/Escolha o tema da sua pergunta/);
   assert.match(consulta,/Toque em uma opção para continuar/);
+});
+
+
+test('tracking nativo convive com proxy temporario sem duplicar eventos',()=>{
+  assert.match(consulta,/__csMetaProxyPage/);
+  assert.match(consulta,/__csMetaProxyCheckout/);
+  assert.match(consulta,/__csMetaProxyLead/);
+  assert.match(consulta,/trackMeta\("Lead"/);
+  assert.match(globals,/TOQUE EM UM TEMA PARA CONTINUAR/);
 });
