@@ -42,6 +42,34 @@ const QUESTION_PRESETS: Record<string, string[]> = {
 
 const publicDeck = MAJOR_ARCANA.slice(0, 7);
 const sentEventKeys = new Set<string>();
+const JOURNEY_DRAFT_KEY = "cs_journey_draft_v1";
+const PRIVATE_QUESTION_KEY = "cs_journey_private_question";
+const JOURNEY_DRAFT_TTL = 24 * 60 * 60 * 1000;
+type JourneyDraft = { savedAt: number; category: string; presetQuestion?: string; confirmedCards?: string[] };
+function clearJourneyDraft() {
+  localStorage.removeItem(JOURNEY_DRAFT_KEY);
+  sessionStorage.removeItem(PRIVATE_QUESTION_KEY);
+}
+function persistJourneyDraft(category: string, question = "", confirmedCards: string[] = []) {
+  if (!category) return;
+  const preset = (QUESTION_PRESETS[category] ?? []).includes(question) ? question : "";
+  if (question && !preset) sessionStorage.setItem(PRIVATE_QUESTION_KEY, question);
+  else sessionStorage.removeItem(PRIVATE_QUESTION_KEY);
+  const draft: JourneyDraft = { savedAt: Date.now(), category };
+  if (preset) draft.presetQuestion = preset;
+  if (confirmedCards.length === 3) draft.confirmedCards = confirmedCards;
+  localStorage.setItem(JOURNEY_DRAFT_KEY, JSON.stringify(draft));
+}
+function readJourneyDraft(): JourneyDraft | null {
+  try {
+    const draft = JSON.parse(localStorage.getItem(JOURNEY_DRAFT_KEY) || "null") as JourneyDraft | null;
+    if (!draft || Date.now() - Number(draft.savedAt || 0) > JOURNEY_DRAFT_TTL) { clearJourneyDraft(); return null; }
+    if (!CATEGORY_MAP.some(([name]) => name === draft.category)) { clearJourneyDraft(); return null; }
+    if (draft.presetQuestion && !(QUESTION_PRESETS[draft.category] ?? []).includes(draft.presetQuestion)) draft.presetQuestion = undefined;
+    if (draft.confirmedCards && getCards(draft.confirmedCards).length !== 3) draft.confirmedCards = undefined;
+    return draft;
+  } catch { clearJourneyDraft(); return null; }
+}
 
 type MetaFacebookWindow = typeof window & {
   fbq?: (...args: unknown[]) => void;
@@ -210,6 +238,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           return draft as {email?:string;whatsapp?:string;category?:string;question?:string};
         })
         .then((draft)=>{
+          clearJourneyDraft();
           const restoredCategory=String(draft.category||"");
           const restoredQuestion=String(draft.question||"");
           setEmail(String(draft.email||""));
@@ -225,6 +254,17 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           emitEvent("recovery_resumed",{kind:"form"},{dedupe:resumeToken});
         })
         .catch(()=>undefined);
+    } else {
+      const draft=readJourneyDraft();
+      if (draft) {
+        const restoredQuestion=draft.presetQuestion || sessionStorage.getItem(PRIVATE_QUESTION_KEY) || "";
+        const restoredCards=draft.confirmedCards || [];
+        setCategory(draft.category); categoryRef.current=draft.category;
+        setQuestion(restoredQuestion); setSelected(restoredCards);
+        const restoredStep=restoredQuestion ? 3 : 2;
+        stepRef.current=restoredStep; setStep(restoredStep); setResumeNotice(true);
+        emitEvent("local_draft_resumed",{step:restoredStep,has_question:Boolean(restoredQuestion),has_cards:restoredCards.length===3},{dedupe:`local-${draft.savedAt}`});
+      }
     }
 
     const abandon = () => {
@@ -258,13 +298,15 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   function chooseCategory(value: string) {
     emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic" });
     categoryRef.current = value;
-    setCategory(value);
+    setCategory(value); setQuestion(""); setSelected([]);
+    persistJourneyDraft(value);
     emitEvent("category_selected", { category: value }, { dedupe: value });
     go(2);
   }
 
   function chooseQuestion(value: string) {
     setQuestion(value);
+    persistJourneyDraft(category,value);
     emitEvent(
       "question_written",
       { category, length: value.length, mode: "preset" },
@@ -286,6 +328,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       { dedupe: cleanQuestion },
     );
     trackMeta("Lead", { content_name: "AstroTarot" });
+    persistJourneyDraft(category,cleanQuestion);
     go(3);
   }
 
@@ -306,6 +349,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       return;
     }
     emitEvent("cards_selected", { card_ids: selected }, { dedupe: selected.join(",") });
+    persistJourneyDraft(category,question.trim(),selected);
     go(4);
     window.setTimeout(() => {
       emitEvent("reading_preview", { card_ids: selected }, { dedupe: selected.join(",") });
@@ -386,6 +430,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Não foi possível gerar o Pix.");
       emitEvent("pix_generated", { value: price.cents / 100, currency: "BRL", category, delivery_channel: deliveryChannel }, { dedupe: String(data.orderNumber || data.url || "pix") });
+      clearJourneyDraft();
       completedRef.current = true;
       window.location.assign(data.url);
     } catch (checkoutError) {
