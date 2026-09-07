@@ -155,6 +155,8 @@ function readAnalyticsContext(): AnalyticsContext {
   return context;
 }
 
+let clientEventSequence = 0;
+
 function emitEvent(
   event: string,
   metadata: Record<string, unknown> = {},
@@ -165,7 +167,7 @@ function emitEvent(
   if (sentEventKeys.has(eventKey)) return;
   sentEventKeys.add(eventKey);
 
-  const payload = JSON.stringify({ event, ...context, metadata });
+  const payload = JSON.stringify({ event, ...context, client_event_seq: ++clientEventSequence, client_event_ts: new Date().toISOString(), metadata });
   if (options.beacon && navigator.sendBeacon) {
     navigator.sendBeacon("/api/events", new Blob([payload], { type: "application/json" }));
     return;

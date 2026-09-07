@@ -44,5 +44,17 @@ test('tracking nativo convive com proxy temporario sem duplicar eventos',()=>{
   assert.match(consulta,/__csMetaProxyCheckout/);
   assert.match(consulta,/__csMetaProxyLead/);
   assert.match(consulta,/trackMeta\("Lead"/);
-  assert.match(globals,/TOQUE EM UM TEMA PARA CONTINUAR/);
+  assert.match(globals,/ESCOLHA UM TEMA - 1 TOQUE PARA CONTINUAR/);
+});
+
+test('eventos do funil carregam ordem causal do cliente',()=>{
+  assert.match(consulta,/let clientEventSequence = 0/);
+  assert.match(consulta,/client_event_seq: \+\+clientEventSequence/);
+  assert.match(consulta,/client_event_ts: new Date\(\)\.toISOString\(\)/);
+});
+
+test('entrada paga usa cards de acao em coluna unica',()=>{
+  assert.match(globals,/ESCOLHA UM TEMA - 1 TOQUE PARA CONTINUAR/);
+  assert.match(globals,/\.consult-shell\.is-paid-entry \.consult-options\{grid-template-columns:1fr/);
+  assert.match(globals,/grid-template-columns:38px 1fr 24px/);
 });
