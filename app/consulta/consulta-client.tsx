@@ -629,17 +629,14 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             </div>
             <form onSubmit={checkout} className="consult-checkout-form">
               <label>
-                {deliveryChannel === "email" ? "E-mail para receber a leitura" : "E-mail para gerar o Pix e recuperar seu pedido"}
+                E-mail para gerar o Pix e receber sua leitura
                 <input required type="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} onBlur={()=>void persistLead()} autoComplete="email" placeholder="voce@email.com" />
-              </label>              <fieldset className="delivery-choice">
-                <legend>Como quer receber?</legend>
-                <button type="button" aria-pressed={deliveryChannel === "email"} className={deliveryChannel === "email" ? "selected" : ""} onClick={() => selectDelivery("email")}>
-                  <span aria-hidden="true">✉</span><b>E-mail</b><small>Mais rápido, sem outro dado</small>
-                </button>
-                <button type="button" aria-pressed={deliveryChannel === "whatsapp"} className={deliveryChannel === "whatsapp" ? "selected" : ""} onClick={() => selectDelivery("whatsapp")}>
-                  <span aria-hidden="true">◉</span><b>WhatsApp</b><small>Receba o link no celular</small>
-                </button>
-              </fieldset>
+                <small className="contact-helper">Obrigatório para gerar o Pix seguro e recuperar seu pedido.</small>
+              </label>
+              <label className="whatsapp-optin">
+                <input type="checkbox" checked={deliveryChannel === "whatsapp"} onChange={(event) => selectDelivery(event.target.checked ? "whatsapp" : "email")} />
+                <span><b>Quero receber também no WhatsApp</b><small>Opcional — o e-mail continua sendo seu canal principal.</small></span>
+              </label>
               {deliveryChannel === "whatsapp" && (
                 <label>Seu WhatsApp
                   <input required type="tel" inputMode="tel" autoComplete="tel" value={whatsapp} onChange={(event) => setWhatsapp(formatBrazilPhoneInput(event.target.value))} placeholder="(14) 99999-9999" />

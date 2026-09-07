@@ -310,3 +310,6 @@
 /* Paid entry performance: remove decorative network cost before first action */
 .consult-shell.is-paid-entry{background-image:none}
 .consult-shell.is-paid-entry .consult-theme-step{margin-top:12px}
+
+/* Checkout contact clarity */
+.contact-helper{display:block;margin-top:7px;color:#887a8b;font-size:9px;line-height:1.45;text-align:left}.whatsapp-optin{display:grid!important;grid-template-columns:22px 1fr;gap:10px;align-items:start;margin-top:16px!important;padding:12px 13px;border:1px solid rgba(215,181,109,.16);border-radius:12px;background:rgba(255,255,255,.02);cursor:pointer;min-height:48px}.whatsapp-optin input{width:18px!important;height:18px!important;margin:1px 0 0!important;padding:0!important;accent-color:#d7b56d}.whatsapp-optin span{display:block}.whatsapp-optin b{display:block;color:#e5d8e6;font-size:11px}.whatsapp-optin small{display:block;margin-top:3px;color:#8f8292;font-size:9px;line-height:1.4}@media(max-width:640px){.whatsapp-optin{text-align:left!important}.contact-helper{text-align:center}}

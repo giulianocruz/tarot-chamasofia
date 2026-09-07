@@ -77,3 +77,10 @@ test('favicon usa ativos leves dedicados',()=>{
   assert.match(layout,/apple: '\/apple-touch-icon\.png'/);
   assert.ok(statSync(new URL('../public/apple-touch-icon.png',import.meta.url)).size < 10000);
 });
+
+test('checkout deixa WhatsApp claramente opcional',()=>{
+  assert.match(consulta,/E-mail para gerar o Pix e receber sua leitura/);
+  assert.match(consulta,/Quero receber também no WhatsApp/);
+  assert.match(consulta,/event\.target\.checked \? "whatsapp" : "email"/);
+  assert.match(globals,/\.whatsapp-optin\{/);
+});
