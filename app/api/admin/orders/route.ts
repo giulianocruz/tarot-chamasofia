@@ -164,6 +164,47 @@ export async function GET(request: Request) {
     getD1().prepare(`SELECT COALESCE(json_extract(metadata_json,'$.product'),'unknown') AS product, COUNT(DISTINCT ${actor}) AS count FROM analytics_events WHERE ${nonTestEvent} AND event_name='upsell_interest' GROUP BY product ORDER BY count DESC`).all<Record<string, unknown>>().catch(()=>({results:[]})),
   ]);
 
+  const recentEventRows = await getD1().prepare(
+    `SELECT id,event_name,anonymous_id,metadata_json,created_at FROM analytics_events
+     WHERE ${nonTestEvent} ORDER BY id DESC LIMIT 300`,
+  ).all<{ id:number; event_name:string; anonymous_id:string|null; metadata_json:string|null; created_at:string }>();
+  const journeyStages: Record<string, number> = {
+    landing_view:1,onboarding_started:1,category_selected:2,question_written:3,question_completed:3,
+    cards_selected:4,reading_preview:5,offer_view:6,offer_viewed:6,contact_captured:7,
+    checkout_started:8,pix_generated:9,payment_confirmed:10,purchase:10,
+  };
+  const journeyStageLabels = ['Visitou','Entrou','Tema','Pergunta','Cartas','Prévia','Oferta','Contato','Checkout','Pix','Pagamento'];
+  const journeyEvents = new Set([...Object.keys(journeyStages),'onboarding_abandon','form_abandon','page_exit']);
+  const journeyMap = new Map<string,{source:string;campaign:string;events:Array<{name:string;seq:number;ts:string;stage:number}>}>();
+  for (const row of recentEventRows.results) {
+    if (!journeyEvents.has(row.event_name)) continue;
+    let metadata: Record<string,unknown> = {};
+    try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch {}
+    const actorId = String(metadata.session_id || row.anonymous_id || `event:${row.id}`);
+    const item = journeyMap.get(actorId) || { source:'', campaign:'', events:[] };
+    item.source ||= String(metadata.utm_source || (metadata.fbclid ? 'meta' : '')).trim();
+    item.campaign ||= String(metadata.utm_campaign || '').trim();
+    const seq = Number(metadata.client_event_seq);
+    const rawTs = String(metadata.client_event_ts || row.created_at);
+    const ts = Number.isNaN(Date.parse(rawTs)) ? row.created_at : new Date(rawTs).toISOString();
+    item.events.push({name:row.event_name,seq:Number.isInteger(seq)&&seq>0?seq:0,ts,stage:journeyStages[row.event_name]||0});
+    journeyMap.set(actorId,item);
+  }
+
+  const recentJourneys = Array.from(journeyMap.values()).map((journey) => {
+    journey.events.sort((a,b)=>a.seq&&b.seq?a.seq-b.seq:Date.parse(a.ts)-Date.parse(b.ts));
+    const times=journey.events.map((event)=>Date.parse(event.ts)).filter(Number.isFinite);
+    const startedAt=times.length?new Date(Math.min(...times)).toISOString():'';
+    const lastAt=times.length?new Date(Math.max(...times)).toISOString():'';
+    const maxStage=Math.max(0,...journey.events.map((event)=>event.stage));
+    const path=journey.events.map((event)=>event.name).filter((name,index,all)=>index===0||name!==all[index-1]).slice(0,20);
+    return {
+      source:journey.source||'direto',campaign:journey.campaign||'—',startedAt,lastAt,
+      durationSeconds:startedAt&&lastAt?Math.max(0,Math.round((Date.parse(lastAt)-Date.parse(startedAt))/1000)):0,
+      lastStage:journeyStageLabels[maxStage]||'Visitou',path,
+    };
+  }).sort((a,b)=>Date.parse(b.lastAt||'1970-01-01')-Date.parse(a.lastAt||'1970-01-01')).slice(0,12);
+
   const totalSales = Number(totals?.sales || 0);
   const revenue = Number(totals?.revenue || 0);
   const paidSales = Number(totals?.paid_sales || 0);
@@ -225,6 +266,7 @@ export async function GET(request: Request) {
           paidConversion: paidSessions ? paidSales / paidSessions : 0,
         },
         campaigns,
+        recentJourneys,
         international: { orders:Number(international?.orders || 0), sales:Number(international?.sales || 0), revenue:Number(international?.revenue || 0), pending:Number(international?.pending || 0), interests:(upsellInterest?.results || []).map((row:any)=>({product:String(row.product||"unknown"),count:Number(row.count||0)})), readiness:internationalReadiness() },
         funnel: {
           sessions,

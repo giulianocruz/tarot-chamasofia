@@ -35,6 +35,15 @@ export async function POST(request: Request) {
     body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
       ? (body.metadata as Record<string, unknown>)
       : {};
+  const eventMetadata = { ...inputMetadata };
+  const clientEventSeq = Number(body.client_event_seq);
+  if (Number.isInteger(clientEventSeq) && clientEventSeq > 0 && clientEventSeq <= 10000) {
+    eventMetadata.client_event_seq = clientEventSeq;
+  }
+  const clientEventTs = cleanText(body.client_event_ts, 40);
+  if (clientEventTs && !Number.isNaN(Date.parse(clientEventTs))) {
+    eventMetadata.client_event_ts = new Date(clientEventTs).toISOString();
+  }
   const suppliedAnonymousId = cleanText(body.anonymous_id || body.anonymousId, 100);
   const suppliedSessionId = cleanText(
     body.session_id || inputMetadata.session_id || inputMetadata.sessionId,
@@ -57,7 +66,7 @@ export async function POST(request: Request) {
     event,
     Number.isInteger(body.orderId) ? body.orderId : null,
     context.anonymous_id,
-    analyticsMetadata(context, inputMetadata),
+    analyticsMetadata(context, eventMetadata),
   );
   return Response.json({ ok: true });
 }

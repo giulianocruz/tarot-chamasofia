@@ -40,6 +40,7 @@ type Data = {
     pricing: { formatted: string; remaining: number | null };
     traffic: { sessionsObserved:number; paidSessionsObserved:number; lastVisit:string|null; paidSessions:number; paidSales:number; paidRevenue:number; paidConversion:number };
     campaigns: Array<{ source:string; campaign:string; sessions:number; offers:number; pix:number; sales:number; revenue:number; conversion:number }>;
+    recentJourneys: Array<{ source:string; campaign:string; startedAt:string; lastAt:string; durationSeconds:number; lastStage:string; path:string[] }>;
     international: { orders:number; sales:number; revenue:number; pending:number; interests:Array<{product:string;count:number}>; readiness:{stripe:boolean;webhook:boolean;email:boolean;astrology:boolean;ready:boolean} };
     funnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
     paidFunnel: { sessions:number; started:number; categories:number; questions:number; cards:number; previews:number; offers:number; contacts:number; checkouts:number; pix:number; paid:number };
@@ -165,6 +166,13 @@ export default function AdminClient() {
   const usePaidFunnel = d.traffic.paidSessions > 0;
   const activeFunnel = usePaidFunnel ? d.paidFunnel : d.funnel;
   const funnelScope = usePaidFunnel ? "Funil de mídia paga" : "Funil geral";
+  const journeyEventLabels: Record<string,string> = {
+    landing_view:"Entrada",onboarding_started:"Início",category_selected:"Tema",question_written:"Pergunta",
+    question_completed:"Pergunta",cards_selected:"Cartas",reading_preview:"Prévia",offer_view:"Oferta",offer_viewed:"Oferta",
+    contact_captured:"Contato",checkout_started:"Checkout",pix_generated:"Pix",payment_confirmed:"Pagamento",purchase:"Pagamento",
+    onboarding_abandon:"Saiu",form_abandon:"Saiu",page_exit:"Saiu",
+  };
+  const journeyDuration = (seconds:number) => seconds < 60 ? `${seconds}s` : `${Math.floor(seconds/60)}m ${seconds%60}s`;
   const funnelStages = [
     ["sessions", "Sessões", activeFunnel.sessions],
     ["category", "Tema", activeFunnel.categories],
@@ -284,6 +292,17 @@ export default function AdminClient() {
       </section>
       {biggestDrop && <div className="funnel-alert"><strong>Maior gargalo:</strong> {biggestDrop.from} → {biggestDrop.to} · queda de {(biggestDrop.drop*100).toFixed(1)}%</div>}
       <p className="behavior-tip" style={{maxWidth:1400, margin:"-14px auto 28px"}}>Funil deduplicado por sessão. Eventos e pedidos marcados como teste não entram nas métricas de conversão.</p>
+      <section className="orders-panel journey-panel">
+        <div className="panel-title"><h2>Jornadas recentes</h2><span>ordem real do cliente · testes excluídos</span></div>
+        {d.recentJourneys.length === 0 ? <p className="campaign-empty">Ainda não há jornadas recentes suficientes.</p> : <div className="table-wrap"><table><thead><tr>
+          <th>Início</th><th>Origem</th><th>Último estágio</th><th>Duração</th><th>Caminho</th>
+        </tr></thead><tbody>{d.recentJourneys.map((journey,index)=><tr key={`${journey.startedAt}:${index}`}>
+          <td>{journey.startedAt ? new Date(journey.startedAt).toLocaleString("pt-BR") : "—"}</td>
+          <td><strong>{journey.source}</strong><small>{journey.campaign}</small></td>
+          <td><strong>{journey.lastStage}</strong></td><td>{journeyDuration(journey.durationSeconds)}</td>
+          <td><small>{journey.path.map((event)=>journeyEventLabels[event]||event).join(" → ")}</small></td>
+        </tr>)}</tbody></table></div>}
+      </section>
       <section className="orders-panel ebook-panel">
         <div className="panel-title"><h2>Biblioteca / e-books</h2><span>canal de entrada, downsell e continuidade pós-compra</span></div>
         <div className="behavior-grid ebook-metrics">
