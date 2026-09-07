@@ -471,7 +471,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     <main className={`consult-shell consult-step-${step}${paidTraffic ? " is-paid-entry" : ""}`}>
       <section className="consult-card" aria-live="polite">
         <header className="consult-brand">
-          <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />
+          {paidTraffic ? <span className="consult-brand-glyph" aria-hidden="true">âœ¦</span> : <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />}
           <span>CHAMA SOFIA · ASTROTAROT</span>
         </header>
         {visibleProgress>0&&(
@@ -494,11 +494,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           <div className="consult-step consult-theme-step">
             <p className="consult-progress">1 de 5</p>
             {!paidTraffic && <button className="consult-back" onClick={() => go(0)}>← voltar</button>}
-            <div className="consult-mini-deck" aria-hidden="true">
-              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
-              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
-              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
-            </div>
+            {!paidTraffic && <div className="consult-mini-deck" aria-hidden="true">
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
+              <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
+            </div>}
             <p className="eyebrow">Esta leitura começa pelo que mais mexe com você</p>
             <h2>Escolha o tema da sua pergunta</h2>
             <p className="consult-muted consult-theme-guide">Toque em uma opção para continuar. Você poderá escolher uma pergunta pronta ou escrever a sua na próxima etapa.</p>

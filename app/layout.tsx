@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', title: 'Mapa Astral Express + Tarot', description: 'Seu mapa natal, céu atual e Tarot em uma análise personalizada.', images: ['/og.png'] },
   robots: { index: true, follow: true },
-  icons: { icon: '/assets/brand/chama-sofia-logo.png', apple: '/assets/brand/chama-sofia-logo.png' },
+  icons: { icon: '/favicon.svg', apple: '/apple-touch-icon.png' },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
