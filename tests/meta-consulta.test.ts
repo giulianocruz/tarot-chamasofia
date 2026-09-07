@@ -84,3 +84,12 @@ test('checkout deixa WhatsApp claramente opcional',()=>{
   assert.match(consulta,/event\.target\.checked \? "whatsapp" : "email"/);
   assert.match(globals,/\.whatsapp-optin\{/);
 });
+
+test('entrada paga escolhe intenção e pula pergunta intermediária',()=>{
+  assert.match(consulta,/const PAID_INTENTS = \[/);
+  assert.match(consulta,/function choosePaidIntent\(value: string, preset: string\)/);
+  assert.match(consulta,/mode: "paid_quick_intent"/);
+  assert.match(consulta,/paidTraffic \? choosePaidIntent\(value, description\) : chooseCategory\(value\)/);
+  assert.match(consulta,/paidTraffic \? "2 de 4" : "3 de 5"/);
+  assert.match(consulta,/go\(paidTraffic \? 1 : 2\)/);
+});

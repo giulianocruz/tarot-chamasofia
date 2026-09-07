@@ -40,6 +40,13 @@ const QUESTION_PRESETS: Record<string, string[]> = {
   ],
 };
 
+const PAID_INTENTS = [
+  ["Amor e relacionamentos", "♡", "Amor", "O que essa pessoa sente, mas ainda não demonstra?"],
+  ["Dinheiro", "◇", "Dinheiro", "Onde está minha maior oportunidade de crescimento financeiro?"],
+  ["Trabalho e carreira", "✦", "Trabalho", "Qual movimento pode elevar meu reconhecimento profissional?"],
+  ["Decisões", "◉", "Decisão", "Qual caminho tende a ser mais favorável para mim?"],
+] as const;
+
 const publicDeck = MAJOR_ARCANA.slice(0, 7);
 const sentEventKeys = new Set<string>();
 const JOURNEY_DRAFT_KEY = "cs_journey_draft_v1";
@@ -206,7 +213,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     if (cards.length !== 3 || !category) return "";
     return createReading(question, category as Category, cards).cardReadings[0].text;
   }, [cards, category, question]);
-  const visibleProgress = step <= 0 ? 0 : step <= 3 ? step : step <= 5 ? 4 : 5;
+  const progressTotal = paidTraffic ? 4 : 5;
+  const visibleProgress = paidTraffic
+    ? (step <= 0 ? 0 : step === 1 ? 1 : step <= 3 ? 2 : step <= 5 ? 3 : 4)
+    : (step <= 0 ? 0 : step <= 3 ? step : step <= 5 ? 4 : 5);
   const bonusAvailable=availableBooks.some((book)=>book.slug==="tarot-iniciantes");
 
   useEffect(() => {
@@ -304,6 +314,16 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     persistJourneyDraft(value);
     emitEvent("category_selected", { category: value }, { dedupe: value });
     go(2);
+  }
+
+  function choosePaidIntent(value: string, preset: string) {
+    categoryRef.current = value;
+    setCategory(value); setQuestion(preset); setSelected([]);
+    persistJourneyDraft(value, preset);
+    emitEvent("category_selected", { category: value, entry: "paid_quick_intent" }, { dedupe: value });
+    emitEvent("question_written", { category: value, length: preset.length, mode: "paid_quick_intent" }, { dedupe: preset });
+    trackMeta("Lead", { content_name: "AstroTarot" });
+    go(3);
   }
 
   function chooseQuestion(value: string) {
@@ -471,12 +491,12 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     <main className={`consult-shell consult-step-${step}${paidTraffic ? " is-paid-entry" : ""}`}>
       <section className="consult-card" aria-live="polite">
         <header className="consult-brand">
-          {paidTraffic ? <span className="consult-brand-glyph" aria-hidden="true">âœ¦</span> : <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />}
+          {paidTraffic ? <span className="consult-brand-glyph" aria-hidden="true">{"\u2726"}</span> : <img src="/assets/brand/chama-sofia-logo.png" alt="" width="36" height="36" />}
           <span>CHAMA SOFIA · ASTROTAROT</span>
         </header>
         {visibleProgress>0&&(
-          <div className="consult-progress-rail" aria-label={`Etapa ${visibleProgress} de 5`}>
-            <span style={{width:`${visibleProgress*20}%`}} />
+          <div className="consult-progress-rail" aria-label={`Etapa ${visibleProgress} de ${progressTotal}`}>
+            <span style={{width:`${(visibleProgress/progressTotal)*100}%`}} />
           </div>
         )}
 
@@ -492,19 +512,19 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
         {step === 1 && (
           <div className="consult-step consult-theme-step">
-            <p className="consult-progress">1 de 5</p>
+            <p className="consult-progress">{paidTraffic ? "1 de 4" : "1 de 5"}</p>
             {!paidTraffic && <button className="consult-back" onClick={() => go(0)}>← voltar</button>}
             {!paidTraffic && <div className="consult-mini-deck" aria-hidden="true">
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
               <img src="/assets/tarot/cards/verso-premium.jpg" alt="" width="49" height="74" />
             </div>}
-            <p className="eyebrow">Esta leitura começa pelo que mais mexe com você</p>
-            <h2>Escolha o tema da sua pergunta</h2>
-            <p className="consult-muted consult-theme-guide">Toque em uma opção para continuar. Você poderá escolher uma pergunta pronta ou escrever a sua na próxima etapa.</p>
+            <p className="eyebrow">{paidTraffic ? "Um toque e você vai direto às cartas" : "Esta leitura começa pelo que mais mexe com você"}</p>
+            <h2>{paidTraffic ? "O que você quer descobrir agora?" : "Escolha o tema da sua pergunta"}</h2>
+            <p className="consult-muted consult-theme-guide">{paidTraffic ? "Escolha a pergunta que mais parece com o que trouxe você aqui. Depois você vai direto às 3 cartas." : "Toque em uma opção para continuar. Você poderá escolher uma pergunta pronta ou escrever a sua na próxima etapa."}</p>
             <div className="consult-options">
-              {CATEGORY_MAP.map(([value, icon, label, description]) => (
-                <button key={value} className={category === value ? "selected" : ""} onClick={() => chooseCategory(value)}>
+              {(paidTraffic ? PAID_INTENTS : CATEGORY_MAP).map(([value, icon, label, description]) => (
+                <button key={value} className={category === value ? "selected" : ""} onClick={() => paidTraffic ? choosePaidIntent(value, description) : chooseCategory(value)}>
                   <b aria-hidden="true">{icon}</b><span>{label}<small>{description}</small></span>
                 </button>
               ))}
@@ -538,8 +558,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
         {step === 3 && (
           <div className="consult-step">
-            <p className="consult-progress">3 de 5</p>
-            <button className="consult-back" onClick={() => go(2)}>← voltar</button>
+            <p className="consult-progress">{paidTraffic ? "2 de 4" : "3 de 5"}</p>
+            <button className="consult-back" onClick={() => go(paidTraffic ? 1 : 2)}>← voltar</button>
             <p className="eyebrow">Sua pergunta já tornou esta tiragem única</p>
             <h2>Três cartas vão revelar forças diferentes do seu momento</h2>
             {resumeNotice && <p className="resume-notice">Sua pergunta foi recuperada. Falta apenas escolher as 3 cartas.</p>}
@@ -574,7 +594,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
         {step === 5 && (
           <div className="consult-step consult-preview-step">
-            <p className="consult-progress">4 de 5 · sua prévia</p>
+            <p className="consult-progress">{paidTraffic ? "3 de 4 · sua prévia" : "4 de 5 · sua prévia"}</p>
             <button className="consult-back" onClick={() => go(3)}>← escolher outras cartas</button>
             <div className="preview-reveal-heading">
               <p className="eyebrow">Sua combinação não se repete nesta leitura</p>
@@ -603,7 +623,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
         {step === 6 && (
           <div className="consult-step consult-offer">
-            <p className="consult-progress">5 de 5</p>
+            <p className="consult-progress">{paidTraffic ? "4 de 4" : "5 de 5"}</p>
             <button className="consult-back" onClick={() => go(5)}>← voltar à prévia</button>
             <p className="eyebrow">Seu Mapa Astral Express + Tarot está pronto para ser liberado</p>
             <h2>Receba uma análise do seu momento, não apenas uma tiragem</h2>
