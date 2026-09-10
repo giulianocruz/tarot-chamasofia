@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const anonymousId = cleanText(body.anonymous_id || body.anonymousId,100);
   const sessionId = cleanText(body.session_id || body.sessionId,100);
   const email = cleanText(body.email,120).toLowerCase();
+  const customerName = cleanText(body.customer_name || body.customerName || body.name,120) || 'Consulente';
   const whatsapp = normalizeBrazilPhone(body.whatsapp);
   const category = cleanText(body.category,50);
   const question = cleanText(body.question,500);
@@ -29,11 +30,11 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
   await getD1().prepare(`INSERT INTO abandoned_leads
     (public_token,anonymous_id,session_id,customer_name,customer_email,customer_whatsapp,category,question,stage,is_test,created_at,updated_at)
-    VALUES (?,?,?,'Consulente',?,?,?,?,'contact_captured',?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,'contact_captured',?,?,?)
     ON CONFLICT(anonymous_id) DO UPDATE SET
-      session_id=excluded.session_id,customer_email=excluded.customer_email,customer_whatsapp=excluded.customer_whatsapp,
+      session_id=excluded.session_id,customer_name=excluded.customer_name,customer_email=excluded.customer_email,customer_whatsapp=excluded.customer_whatsapp,
       category=excluded.category,question=excluded.question,stage='contact_captured',is_test=excluded.is_test,updated_at=excluded.updated_at`)
-    .bind(publicToken,anonymousId,sessionId||null,email,whatsapp||null,category||null,question||null,isTest?1:0,now,now).run();
-  await addEvent('lead_saved',null,anonymousId,{session_id:sessionId||undefined,is_test:isTest,hasWhatsapp:Boolean(whatsapp),hasEmail:true});
+    .bind(publicToken,anonymousId,sessionId||null,customerName,email,whatsapp||null,category||null,question||null,isTest?1:0,now,now).run();
+  await addEvent('lead_saved',null,anonymousId,{session_id:sessionId||undefined,is_test:isTest,hasWhatsapp:Boolean(whatsapp),hasEmail:true,source:category||undefined});
   return Response.json({ok:true,publicToken});
 }
