@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import { createFreeNatalPreview, validateBirthInput } from '@/lib/astrology';
 import type { BirthInput } from '@/lib/astrology-types';
 import { buildJourneySummary, signPt, type JourneyInterest } from '@/lib/jornada-sofia';
@@ -7,7 +7,7 @@ import { cleanText, sameOrigin, sha256 } from '@/lib/security';
 
 const interests = new Set<JourneyInterest>(['amor', 'carreira', 'espiritualidade', 'autoconhecimento']);
 
-function wrapText(text: string, font: Awaited<ReturnType<PDFDocument['embedFont']>>, size: number, maxWidth: number) {
+function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
   const words = text.replace(/\s+/g, ' ').trim().split(' ');
   const lines: string[] = [];
   let current = '';
@@ -58,19 +58,25 @@ export async function POST(request: Request) {
     const pageSize: [number, number] = [595.28, 841.89];
     const margin = 54;
     const bodyWidth = pageSize[0] - margin * 2;
+    const pageBackground = rgb(.98, .965, .93);
     let page = pdf.addPage(pageSize);
+    page.drawRectangle({ x: 0, y: 0, width: pageSize[0], height: pageSize[1], color: pageBackground });
     let y = 786;
 
-    const drawLine = (text: string, size = 10.5, font = regular, color = rgb(.22, .18, .24), gap = 5) => {
+    const newPage = () => {
+      page = pdf.addPage(pageSize);
+      page.drawRectangle({ x: 0, y: 0, width: pageSize[0], height: pageSize[1], color: pageBackground });
+      y = 786;
+    };
+    const drawLine = (text: string, size = 10.5, font: PDFFont = regular, color = rgb(.22, .18, .24), gap = 5) => {
       for (const line of wrapText(text, font, size, bodyWidth)) {
-        if (y < 72) { page = pdf.addPage(pageSize); y = 786; }
+        if (y < 72) newPage();
         page.drawText(line, { x: margin, y, size, font, color });
         y -= size + gap;
       }
     };
     const spacer = (amount: number) => { y -= amount; };
 
-    page.drawRectangle({ x: 0, y: 0, width: pageSize[0], height: pageSize[1], color: rgb(.98, .965, .93) });
     page.drawText('JORNADA SOFIA', { x: margin, y, size: 10, font: bold, color: rgb(.42, .25, .34) });
     y -= 29;
     page.drawText('Seu Mapa Astral', { x: margin, y, size: 30, font: serifBold, color: rgb(.16, .11, .18) });
@@ -118,12 +124,13 @@ export async function POST(request: Request) {
     }
 
     const bytes = await pdf.save();
-    return new Response(bytes, {
+    return new Response(bytes as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="meu-mapa-astral-jornada-sofia.pdf"',
         'Cache-Control': 'private, no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
       },
     });
   } catch (error) {
