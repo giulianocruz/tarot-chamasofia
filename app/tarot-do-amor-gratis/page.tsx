@@ -86,6 +86,6 @@ export default function LoveTarotPage() {
         <Link href="/mapa-astral-gratis"><span>Astrologia</span><strong>Mapa astral grátis →</strong></Link>
       </div>
     </section>
-    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
+    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">Tarot</Link><Link href="/astrotarot">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
   </main>;
 }
