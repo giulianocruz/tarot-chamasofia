@@ -402,12 +402,14 @@ export default function ReadingClient({ token }: { token: string }) {
         <section className="astro-result">
           <div className="astro-result-head"><p className="eyebrow">Seu céu de nascimento + céu atual</p><h2>O que a astrologia acrescenta à sua pergunta</h2><p>{order.astrology.situation}</p></div>
           <div className="astro-natal-grid">
-            {[['Sol',order.astrology.natal.sun],['Lua',order.astrology.natal.moon],['Ascendente',order.astrology.natal.ascendantSign ? { sign:order.astrology.natal.ascendantSign } : undefined]].map(([label,value]) => value && <article key={String(label)}><small>{String(label).toUpperCase()}</small><strong>{typeof value === 'object' && 'sign' in value ? String(value.sign) : ''}</strong></article>)}
+            {[['Sol',order.astrology.natal.sun],['Lua',order.astrology.natal.moon],['Ascendente',order.astrology.natal.ascendantSign ? { sign:order.astrology.natal.ascendantSign } : undefined]].map(([label,value]) => value && <article key={String(label)}><small>{String(label).toUpperCase()}</small><strong>{typeof value === 'object' && 'sign' in value ? String(value.sign) : ''}{typeof value === 'object' && 'house' in value && value.house ? ` · Casa ${value.house}` : ''}</strong></article>)}
           </div>
+          {order.astrology.advanced?.aspects?.length ? <div className="astro-transits"><h3>Aspectos natais de destaque</h3>{order.astrology.advanced.aspects.slice(0,4).map((item,index)=><article key={`${item.planetOne}-${item.planetTwo}-${index}`}><span>{item.planetOne} · {item.type} · {item.planetTwo}</span><p>{typeof item.orb === 'number' ? `Orbe ${item.orb.toFixed(2)}°` : 'Aspecto calculado no mapa natal.'}</p></article>)}</div> : null}
           {order.astrology.current.highlights.length > 0 && <div className="astro-transits"><h3>Movimentos que mais pesam agora</h3>{order.astrology.current.highlights.slice(0,3).map((item,index)=><article key={`${item.transitPlanet}-${item.natalPlanet}-${index}`}><span>{item.transitPlanet} · {item.aspectType}</span><p>{item.meaning}</p></article>)}</div>}
           <div className="astro-tarot-bridge"><p className="eyebrow">Astro + Tarot</p><h3>Onde o céu encontra suas cartas</h3><p>{order.astrology.cardsBridge}</p></div>
           <div className="astro-solution"><p className="eyebrow">Sua orientação integrada</p><h3>{order.astrology.solution.title}</h3>{order.astrology.solution.steps.map((step)=><article key={step.title}><strong>{step.title}</strong><p>{step.text}</p></article>)}</div>
           <p className="astro-precision">{order.astrology.precisionNote}</p>
+          {order.astrology.provider?.attributionRequired && <p className="astro-provider-attribution">Dados astrológicos avançados por <a href="https://www.prokerala.com/" target="_blank" rel="noreferrer">Prokerala</a>.</p>}
         </section>
       )}
       <section className="result-cards">
