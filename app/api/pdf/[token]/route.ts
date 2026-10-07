@@ -26,6 +26,9 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
     ? await createReadingPdfEn(order as never, cards, reading, logoBytes, astrology)
     : await createReadingPdf(order as never, cards, reading, logoBytes, astrology);
   await addEvent('reading_pdf_download', Number(order.id), order.anonymous_id ? String(order.anonymous_id) : null, { locale:String(order.locale||'pt-BR'), currency:String(order.currency||'BRL'), market:isEnglish?'international':'brazil' });
-  const filename = isEnglish ? `chama-sofia-astrotarot-${order.order_number}.pdf` : `analise-astrotarot-chama-sofia-${order.order_number}.pdf`;
+  const isAstroTarot = String(order.offer_code || '') === 'astro-tarot';
+  const filename = isEnglish
+    ? `${isAstroTarot ? 'chama-sofia-astrotarot' : 'chama-sofia-tarot-reading'}-${order.order_number}.pdf`
+    : `${isAstroTarot ? 'analise-astrotarot-chama-sofia' : 'leitura-tarot-chama-sofia'}-${order.order_number}.pdf`;
   return new Response(bytes as BodyInit, { headers: { 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="${filename}"`, 'Cache-Control':'private, no-store', 'X-Robots-Tag':'noindex, nofollow' } });
 }
