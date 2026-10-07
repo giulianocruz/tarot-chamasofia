@@ -39,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   let cardIds: string[] = [];
   try {
     const raw = JSON.parse(String(order.cards_json));
-    if (Array.isArray(raw)) cardIds = raw.map((item) => typeof item === 'string' ? item : String(item?.id || '')).filter(Boolean).slice(0,10);
+    if (Array.isArray(raw)) cardIds = raw.map((item) => typeof item === 'string' ? item : String(item?.id || '')).filter(Boolean).slice(0,12);
   } catch { cardIds = []; }
   const cards = getCards(cardIds);
   if (cards.length < 1) return Response.json({ error: isEnglish ? 'We could not recover the selected cards.' : 'Não foi possível recuperar as cartas escolhidas.' }, { status: 409 });
