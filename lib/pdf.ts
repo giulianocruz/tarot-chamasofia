@@ -125,12 +125,19 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
   panel(map, 40, 610, 515, 72, C.panel);
   map.drawText('PERGUNTA CENTRAL', { x: 57, y: 660, font: bold, size: 7, color: C.gold });
   textBlock(map, order.question, 57, 639, 480, italic, 11, C.cream, 15);
-  insightPanel(map, 'Agora', cards[0], cards[0].general, 40, 493, 159, regular, bold);
-  insightPanel(map, 'Influência', cards[1], cards[1].alert, 218, 493, 159, regular, bold);
-  insightPanel(map, 'Direção', cards[2], cards[2].constructive, 396, 493, 159, regular, bold);
+  const overviewCards = cards.slice(0, 3);
+  const overviewWidth = overviewCards.length === 1 ? 515 : overviewCards.length === 2 ? 247 : 159;
+  const overviewGap = overviewCards.length === 1 ? 0 : overviewCards.length === 2 ? 21 : 19;
+  overviewCards.forEach((card, index) => {
+    const position = reading.cardReadings[index]?.position || `Carta ${index + 1}`;
+    const description = index === 0 ? card.general : index === overviewCards.length - 1 ? card.constructive : card.alert;
+    insightPanel(map, position, card, description, 40 + index * (overviewWidth + overviewGap), 493, overviewWidth, regular, bold);
+  });
   map.drawText('Sinais extraídos das próprias cartas escolhidas — não são pontuações nem medições objetivas.', { x: 57, y: 468, font: regular, size: 6.7, color: C.muted });
-  const cardW = 159;
-  cards.forEach((card, index) => cardTile(map, card, index, 40 + index * 178, 260, cardW, regular, bold));
+  overviewCards.forEach((card, index) => {
+    const position = reading.cardReadings[index]?.position || `Carta ${index + 1}`;
+    cardTile(map, card, position, 40 + index * (overviewWidth + overviewGap), 260, overviewWidth, regular, bold);
+  });
   panel(map, 40, 100, 515, 124, rgb(0.09, 0.04, 0.11));
   map.drawText('PRIMEIRA S\u00cdNTESE', { x: 57, y: 196, font: bold, size: 7, color: C.gold });
   textBlock(map, reading.summary, 57, 173, 480, regular, 9.5, C.cream, 14.5);
