@@ -680,7 +680,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <p className="eyebrow">Tela 7 · revelação</p>
             <h2>{spread.name}</h2>
             <p className="ritual-muted">Estas foram as cartas que você escolheu. A interpretação completa é construída a partir das posições do método e da sua pergunta.</p>
-            <div className={`ritual-reveal-grid ritual-reveal-${Math.min(cards.length, 10)}`}>
+            <div className={`ritual-reveal-grid ritual-reveal-${Math.min(cards.length, 12)}`}>
               {cards.map((card, index) => (
                 <article key={card.id} style={{ "--reveal-delay": `${index * 90}ms` } as React.CSSProperties}>
                   <span>{spread.positions[index]?.title || `Carta ${index + 1}`}</span>
