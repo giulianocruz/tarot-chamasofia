@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { addEvent, checkRateLimit, ensureSchema, getD1 } from '@/lib/database';
 import { createAstroTarotLayer, validateBirthInput } from '@/lib/astrology';
 import type { BirthInput } from '@/lib/astrology-types';
@@ -43,7 +44,10 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   const cards = getCards(cardIds);
   if (cards.length < 1) return Response.json({ error: isEnglish ? 'We could not recover the selected cards.' : 'Não foi possível recuperar as cartas escolhidas.' }, { status: 409 });
   try {
-    const layer = await createAstroTarotLayer(input, String(order.question), String(order.category) as Category, cards, String(order.locale || 'pt-BR'));
+    const prokerala = env.PROKERALA_ENABLED === '1' && env.PROKERALA_CLIENT_ID && env.PROKERALA_CLIENT_SECRET
+      ? { clientId: env.PROKERALA_CLIENT_ID, clientSecret: env.PROKERALA_CLIENT_SECRET }
+      : undefined;
+    const layer = await createAstroTarotLayer(input, String(order.question), String(order.category) as Category, cards, String(order.locale || 'pt-BR'), { prokerala });
     const now = new Date().toISOString();
     await getD1().prepare(`UPDATE orders SET birth_date=?,birth_time=?,birth_place=?,birth_time_known=?,astrology_status='generated',astrology_json=?,astrology_generated_at=? WHERE id=?`)
       .bind(input.birthDate, input.timeKnown ? input.birthTime : null, input.birthPlace, input.timeKnown ? 1 : 0, JSON.stringify(layer), now, order.id).run();
