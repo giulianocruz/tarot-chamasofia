@@ -17,5 +17,8 @@ export const metadata: Metadata = {
 
 export default async function ConsultaPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
-  return <ConsultaClient paidTraffic={shouldUseConsulta(params)} />;
+  const rawOffer = params.offer;
+  const offer = Array.isArray(rawOffer) ? rawOffer[0] : rawOffer;
+  const offerMode = offer === 'astro-tarot' ? 'astro-tarot' : 'consulta';
+  return <ConsultaClient paidTraffic={shouldUseConsulta(params)} offerMode={offerMode} />;
 }
