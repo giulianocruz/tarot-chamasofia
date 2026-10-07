@@ -33,5 +33,8 @@ declare namespace Cloudflare {
     RECOVERY_FIRST_DELAY_MINUTES?: string;
     RECOVERY_SECOND_DELAY_MINUTES?: string;
     RECOVERY_RETRY_DELAY_MINUTES?: string;
+    PROKERALA_ENABLED?: string;
+    PROKERALA_CLIENT_ID?: string;
+    PROKERALA_CLIENT_SECRET?: string;
   }
 }
