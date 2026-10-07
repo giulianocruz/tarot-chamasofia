@@ -24,7 +24,7 @@ export async function GET() {
     return Response.json({
       ok:true,
       product:'chama-sofia-tarot',
-      release:'premium-v2-20261007',
+      release:'premium-v4-20261007',
       database:'ok',
       ebook:ebook?'ok':'missing',
       capabilities,
@@ -39,7 +39,7 @@ export async function GET() {
     return Response.json({
       ok:false,
       product:'chama-sofia-tarot',
-      release:'premium-v2-20261007',
+      release:'premium-v4-20261007',
       database:'error',
       capabilities,
       timestamp:new Date().toISOString(),
