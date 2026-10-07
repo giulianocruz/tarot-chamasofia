@@ -181,9 +181,12 @@ export default function ReadingClient({ token }: { token: string }) {
     if (next === (order?.cards?.length || 0)) setTimeout(() => setStage("result"), 850);
   }
   function share() {
-    const url = "https://tarot.chamasofia.com.br/consulta?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada";
-    const text = "Fiz uma leitura no Tarot Chama Sofia ✨";
-    const shareTitle = order?.offerCode === "astro-tarot" ? "AstroTarot Chama Sofia" : "Tarot Chama Sofia";
+    const isAstroShare = order?.offerCode === "astro-tarot";
+    const url = isAstroShare
+      ? "https://tarot.chamasofia.com.br/astrotarot?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada"
+      : "https://tarot.chamasofia.com.br/consulta?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada";
+    const text = isAstroShare ? "Fiz uma análise AstroTarot no Chama Sofia ✨" : "Fiz uma leitura no Tarot Chama Sofia ✨";
+    const shareTitle = isAstroShare ? "AstroTarot Chama Sofia" : "Tarot Chama Sofia";
     if (navigator.share)
       void navigator.share({ title: shareTitle, text, url });
     else
