@@ -183,8 +183,9 @@ export default function ReadingClient({ token }: { token: string }) {
   function share() {
     const url = "https://tarot.chamasofia.com.br/consulta?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada";
     const text = "Fiz uma leitura no Tarot Chama Sofia ✨";
+    const shareTitle = order?.offerCode === "astro-tarot" ? "AstroTarot Chama Sofia" : "Tarot Chama Sofia";
     if (navigator.share)
-      void navigator.share({ title: "AstroTarot Chama Sofia", text, url });
+      void navigator.share({ title: shareTitle, text, url });
     else
       window.open(
         `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`,
