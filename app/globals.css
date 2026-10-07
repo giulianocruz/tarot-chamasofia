@@ -413,3 +413,18 @@
   .ritual-offer{grid-template-columns:1.6fr .8fr;align-items:center}
 }
 @media(prefers-reduced-motion:reduce){.ritual-stars,.ritual-screen,.ritual-reveal-grid article,.ritual-candle{animation:none!important}.ritual-full-deck button,.ritual-shuffle-deck img{transition:none!important}}
+
+
+.astro-provider-attribution{
+  margin:12px 0 0;
+  color:#7f7487;
+  font-size:9px;
+  line-height:1.5;
+  text-align:right;
+}
+.astro-provider-attribution a{
+  color:#b89b61;
+  text-decoration:none;
+  border-bottom:1px solid rgba(184,155,97,.35);
+}
+.astro-provider-attribution a:hover{color:#e6c87f}
