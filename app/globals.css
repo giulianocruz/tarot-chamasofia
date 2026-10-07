@@ -369,7 +369,7 @@
 .ritual-method-grid strong{display:block;font:16px Georgia;color:#f2d897;margin-top:8px}.ritual-method-grid small{display:block;color:#918696;font-size:9px;line-height:1.35;margin:6px 0}.ritual-method-grid>button>span{color:#bf9a55;font-size:8px;text-transform:uppercase;letter-spacing:.1em}
 .spread-mini{height:67px;position:relative;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:3px;max-width:120px;margin:auto}
 .spread-mini i{display:block;width:18px;height:29px;border:1px solid #c99d4d;border-radius:2px;background:linear-gradient(145deg,#2a1542,#080916);box-shadow:0 4px 7px rgba(0,0,0,.25)}
-.spread-mini-5 i{width:16px;height:25px}.spread-mini-7 i{width:14px;height:23px}.spread-mini-10 i{width:12px;height:20px}
+.spread-mini-5 i{width:16px;height:25px}.spread-mini-7 i{width:14px;height:23px}.spread-mini-10 i{width:12px;height:20px}.spread-mini-12 i{width:11px;height:18px}
 .ritual-shuffle{text-align:center}.ritual-shuffle-deck{position:relative;width:235px;height:300px;margin:18px auto 10px;border:0;background:none;display:block;cursor:pointer}
 .ritual-shuffle-deck img{position:absolute;left:51px;top:20px;width:135px;height:220px;object-fit:cover;border-radius:9px;border:1px solid rgba(242,207,130,.58);box-shadow:0 20px 35px rgba(0,0,0,.5);transition:transform .55s cubic-bezier(.2,.8,.2,1)}
 .ritual-shuffle-deck img:nth-child(1){transform:rotate(-7deg) translate(-16px,4px)}.ritual-shuffle-deck img:nth-child(2){transform:rotate(7deg) translate(15px,2px)}
@@ -400,7 +400,7 @@
 @keyframes ritualReveal{from{opacity:0;transform:translateY(17px) rotateY(65deg)}to{opacity:1;transform:none}}
 .ritual-reveal-grid article>span{display:block;min-height:28px;color:#b9914c;font-size:8px;text-transform:uppercase;letter-spacing:.06em}.ritual-reveal-grid img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;border:1px solid rgba(238,201,113,.5);box-shadow:0 15px 28px rgba(0,0,0,.42)}
 .ritual-reveal-grid strong{display:block;margin-top:7px;color:#f2ddb2;font:11px Georgia;line-height:1.15}
-.ritual-reveal-1{grid-template-columns:minmax(150px,220px);justify-content:center}.ritual-reveal-5,.ritual-reveal-7,.ritual-reveal-10{grid-template-columns:repeat(3,1fr)}
+.ritual-reveal-1{grid-template-columns:minmax(150px,220px);justify-content:center}.ritual-reveal-5,.ritual-reveal-7,.ritual-reveal-10,.ritual-reveal-12{grid-template-columns:repeat(3,1fr)}
 .ritual-preview-message{padding:17px;border:1px solid rgba(230,189,105,.2);border-radius:15px;background:linear-gradient(140deg,rgba(98,51,126,.1),rgba(255,255,255,.015));margin:18px 0}
 .ritual-preview-message>p:not(.eyebrow){margin:0;color:#d4c8d4;font:14px/1.65 Georgia}.ritual-preview-message small{display:block;margin-top:10px;color:#837889;font-size:9px;line-height:1.5}
 .ritual-offer{display:grid;gap:12px;padding:18px;border:1px solid rgba(230,189,105,.22);border-radius:16px;background:rgba(0,0,0,.23)}
@@ -418,7 +418,7 @@
   .ritual-method-grid{grid-template-columns:repeat(3,1fr)}.ritual-method-grid>button{min-height:190px}
   .ritual-intro-art{height:330px;margin:-10px -48px 12px}.ritual-deck-stack{transform:scale(1.15)}
   .ritual-deck-window{margin:0 -48px}.ritual-full-deck{padding-left:68px;padding-right:95px;min-height:310px}.ritual-full-deck button{flex-basis:76px;margin-right:-25px;height:220px}.ritual-full-deck img{width:122px;height:198px}.ritual-deck-arrow-left{left:18px}.ritual-deck-arrow-right{right:18px}.ritual-deck-progress{margin-left:40px;margin-right:40px}
-  .ritual-reveal-grid{grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px}.ritual-reveal-10{grid-template-columns:repeat(5,1fr)}
+  .ritual-reveal-grid{grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px}.ritual-reveal-10{grid-template-columns:repeat(5,1fr)}.ritual-reveal-12{grid-template-columns:repeat(4,1fr)}
   .ritual-offer{grid-template-columns:1.6fr .8fr;align-items:center}
 }
 @media(prefers-reduced-motion:reduce){.ritual-stars,.ritual-screen,.ritual-reveal-grid article,.ritual-candle{animation:none!important}.ritual-full-deck button,.ritual-shuffle-deck img{transition:none!important}}
