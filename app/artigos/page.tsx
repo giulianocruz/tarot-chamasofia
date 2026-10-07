@@ -27,7 +27,7 @@ export default function ArticlesPage() {
         <div className={styles.cardBody}><span>{article.eyebrow}</span><h2><Link href={`/artigos/${article.slug}`}>{article.title}</Link></h2><p>{article.description}</p><Link href={`/artigos/${article.slug}`} className={styles.readLink}>Ler o guia <b>→</b></Link></div>
       </article>)}
     </section>
-    <section className={styles.hubCta}><p className={styles.eyebrow}>Quer aplicar isso à sua pergunta?</p><h2>Escolha 3 cartas e veja uma prévia antes de decidir.</h2><p>O AstroTarot combina sua pergunta, as cartas e — se você quiser aprofundar — o mapa natal e o céu do momento.</p><Link href="/consulta?utm_source=organic&utm_medium=article_hub&utm_campaign=seo_cluster" className={styles.primaryButton}>VER MINHA PRÉVIA <span>→</span></Link></section>
-    <footer className={styles.footer}><Link href="/consulta">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
+    <section className={styles.hubCta}><p className={styles.eyebrow}>Quer aplicar isso à sua pergunta?</p><h2>Escolha o método e as cartas que fazem sentido para este momento.</h2><p>No Tarot Chama Sofia, você percorre o baralho completo de 78 cartas, escolhe sua tiragem e recebe uma leitura construída para a sua pergunta.</p><Link href="/consulta?utm_source=organic&utm_medium=article_hub&utm_campaign=seo_cluster" className={styles.primaryButton}>COMEÇAR MINHA CONSULTA <span>→</span></Link></section>
+    <footer className={styles.footer}><Link href="/consulta">Tarot</Link><Link href="/astrotarot">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
   </main>;
 }
