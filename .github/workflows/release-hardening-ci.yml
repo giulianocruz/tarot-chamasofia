@@ -5,6 +5,7 @@ on:
     branches:
       - release/tarot-hardening-20260906
       - feature/tarot-ritual-premium-20261006
+      - feature/prokerala-enrichment-20261007
 
 jobs:
   test-build:
