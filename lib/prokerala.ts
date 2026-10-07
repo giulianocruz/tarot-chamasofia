@@ -108,18 +108,13 @@ export async function fetchProkeralaNatalEnrichment(
   },
 ): Promise<ProkeralaNatalEnrichment> {
   const token = await getAccessToken(credentials);
-  const profile = JSON.stringify({
-    datetime: input.datetime,
-    coordinates: `${input.latitude},${input.longitude}`,
-    birth_time_unknown: !input.timeKnown,
-  });
-
   const params = new URLSearchParams({
-    profile,
+    "profile[datetime]": input.datetime,
+    "profile[coordinates]": `${input.latitude},${input.longitude}`,
+    "profile[birth_time_unknown]": input.timeKnown ? "false" : "true",
     house_system: "placidus",
     orb: "default",
     birth_time_rectification: "flat-chart",
-    aspect_filter: "major",
     ayanamsa: "0",
     la: "en",
   });
