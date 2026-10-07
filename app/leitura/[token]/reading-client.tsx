@@ -27,6 +27,8 @@ type Reading = {
   summary: string;
   reflection: string;
   disclaimer: string;
+  spreadId?: string;
+  spreadName?: string;
 };
 type Order = {
   id: number;
@@ -176,11 +178,11 @@ export default function ReadingClient({ token }: { token: string }) {
     const next = revealed + 1;
     setRevealed(next);
     event("card_selected", order?.id);
-    if (next === 3) setTimeout(() => setStage("result"), 850);
+    if (next === (order?.cards?.length || 0)) setTimeout(() => setStage("result"), 850);
   }
   function share() {
-    const url = location.href;
-    const text = "Fiz uma análise AstroTarot no Chama Sofia ✨";
+    const url = "https://tarot.chamasofia.com.br/consulta?utm_source=share&utm_medium=referral&utm_campaign=leitura_compartilhada";
+    const text = "Fiz uma leitura no Tarot Chama Sofia ✨";
     if (navigator.share)
       void navigator.share({ title: "AstroTarot Chama Sofia", text, url });
     else
@@ -298,12 +300,15 @@ export default function ReadingClient({ token }: { token: string }) {
             <label className={!timeKnown ? "is-disabled" : ""}>Horário de nascimento<input required={timeKnown} disabled={!timeKnown} type="time" value={birthTime} onChange={(e)=>setBirthTime(e.target.value)} /></label>
             <label className="astro-time-check"><input type="checkbox" checked={!timeKnown} onChange={(e)=>setTimeKnown(!e.target.checked)} /> Não sei meu horário de nascimento</label>
             <label>Cidade, estado e país<input required value={birthPlace} onChange={(e)=>setBirthPlace(e.target.value)} placeholder="Ex.: Botucatu, SP, Brasil" /></label>
-            <div className="astro-data-note"><strong>O que acontece agora</strong><span>Mapa natal → trânsitos atuais → 3 cartas → orientação integrada.</span></div>
+            <div className="astro-data-note"><strong>O que acontece agora</strong><span>Mapa natal → trânsitos atuais → suas cartas → orientação integrada.</span></div>
             {astroError && <p className="form-error">{astroError}</p>}
             <button disabled={astroLoading} className="primary-button">{astroLoading ? "CALCULANDO SEU CÉU..." : "GERAR MAPA + CRUZAR COM AS CARTAS"} <span>→</span></button>
             <small>Se o horário não for conhecido, a leitura continua útil, mas Ascendente e casas não serão tratados como precisos. Seus dados de nascimento ficam vinculados ao pedido privado e são usados para gerar esta análise.</small>
           </form>
-          {astroError && <button className="secondary-button" onClick={()=>setSkipAstro(true)}>CONTINUAR COM O TAROT ENQUANTO ISSO</button>}
+          <button className="secondary-button" type="button" onClick={()=>setSkipAstro(true)}>
+            {astroError ? "VER MEU TAROT AGORA" : "PREFIRO VER O TAROT PRIMEIRO"}
+          </button>
+          <small className="astro-skip-note">O mapa é uma camada complementar. Sua leitura de Tarot nunca depende do provedor astrológico para ser liberada.</small>
         </section>
       </main>
     );
@@ -333,11 +338,11 @@ export default function ReadingClient({ token }: { token: string }) {
             <span className="brand-mark">✦</span>
             <span>CHAMA SOFIA</span>
           </span>
-          <span>{revealed}/3 reveladas</span>
+          <span>{revealed}/{order.cards!.length} reveladas</span>
         </header>
         <section className="reveal-area">
           <p className="eyebrow">Toque em cada carta, na ordem</p>
-          <h1>Suas três cartas</h1>
+          <h1>{order.reading?.spreadName || "Suas cartas"}</h1>
           <div className="reveal-grid">
             {order.cards!.map((card, index) => (
               <button
@@ -356,7 +361,7 @@ export default function ReadingClient({ token }: { token: string }) {
                   </span>
                   <span className="flip-front">
                     <img
-                      src={`/assets/tarot/cards/${card.id}.webp`}
+                      src={card.image || `/assets/tarot/cards/${card.id}.webp`}
                       alt={card.name}
                     />
                     <em>{order.reading!.cardReadings[index].position}</em>
@@ -365,7 +370,7 @@ export default function ReadingClient({ token }: { token: string }) {
               </button>
             ))}
           </div>
-          {revealed < 3 && (
+          {revealed < order.cards!.length && (
             <p className="tap-hint">
               {revealed === 0
                 ? "Comece pela carta da esquerda."
@@ -410,7 +415,7 @@ export default function ReadingClient({ token }: { token: string }) {
           <article key={card.id}>
             <div className="result-card-art">
               <img
-                src={`/assets/tarot/cards/${card.id}.webp`}
+                src={card.image || `/assets/tarot/cards/${card.id}.webp`}
                 alt={card.name}
                 loading="lazy"
               />
@@ -468,7 +473,7 @@ export default function ReadingClient({ token }: { token: string }) {
       <section className="share-row">
         <button onClick={share}>Compartilhar leitura</button>
         <a
-          href={`https://wa.me/?text=${encodeURIComponent(`Fiz uma análise AstroTarot no Chama Sofia ✨\n${typeof location !== "undefined" ? location.href : ""}`)}`}
+          href={`https://wa.me/?text=${encodeURIComponent("Fiz uma leitura no Tarot Chama Sofia ✨\nhttps://tarot.chamasofia.com.br/consulta?utm_source=whatsapp&utm_medium=referral&utm_campaign=leitura_compartilhada")}`}
           target="_blank"
           rel="noreferrer"
         >
@@ -489,7 +494,7 @@ export default function ReadingClient({ token }: { token: string }) {
           href="/consulta"
           onClick={() => event("new_reading_click", order.id)}
         >
-          FAZER NOVA ANÁLISE ASTROTAROT <span>→</span>
+          FAZER NOVA LEITURA DE TAROT <span>→</span>
         </Link>
       </section>
       <footer>
