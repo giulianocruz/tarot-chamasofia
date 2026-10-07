@@ -91,7 +91,7 @@ export default function LandingClient() {
     Object.entries(utms).forEach(([key, value]) => {
       if (value) localStorage.setItem(`cs_${key}`, String(value));
     });
-    fetch("/api/pricing")
+    fetch("/api/pricing?offer=astro-tarot")
       .then((r) => r.json())
       .then(setPrice)
       .catch(() => undefined);
@@ -326,137 +326,6 @@ export default function LandingClient() {
             Prefere começar por um e-book? Conheça a Biblioteca Chama Sofia
           </a>
         </div>
-      </section>
-      <section className="legacy-question-section" aria-hidden="true">
-        <div className="question-intro">
-          <p className="eyebrow">Sua pergunta, sua jornada</p>
-          <h2>O que você gostaria de compreender?</h2>
-          <p>
-            Prefira perguntas abertas que ajudem na reflexão. Em vez de “Vou
-            voltar com essa pessoa?”, experimente “O que preciso compreender
-            sobre essa relação neste momento?”
-          </p>
-          <ul>
-            <li>3 cartas sem repetição</li>
-            <li>Narrativa conectada à sua pergunta</li>
-            <li>Resultado privado + PDF</li>
-          </ul>
-        </div>
-        <form className="reading-form" onSubmit={submit}>
-          <div className="form-progress">
-            <span>{formStep}</span>
-            <b>{formStep === 1 ? "Conte sua pergunta" : "Receba sua leitura"}</b>
-            <small>Leva menos de 2 minutos</small>
-          </div>
-          {formStep === 1 ? (
-            <>
-          <label className="field-label">Escolha o tema</label>
-          <div className="category-grid">
-            {CATEGORIES.map((item) => (
-              <button
-                type="button"
-                className={category === item ? "selected" : ""}
-                onClick={() => setCategory(item)}
-                key={item}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <label className="field-label" htmlFor="question">
-            Qual pergunta você gostaria de fazer ao Tarot?
-          </label>
-          <textarea
-            id="question"
-            required
-            minLength={10}
-            maxLength={500}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Escreva sua pergunta com calma..."
-          />
-          <div className="char-count">{question.length}/500</div>
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button type="button" className="primary-button form-submit" onClick={continueToContact}>
-            CONTINUAR MINHA LEITURA <span>→</span>
-          </button>
-            </>
-          ) : (
-            <div id="dados-entrega">
-          <div className="offer-includes">
-            <strong>Sua compra inclui</strong>
-            <span>✓ livro Tarot para Iniciantes, 276 páginas</span>
-            <span>✓ leitura bônus com 3 cartas e interpretação</span>
-            <span>✓ PDF personalizado da sua experiência</span>
-          </div>
-          <button type="button" className="edit-question" onClick={() => setFormStep(1)}>← Editar minha pergunta</button>
-          <label>
-            Seu nome
-            <input
-              required
-              autoComplete="name"
-              maxLength={80}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Como podemos te chamar?"
-            />
-          </label>
-          <label>
-            Seu e-mail
-            <input
-              required
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              maxLength={120}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@email.com"
-            />
-            <small className="field-help">
-              Usado para gerar o Pix seguro e recuperar sua leitura.
-            </small>
-          </label>
-          <label>
-              WhatsApp <small>(opcional)</small>
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                maxLength={30}
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="(14) 99999-9999"
-              />
-              <small className="field-help">
-                Informe para receber automaticamente o link, o PDF e o livro.
-              </small>
-          </label>
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button
-            className="primary-button form-submit"
-            disabled={loading}
-          >
-            {loading
-              ? "GERANDO SEU PIX..."
-              : `IR PARA O PIX · ${price.formatted}`}{" "}
-            <span>→</span>
-          </button>
-          <div className="checkout-confidence">
-            <span>✓ Pagamento seguro</span>
-            <span>✓ Compra única</span>
-            <span>✓ Acesso privado</span>
-          </div>
-          <p className="form-privacy">
-            Seus dados e sua pergunta não serão publicados.
-          </p>
-            </div>
-          )}
-        </form>
       </section>
       <section className="receive" data-reveal>
         <p className="eyebrow">Uma experiência completa</p>
