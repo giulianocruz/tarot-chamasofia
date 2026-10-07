@@ -32,13 +32,13 @@ export default async function ArticlePage({ params }: PageProps) {
     <div className={styles.articleLayout}><div className={styles.content}>
       <div className={styles.intro}>{article.intro.map((paragraph,index)=><p key={index}>{paragraph}</p>)}</div>
       {article.sections.map((section,index)=><section key={section.heading} id={`secao-${index+1}`}><h2>{section.heading}</h2>{section.paragraphs.map((paragraph,pIndex)=><p key={pIndex}>{paragraph}</p>)}{section.bullets&&<ul>{section.bullets.map(item=><li key={item}>{item}</li>)}</ul>}</section>)}
-      <aside className={styles.inlineCta}><span>{freeTool.label}</span><h2>{freeTool.title}</h2><p>{freeTool.text}</p><Link href={freeTool.href} className={styles.primaryButton}>{freeTool.button} <b>→</b></Link><small>Ferramenta gratuita. Se quiser aprofundar depois, o AstroTarot continua disponível.</small></aside>
+      <aside className={styles.inlineCta}><span>{freeTool.label}</span><h2>{freeTool.title}</h2><p>{freeTool.text}</p><Link href={freeTool.href} className={styles.primaryButton}>{freeTool.button} <b>→</b></Link><small>Ferramenta gratuita. Para uma pergunta específica, o Tarot premium oferece o baralho completo e diferentes métodos de tiragem.</small></aside>
       <section className={styles.faq}><p className={styles.eyebrow}>Perguntas frequentes</p><h2>Respostas rápidas</h2>{article.faq.map(item=><details key={item.question}><summary>{item.question}<span>+</span></summary><p>{item.answer}</p></details>)}</section>
       <p className={styles.disclaimer}>Tarot e astrologia são apresentados como ferramentas simbólicas de reflexão e autoconhecimento. Não representam garantia de acontecimentos futuros e não substituem orientação profissional em saúde, direito, finanças ou segurança.</p>
       <div className={styles.share}><span>Este guia ajudou?</span><a href={shareUrl} target="_blank" rel="noreferrer">Compartilhar no Facebook</a></div>
     </div>
-    <aside className={styles.sidebar}><div><span className={styles.sideLabel}>Continue explorando</span>{related.map(item=><Link href={`/artigos/${item.slug}`} key={item.slug}><small>{item.eyebrow}</small><strong>{item.title}</strong></Link>)}</div><Link href={articleCtaUrl(slug)} className={styles.sideCta}><small>PRÉVIA GRÁTIS</small><strong>3 cartas para a sua pergunta</strong><span>Começar →</span></Link></aside></div>
+    <aside className={styles.sidebar}><div><span className={styles.sideLabel}>Continue explorando</span>{related.map(item=><Link href={`/artigos/${item.slug}`} key={item.slug}><small>{item.eyebrow}</small><strong>{item.title}</strong></Link>)}</div><Link href={articleCtaUrl(slug)} className={styles.sideCta}><small>TAROT COMPLETO</small><strong>Escolha seu método e suas cartas</strong><span>Começar →</span></Link></aside></div>
     </article>
-    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
+    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">Tarot</Link><Link href="/astrotarot">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
   </main>;
 }
