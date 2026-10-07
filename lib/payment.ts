@@ -47,7 +47,12 @@ export async function completePayment(orderNumber: string, transactionId?: strin
       let ids: string[] = [];
       if (Array.isArray(raw)) {
         ids = raw.map((item) => typeof item === "string" ? item : String(item?.id || "")).filter(Boolean);
-        const inferred = raw.length === 1 ? "single" : raw.length === 5 ? "love" : raw.length === 7 ? "horseshoe" : raw.length === 10 ? "celtic-cross" : DEFAULT_SPREAD_ID;
+        let priorSpread: string | undefined;
+        try {
+          const priorReading = order.reading_json ? JSON.parse(String(order.reading_json)) : null;
+          priorSpread = priorReading?.spreadId ? String(priorReading.spreadId) : undefined;
+        } catch {}
+        const inferred = priorSpread || (raw.length === 1 ? "single" : raw.length === 5 ? "love" : raw.length === 7 ? "horseshoe" : raw.length === 10 ? "celtic-cross" : raw.length === 12 ? "mandala-12" : DEFAULT_SPREAD_ID);
         spreadId = inferred as TarotSpreadId;
       } else if (raw && typeof raw === "object") {
         spreadId = String(raw.spreadId || DEFAULT_SPREAD_ID) as TarotSpreadId;
