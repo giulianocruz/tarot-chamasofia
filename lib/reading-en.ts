@@ -25,6 +25,45 @@ const CARD_EN: Record<string,{name:string;keywords:[string,string,string];constr
   mundo:{name:'The World',keywords:['completion','integration','wholeness'],constructive:'achievement, belonging and a wider view',alert:'difficulty finishing or demanding perfection before celebrating',general:'A cycle is ready to integrate so you can occupy a fuller position.'},
 };
 
+const SUIT_EN: Record<string,{name:string;theme:string;constructive:string;alert:string}> = {
+  wands:{name:'Wands',theme:'action, desire and initiative',constructive:'focused action and creative momentum',alert:'rushing, burnout or acting without direction'},
+  cups:{name:'Cups',theme:'emotion, relationships and sensitivity',constructive:'emotional honesty and reciprocity',alert:'idealization, dependency or unrealistic expectations'},
+  swords:{name:'Swords',theme:'thought, truth and decisions',constructive:'mental clarity and honest communication',alert:'anxiety, conflict or rigid thinking'},
+  pentacles:{name:'Pentacles',theme:'resources, body and practical reality',constructive:'consistency, security and practical building',alert:'attachment, stagnation or excessive material worry'},
+};
+
+const RANK_EN: Record<string,{name:string;keywords:[string,string,string];general:string}> = {
+  ace:{name:'Ace',keywords:['beginning','potential','opportunity'],general:'A new possibility is available and asks for conscious participation.'},
+  two:{name:'Two',keywords:['choice','balance','duality'],general:'Two forces need to be understood before the next move becomes clear.'},
+  three:{name:'Three',keywords:['growth','expression','exchange'],general:'Something begins to expand through movement, expression or collaboration.'},
+  four:{name:'Four',keywords:['structure','stability','foundation'],general:'The moment asks for stronger foundations, boundaries and continuity.'},
+  five:{name:'Five',keywords:['tension','change','adjustment'],general:'Instability reveals what needs to be reviewed, negotiated or strengthened.'},
+  six:{name:'Six',keywords:['harmony','transition','recovery'],general:'A reorganization can move the situation toward greater balance.'},
+  seven:{name:'Seven',keywords:['assessment','strategy','discernment'],general:'Not everything is obvious yet; observe patterns and choose where to place energy.'},
+  eight:{name:'Eight',keywords:['movement','skill','momentum'],general:'The situation gains intensity and asks for conscious use of skill and direction.'},
+  nine:{name:'Nine',keywords:['maturity','threshold','completion'],general:'A cycle is approaching maturity, though one meaningful adjustment may remain.'},
+  ten:{name:'Ten',keywords:['culmination','cycle','result'],general:'A cycle shows its results and invites you to recognize both gains and excesses.'},
+  page:{name:'Page',keywords:['curiosity','message','learning'],general:'A message, lesson or more open attitude can refresh the way you approach the issue.'},
+  knight:{name:'Knight',keywords:['movement','pursuit','impulse'],general:'There is momentum to move forward; align speed, intention and consequence.'},
+  queen:{name:'Queen',keywords:['maturity','presence','receptivity'],general:'The answer asks for inner command, perception and mature expression of this energy.'},
+  king:{name:'King',keywords:['leadership','responsibility','mastery'],general:'The situation asks for responsibility, decision and the ability to sustain your choice.'},
+};
+
+function englishCard(card: TarotCard) {
+  const known=CARD_EN[card.id];
+  if (known) return known;
+  const [suitId,rankId]=card.id.split('-');
+  const suit=SUIT_EN[suitId] || {name:'Tarot',theme:'the practical meaning of the situation',constructive:'a grounded next step',alert:'overreaction or acting without enough information'};
+  const rank=RANK_EN[rankId] || {name:card.name,keywords:['awareness','choice','reflection'] as [string,string,string],general:'This card highlights a symbolic layer of your question.'};
+  return {
+    name: suitId in SUIT_EN ? `${rank.name} of ${suit.name}` : card.name,
+    keywords: rank.keywords,
+    constructive: suit.constructive,
+    alert: suit.alert,
+    general: `${rank.general} In the suit of ${suit.name}, this is expressed through ${suit.theme}.`,
+  };
+}
+
 const POSITIONS = [
   {title:'Current situation',description:'The main context surrounding your question.'},
   {title:'Influences',description:'Forces, obstacles or factors shaping the moment.'},
@@ -40,16 +79,16 @@ function categoryLens(category: Category) {
 export function createReadingEn(question: string, category: Category, cards: TarotCard[]) {
   const lens = categoryLens(category);
   const cardReadings = cards.map((card,index) => {
-    const copy = CARD_EN[card.id];
+    const copy = englishCard(card);
     return {
       cardId: card.id,
-      cardName: copy?.name || card.name,
+      cardName: copy.name,
       position: POSITIONS[index].title,
       positionDescription: POSITIONS[index].description,
-      text: `${copy?.general || ''} ${lens} In ${POSITIONS[index].title.toLowerCase()}, notice ${copy?.keywords.slice(0,2).join(' and ')} while keeping an eye on ${copy?.alert}.`,
+      text: `${copy.general} ${lens} In ${POSITIONS[index].title.toLowerCase()}, notice ${copy.keywords.slice(0,2).join(' and ')} while keeping an eye on ${copy.alert}.`,
     };
   });
-  const a=CARD_EN[cards[0].id], b=CARD_EN[cards[1].id], c=CARD_EN[cards[2].id];
+  const a=englishCard(cards[0]), b=englishCard(cards[1]), c=englishCard(cards[2]);
   const connections = `${a.name} opens the reading through ${a.keywords[0]}; ${b.name} adds ${b.keywords[0]} as an influence; and ${c.name} shifts attention toward ${c.keywords[1]}. Together, they suggest a sequence: see the situation clearly, understand the force at work, then choose a response that stays aligned with your values.`;
   const summary = `For your question, the reading points to ${a.keywords[0]} shaped by ${b.keywords[1]}. The direction represented by ${c.name} supports ${c.constructive}, as long as you stay aware of ${b.alert}.`;
   const reflection = `What changes when you allow ${a.keywords[0]}, recognize ${b.keywords[0]}, and choose one small act of ${c.keywords[1]} that depends on you?`;
