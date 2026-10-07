@@ -10,11 +10,19 @@ test('PDF não usa placares artificiais derivados do número das cartas', () => 
   assert.doesNotMatch(pdf, /width \* \(value \/ 100\)/);
 });
 
-test('PDF resume a tiragem com sinais explicáveis das três cartas', () => {
-  assert.match(pdf, /insightPanel\(map, 'Agora', cards\[0\], cards\[0\]\.general/);
-  assert.match(pdf, /insightPanel\(map, 'Influência', cards\[1\], cards\[1\]\.alert/);
-  assert.match(pdf, /insightPanel\(map, 'Direção', cards\[2\], cards\[2\]\.constructive/);
+test('PDF resume a tiragem com sinais explicáveis das cartas escolhidas', () => {
+  assert.match(pdf, /const overviewCards = cards\.slice\(0, 3\)/);
+  assert.match(pdf, /reading\.cardReadings\[index\]\?\.position/);
+  assert.match(pdf, /card\.general/);
+  assert.match(pdf, /card\.constructive/);
+  assert.match(pdf, /card\.alert/);
   assert.match(pdf, /não são pontuações nem medições objetivas/);
+});
+
+test('PDF adapta a capa à quantidade real de cartas da tiragem', () => {
+  assert.match(pdf, /cards\.length/);
+  assert.match(pdf, /carta escolhida/);
+  assert.match(pdf, /cartas escolhidas/);
 });
 
 test('PDF exibe a nota de precisão astrológica no resultado', () => {
