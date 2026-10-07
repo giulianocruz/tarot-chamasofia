@@ -103,7 +103,7 @@ export default function LoveTarotClient() {
     <div className={styles.synthesis}><strong>Leitura em conjunto</strong><p>{cards[0].name} abre a dinâmica com {cards[0].keywords[0]}; {cards[1].name} chama atenção para {cards[1].keywords[0]}; e {cards[2].name} orienta a buscar {cards[2].constructive.toLowerCase()}. Compare essa sequência com atitudes reais, reciprocidade e seus próprios limites antes de tomar uma decisão.</p></div>
     <div className={styles.unlockBox}>
       <span>QUER APROFUNDAR ESTA PERGUNTA?</span><h3>Cruze as cartas com seu mapa natal e o céu do momento.</h3><p>O AstroTarot adiciona sua astrologia à leitura e entrega uma análise personalizada em PDF. Você vê a prévia antes do Pix.</p>
-      <Link href="/consulta?utm_source=organic&utm_medium=free_tool&utm_campaign=tarot_amor_gratis&utm_content=result_cta" onClick={()=>track('cta_click',{target:'astrotarot_from_free_love'})} className={styles.mainButton}>VER ANÁLISE ASTROTAROT <span>→</span></Link>
+      <Link href="/astrotarot?utm_source=organic&utm_medium=free_tool&utm_campaign=tarot_amor_gratis&utm_content=result_cta" onClick={()=>track('cta_click',{target:'astrotarot_from_free_love'})} className={styles.mainButton}>VER ANÁLISE ASTROTAROT <span>→</span></Link>
       <small>Pagamento único de R$ 9,90 somente se você decidir aprofundar.</small>
     </div>
     <div className={styles.resultActions}>
