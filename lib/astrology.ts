@@ -27,8 +27,11 @@ async function astrologyRequest<T>(path: string, body: unknown, language = 'en')
       body: JSON.stringify(body), signal: controller.signal,
     });
     if (!response.ok) {
-      const message = await response.text().catch(() => '');
-      throw new Error(`AstrologyAPI ${response.status}: ${message.slice(0, 180)}`);
+      await response.text().catch(() => '');
+      if ([401, 402, 403].includes(response.status)) {
+        throw new Error('O módulo astrológico está temporariamente indisponível. Sua leitura de Tarot continua liberada e você poderá tentar gerar o mapa novamente depois.');
+      }
+      throw new Error('Não foi possível consultar o cálculo astrológico agora. Sua leitura de Tarot continua disponível.');
     }
     return await response.json() as T;
   } catch (error) {
@@ -137,17 +140,22 @@ function buildSituation(category:Category, highlights:AstroTransitHighlight[], n
 function buildCardsBridge(cards:TarotCard[], highlights:AstroTransitHighlight[]) {
   const transit=highlights[0];
   const sky=transit ? `${transit.transitPlanet}/${transit.aspectType}` : 'o céu atual';
-  return `${cards[0].name} descreve o ponto de partida, ${cards[1].name} mostra a força que interfere e ${cards[2].name} aponta uma direção possível. Quando cruzamos isso com ${sky}, a leitura deixa de perguntar apenas “o que vai acontecer?” e passa a perguntar “qual resposta sua combina melhor com este momento?”.`;
+  const first=cards[0], second=cards[1]||first, third=cards[2]||second;
+  if (!first) return `O céu atual (${sky}) oferece uma camada adicional de contexto para sua pergunta.`;
+  if (cards.length===1) return `${first.name} concentra a mensagem da tiragem. Quando cruzamos essa carta com ${sky}, a pergunta deixa de buscar uma previsão rígida e passa a observar qual resposta sua combina melhor com este momento.`;
+  return `${first.name} descreve o ponto de partida, ${second.name} mostra uma força relevante e ${third.name} aponta uma direção possível. Quando cruzamos isso com ${sky}, a leitura deixa de perguntar apenas “o que vai acontecer?” e passa a perguntar “qual resposta sua combina melhor com este momento?”.`;
 }
 
 function buildSolution(cards:TarotCard[], highlights:AstroTransitHighlight[]):AstroTarotLayer['solution'] {
   const transit=highlights[0];
+  const first=cards[0], second=cards[1]||first, third=cards[2]||second;
+  if (!first) return { title:'Astro + Tarot · sua orientação prática', steps:[] };
   return {
     title:'Astro + Tarot · sua orientação prática',
     steps:[
-      { title:'1. Nomeie o que é real', text:`Use ${cards[0].name} para separar fatos de ansiedade. ${transit?.meaning || 'Observe o cenário antes de responder automaticamente.'}` },
-      { title:'2. Trabalhe a força em jogo', text:`${cards[1].name} pede atenção a ${cards[1].keywords.slice(0,2).join(' e ')}. Escolha um limite, conversa ou ajuste concreto que esteja sob seu controle.` },
-      { title:'3. Faça um movimento testável', text:`${cards[2].name} favorece ${cards[2].constructive.toLowerCase()}. Prefira um próximo passo pequeno, reversível e coerente com seus valores.` },
+      { title:'1. Nomeie o que é real', text:`Use ${first.name} para separar fatos de ansiedade. ${transit?.meaning || 'Observe o cenário antes de responder automaticamente.'}` },
+      { title:'2. Trabalhe a força em jogo', text:`${second.name} pede atenção a ${second.keywords.slice(0,2).join(' e ')}. Escolha um limite, conversa ou ajuste concreto que esteja sob seu controle.` },
+      { title:'3. Faça um movimento testável', text:`${third.name} favorece ${third.constructive.toLowerCase()}. Prefira um próximo passo pequeno, reversível e coerente com seus valores.` },
     ],
   };
 }
