@@ -182,7 +182,7 @@ export async function createAstroTarotLayer(input:BirthInput,question:string,cat
       layer.advanced={houses:enrichment.houses,planets:enrichment.planets,aspects:enrichment.aspects};
       layer.provider={core:'local',enrichment:'prokerala',enrichmentStatus:'ok',attributionRequired:true};
       const byName=new Map(enrichment.planets.map((planet)=>[planet.name.toLowerCase(),planet]));
-      for(const [key,name] of [['sun','Sun'],['moon','Moon'],['mercury','Mercury'],['venus','Venus'],['mars','Mars'],['jupiter','Jupiter'],['saturn','Saturn']] as const){
+      for(const [key,name] of [['sun','Sol'],['moon','Lua'],['mercury','Mercúrio'],['venus','Vênus'],['mars','Marte'],['jupiter','Júpiter'],['saturn','Saturno']] as const){
         const premium=byName.get(name.toLowerCase()); const currentPlanet=layer.natal[key];
         if(premium&&currentPlanet){currentPlanet.house=premium.house;currentPlanet.retrograde=premium.retrograde;}
       }
