@@ -13,7 +13,7 @@ test('baralho principal possui 78 cartas únicas', () => {
 });
 
 test('métodos disponíveis usam as quantidades esperadas', () => {
-  assert.deepEqual(TAROT_SPREADS.map((spread) => spread.count), [1,3,5,5,7,10]);
+  assert.deepEqual(TAROT_SPREADS.map((spread) => spread.count), [1,3,3,5,5,7,10,12]);
   for (const spread of TAROT_SPREADS) assert.equal(spread.positions.length, spread.count);
 });
 
@@ -29,6 +29,7 @@ test('consulta pública não limita mais o baralho a sete cartas', () => {
   assert.doesNotMatch(source, /MAJOR_ARCANA\.slice\(0,\s*7\)/);
   assert.match(source, /78 CARTAS DISPONÍVEIS/);
   assert.match(source, /TAROT_SPREADS\.map/);
+  assert.match(source, /Math\.min\(cards\.length, 12\)/);
 });
 
 test('leitura em inglês aceita arcanos menores sem conteúdo indefinido', () => {
