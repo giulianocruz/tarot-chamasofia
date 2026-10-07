@@ -6,6 +6,7 @@ import { createReading } from "@/lib/reading";
 import { TAROT_DECK, getCards, type Category } from "@/lib/tarot";
 import { DEFAULT_SPREAD_ID, TAROT_SPREADS, getSpread, type TarotSpreadId } from "@/lib/spreads";
 import { formatBrazilPhoneInput } from "@/lib/phone";
+import { createRitualAudio, playRitualSfx, stopRitualAudio, type RitualAudioEngine } from "@/lib/ritual-audio";
 
 type Price = { cents: number; formatted: string };
 
@@ -154,12 +155,6 @@ function emitEvent(
   });
 }
 
-type AmbientEngine = {
-  context: AudioContext;
-  gain: GainNode;
-  nodes: OscillatorNode[];
-};
-
 export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: boolean }) {
   const [step, setStep] = useState(0);
   const [category, setCategory] = useState("");
@@ -181,7 +176,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const completedRef = useRef(false);
   const leadTokenRef = useRef("");
   const categoryRef = useRef("");
-  const ambientRef = useRef<AmbientEngine | null>(null);
+  const ambientRef = useRef<RitualAudioEngine | null>(null);
 
   const spread = useMemo(() => getSpread(spreadId), [spreadId]);
   const cards = useMemo(() => getCards(selected), [selected]);
@@ -258,32 +253,18 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   function startAmbient() {
     if (ambientRef.current || typeof window === "undefined") {
       setAmbientOn(Boolean(ambientRef.current));
-      return;
+      return ambientRef.current;
     }
     try {
       const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtor) return;
-      const context = new AudioCtor();
-      const gain = context.createGain();
-      gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.018, context.currentTime + 1.8);
-      gain.connect(context.destination);
-      const frequencies = [110, 164.81, 220];
-      const nodes = frequencies.map((frequency, index) => {
-        const oscillator = context.createOscillator();
-        const localGain = context.createGain();
-        oscillator.type = index === 1 ? "sine" : "triangle";
-        oscillator.frequency.value = frequency;
-        localGain.gain.value = index === 0 ? 0.38 : 0.2;
-        oscillator.connect(localGain);
-        localGain.connect(gain);
-        oscillator.start();
-        return oscillator;
-      });
-      ambientRef.current = { context, gain, nodes };
+      if (!AudioCtor) return null;
+      const engine = createRitualAudio(AudioCtor);
+      ambientRef.current = engine;
       setAmbientOn(true);
+      return engine;
     } catch {
       setAmbientOn(false);
+      return null;
     }
   }
 
@@ -293,16 +274,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       setAmbientOn(false);
       return;
     }
-    try {
-      engine.gain.gain.cancelScheduledValues(engine.context.currentTime);
-      engine.gain.gain.setTargetAtTime(0.0001, engine.context.currentTime, 0.18);
-      window.setTimeout(() => {
-        engine.nodes.forEach((node) => {
-          try { node.stop(); } catch {}
-        });
-        void engine.context.close();
-      }, 900);
-    } catch {}
+    stopRitualAudio(engine);
     ambientRef.current = null;
     setAmbientOn(false);
   }
@@ -313,12 +285,14 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   }
 
   function startOnboarding() {
-    if (!ambientRef.current) startAmbient();
+    const engine = ambientRef.current ?? startAmbient();
+    playRitualSfx(engine, "portal");
     emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic", experience: "ritual" });
     go(1);
   }
 
   function chooseCategory(value: string) {
+    playRitualSfx(ambientRef.current, "step");
     categoryRef.current = value;
     setCategory(value);
     emitEvent("category_selected", { category: value }, { dedupe: value });
@@ -326,6 +300,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   }
 
   function chooseQuestion(value: string) {
+    playRitualSfx(ambientRef.current, "step");
     setQuestion(value);
     emitEvent("question_written", { category, length: value.length, mode: "preset" }, { dedupe: value });
     go(3);
@@ -337,11 +312,13 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       setError("Escreva sua pergunta com pelo menos 10 caracteres.");
       return;
     }
+    playRitualSfx(ambientRef.current, "step");
     emitEvent("question_written", { category, length: cleanQuestion.length, mode: "custom" }, { dedupe: cleanQuestion });
     go(3);
   }
 
   function chooseSpread(id: TarotSpreadId) {
+    playRitualSfx(ambientRef.current, "step");
     const chosen = getSpread(id);
     setSpreadId(chosen.id);
     setSelected([]);
@@ -359,6 +336,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     setDeckOrder(next);
     setSelected([]);
     setShuffled(true);
+    playRitualSfx(ambientRef.current, "shuffle");
+    if ("vibrate" in navigator) navigator.vibrate?.(18);
     emitEvent("deck_shuffled", { spread_id: spread.id, card_count: spread.count }, { dedupe: `${spread.id}-shuffle` });
   }
 
@@ -369,6 +348,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     }
     const cutAt = Math.floor((deckOrder.length * cut) / 4);
     setDeckOrder([...deckOrder.slice(cutAt), ...deckOrder.slice(0, cutAt)]);
+    playRitualSfx(ambientRef.current, "cut");
+    if ("vibrate" in navigator) navigator.vibrate?.(10);
     emitEvent("deck_cut", { cut, spread_id: spread.id }, { dedupe: `${spread.id}-cut-${cut}` });
     go(5);
   }
@@ -378,6 +359,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     setSelected((current) => {
       if (current.includes(id)) return current.filter((cardId) => cardId !== id);
       if (current.length >= spread.count) return current;
+      playRitualSfx(ambientRef.current, "select");
+      if ("vibrate" in navigator) navigator.vibrate?.(8);
       return [...current, id];
     });
   }
@@ -387,6 +370,8 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       setError(`Escolha exatamente ${spread.count} ${spread.count === 1 ? "carta" : "cartas"}.`);
       return;
     }
+    playRitualSfx(ambientRef.current, "reveal");
+    if ("vibrate" in navigator) navigator.vibrate?.([12, 35, 16]);
     emitEvent(
       "cards_selected",
       { card_ids: selected, spread_id: spread.id, card_count: spread.count },
