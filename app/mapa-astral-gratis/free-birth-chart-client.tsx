@@ -68,7 +68,7 @@ export default function FreeBirthChartClient(){
       </div>
       <p className={styles.precision}>{result.precisionNote}</p>
       <div className={styles.resultUpsell}><span>PRÓXIMA CAMADA</span><strong>Agora aplique seu mapa a uma pergunta real.</strong><p>Escolha 3 cartas, veja uma prévia e, se quiser aprofundar, libere o cruzamento com seu mapa e o céu atual.</p>
-        <a onClick={trackCta} href="/consulta?utm_source=organic&utm_medium=free_tool&utm_campaign=mapa_astral_gratis&utm_content=result_cta">CRUZAR MAPA + 3 CARTAS <b>→</b></a>
+        <a onClick={trackCta} href="/astrotarot?utm_source=organic&utm_medium=free_tool&utm_campaign=mapa_astral_gratis&utm_content=result_cta">CRUZAR MAPA + 3 CARTAS <b>→</b></a>
       </div>
     </>}
   </section>;
