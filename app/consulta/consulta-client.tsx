@@ -164,6 +164,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const [deckOrder, setDeckOrder] = useState(() => [...TAROT_DECK]);
   const [shuffled, setShuffled] = useState(false);
   const [cut, setCut] = useState(2);
+  const [deckPosition, setDeckPosition] = useState(1);
   const [ambientOn, setAmbientOn] = useState(false);
   const [price, setPrice] = useState<Price>({ cents: 990, formatted: "R$ 9,90" });
   const [email, setEmail] = useState("");
@@ -176,6 +177,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   const completedRef = useRef(false);
   const leadTokenRef = useRef("");
   const categoryRef = useRef("");
+  const deckRef = useRef<HTMLDivElement | null>(null);
   const ambientRef = useRef<RitualAudioEngine | null>(null);
 
   const spread = useMemo(() => getSpread(spreadId), [spreadId]);
@@ -339,6 +341,27 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     playRitualSfx(ambientRef.current, "shuffle");
     if ("vibrate" in navigator) navigator.vibrate?.(18);
     emitEvent("deck_shuffled", { spread_id: spread.id, card_count: spread.count }, { dedupe: `${spread.id}-shuffle` });
+  }
+
+  function chooseCut(value: number) {
+    setCut(value);
+    playRitualSfx(ambientRef.current, "step");
+    if ("vibrate" in navigator) navigator.vibrate?.(6);
+  }
+
+  function updateDeckPosition() {
+    const el = deckRef.current;
+    if (!el) return;
+    const max = Math.max(1, el.scrollWidth - el.clientWidth);
+    const ratio = Math.max(0, Math.min(1, el.scrollLeft / max));
+    setDeckPosition(1 + Math.round(ratio * (TAROT_DECK.length - 1)));
+  }
+
+  function nudgeDeck(direction: -1 | 1) {
+    const el = deckRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * Math.max(220, el.clientWidth * 0.72), behavior: "smooth" });
+    playRitualSfx(ambientRef.current, "step");
   }
 
   function continueAfterCut() {
@@ -593,8 +616,13 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                 <strong>Onde você quer cortar?</strong>
                 <div>
                   {[1, 2, 3].map((value) => (
-                    <button key={value} type="button" className={cut === value ? "selected" : ""} onClick={() => setCut(value)}>
-                      {value === 1 ? "início" : value === 2 ? "meio" : "fim"}
+                    <button key={value} type="button" className={cut === value ? "selected ritual-cut-option" : "ritual-cut-option"} onClick={() => chooseCut(value)}>
+                      <span className="ritual-cut-stack" aria-hidden="true">
+                        <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
+                        <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
+                      </span>
+                      <b>{value === 1 ? "Corte alto" : value === 2 ? "Corte ao meio" : "Corte baixo"}</b>
+                      <small>{value === 1 ? "mais perto do topo" : value === 2 ? "equilíbrio entre as partes" : "mais perto da base"}</small>
                     </button>
                   ))}
                 </div>
@@ -612,7 +640,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
             <h2>Escolha {spread.count === 1 ? "sua carta" : `suas ${spread.count} cartas`}.</h2>
             <p className="ritual-muted">As 78 cartas estão aqui. Deslize pelo baralho e toque apenas nas que chamarem sua atenção.</p>
             <div className="ritual-deck-status"><span>∞</span><strong>78 CARTAS DISPONÍVEIS</strong><em>{selected.length}/{spread.count} escolhidas</em></div>
-            <div className="ritual-full-deck" role="list" aria-label="Baralho completo com 78 cartas">
+            <div className="ritual-deck-progress" aria-hidden="true"><span style={{width:`${(deckPosition / TAROT_DECK.length) * 100}%`}} /></div>
+            <div className="ritual-deck-window">
+              <button type="button" className="ritual-deck-arrow ritual-deck-arrow-left" onClick={() => nudgeDeck(-1)} aria-label="Voltar no baralho">‹</button>
+              <div ref={deckRef} onScroll={updateDeckPosition} className="ritual-full-deck" role="list" aria-label="Baralho completo com 78 cartas">
               {deckOrder.map((card, index) => {
                 const picked = selected.includes(card.id);
                 const selectedIndex = selected.indexOf(card.id);
@@ -631,7 +662,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                   </button>
                 );
               })}
+              </div>
+              <button type="button" className="ritual-deck-arrow ritual-deck-arrow-right" onClick={() => nudgeDeck(1)} aria-label="Avançar no baralho">›</button>
             </div>
+            <div className="ritual-deck-position" aria-live="polite"><span>Carta {deckPosition} de 78</span><b>deslize e confie na sua atenção</b></div>
             <p className="ritual-picker-hint">← deslize para percorrer todo o baralho →</p>
             {error && <p className="ritual-error">{error}</p>}
             <button className="ritual-primary" onClick={confirmCards} disabled={selected.length !== spread.count}>
