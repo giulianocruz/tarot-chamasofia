@@ -155,7 +155,7 @@ function emitEvent(
   });
 }
 
-export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: boolean }) {
+export default function ConsultaClient({ paidTraffic = false, offerMode = "consulta" }: { paidTraffic?: boolean; offerMode?: "consulta" | "astro-tarot" }) {
   const [step, setStep] = useState(0);
   const [category, setCategory] = useState("");
   const [question, setQuestion] = useState("");
@@ -188,15 +188,16 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
     return createReading(question, category as Category, cards, spread.id);
   }, [cards, category, question, spread]);
   const progress = Math.min(7, step + 1);
+  const isAstroTarot = offerMode === "astro-tarot";
 
   useEffect(() => {
-    fetch("/api/pricing?offer=consulta")
+    fetch(`/api/pricing?offer=${offerMode}`)
       .then((response) => response.json())
       .then(setPrice)
       .catch(() => undefined);
-    emitEvent("landing_view", { surface: "tarot_ritual", paid_traffic: paidTraffic });
+    emitEvent("landing_view", { surface: "tarot_ritual", paid_traffic: paidTraffic, offer: offerMode });
     trackMeta("PageView");
-    trackMeta("ViewContent", { content_name: "Tarot Chama Sofia", content_category: "Tarot" });
+    trackMeta("ViewContent", { content_name: isAstroTarot ? "AstroTarot Chama Sofia" : "Tarot Chama Sofia", content_category: isAstroTarot ? "AstroTarot" : "Tarot" });
     window.setTimeout(() => setEmail(localStorage.getItem("cs_email") || ""), 0);
 
     const resumeToken = new URLSearchParams(location.search).get("resume");
@@ -238,7 +239,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       stopAmbient();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paidTraffic]);
+  }, [paidTraffic, offerMode]);
 
   function go(nextStep: number) {
     setError("");
@@ -289,7 +290,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
   function startOnboarding() {
     const engine = ambientRef.current ?? startAmbient();
     playRitualSfx(engine, "portal");
-    emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic", experience: "ritual" });
+    emitEvent("onboarding_started", { entry: paidTraffic ? "paid" : "organic", experience: "ritual", offer: offerMode });
     go(1);
   }
 
@@ -458,8 +459,9 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
       category,
       spread_id: spread.id,
       card_count: spread.count,
+      offer: offerMode,
     });
-    trackMeta("InitiateCheckout", { value: price.cents / 100, currency: "BRL", content_name: "Tarot Chama Sofia" });
+    trackMeta("InitiateCheckout", { value: price.cents / 100, currency: "BRL", content_name: isAstroTarot ? "AstroTarot Chama Sofia" : "Tarot Chama Sofia" });
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -473,7 +475,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
           question: question.trim(),
           cardIds: selected,
           spreadId: spread.id,
-          offer: "consulta",
+          offer: offerMode,
           leadToken: leadTokenRef.current,
           ...context,
         }),
@@ -500,7 +502,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
         <header className="ritual-topbar">
           <div className="ritual-brand">
             <img src="/assets/brand/chama-sofia-logo.png" alt="" width="34" height="34" />
-            <span>CHAMA SOFIA <b>TAROT</b></span>
+            <span>CHAMA SOFIA <b>{isAstroTarot ? "ASTROTAROT" : "TAROT"}</b></span>
           </div>
           <button className="ritual-audio-toggle" type="button" aria-pressed={ambientOn} onClick={toggleAmbient}>
             <span>{ambientOn ? "♫" : "♪"}</span>{ambientOn ? "som ligado" : "som ambiente"}
@@ -521,11 +523,11 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
                 <img src="/assets/tarot/cards/verso-premium.jpg" alt="" />
               </div>
             </div>
-            <p className="eyebrow">Uma pausa para ouvir sua própria pergunta</p>
-            <h1>Respostas para o seu caminho.</h1>
-            <p>Escolha o tema, o método e as cartas com suas próprias mãos. Todas as 78 cartas do Tarot participam desta experiência.</p>
+            <p className="eyebrow">{isAstroTarot ? "Seu céu, sua pergunta e suas cartas em uma leitura só" : "Uma pausa para ouvir sua própria pergunta"}</p>
+            <h1>{isAstroTarot ? "Seu céu encontra o Tarot." : "Respostas para o seu caminho."}</h1>
+            <p>{isAstroTarot ? "Escolha o tema, o método e suas cartas entre as 78 do Tarot. Depois do Pix, seu mapa natal e o céu do momento entram como uma camada complementar da leitura." : "Escolha o tema, o método e as cartas com suas próprias mãos. Todas as 78 cartas do Tarot participam desta experiência."}</p>
             <button className="ritual-primary" onClick={startOnboarding}>INICIAR CONSULTA <span>→</span></button>
-            <small>Tarot completo · método à sua escolha · leitura personalizada · PDF</small>
+            <small>{isAstroTarot ? "Tarot completo · mapa natal · céu atual · PDF" : "Tarot completo · método à sua escolha · leitura personalizada · PDF"}</small>
           </div>
         )}
 
@@ -697,9 +699,10 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
 
             <div className="ritual-offer">
               <div>
-                <p className="eyebrow">Sua leitura completa</p>
-                <h3>Interpretação + síntese + PDF personalizado</h3>
+                <p className="eyebrow">{isAstroTarot ? "Sua análise AstroTarot" : "Sua leitura completa"}</p>
+                <h3>{isAstroTarot ? "Mapa Astral Express + Tarot + PDF personalizado" : "Interpretação + síntese + PDF personalizado"}</h3>
                 <ul>
+                  {isAstroTarot && <li>✓ mapa natal + principais trânsitos do momento</li>}
                   <li>✓ método {spread.name}</li>
                   <li>✓ {spread.count} {spread.count === 1 ? "carta interpretada" : "cartas interpretadas posição por posição"}</li>
                   <li>✓ conexão entre as cartas e reflexão final</li>
@@ -725,7 +728,7 @@ export default function ConsultaClient({ paidTraffic = false }: { paidTraffic?: 
               )}
               {error && <p className="ritual-error">{error}</p>}
               <button disabled={loading} className="ritual-primary">
-                {loading ? "GERANDO PIX..." : `LIBERAR LEITURA — ${price.formatted}`} <span>→</span>
+                {loading ? "GERANDO PIX..." : `LIBERAR ${isAstroTarot ? "ASTROTAROT" : "LEITURA"} — ${price.formatted}`} <span>→</span>
               </button>
               <small className="ritual-secure">Pagamento seguro via Pix · Próxima Digital · CNPJ 68.964.484/0001-22</small>
             </form>
