@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const question = cleanText(body.question, 500);
   const spread = getSpread(cleanText(body.spreadId, 40) || DEFAULT_SPREAD_ID);
   const cardIds = Array.isArray(body.cardIds)
-    ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 10)
+    ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 12)
     : [];
   const selectedCards =
     cardIds.length === spread.count && new Set(cardIds).size === spread.count ? getCards(cardIds) : [];
