@@ -343,7 +343,7 @@ export default function ReadingClient({ token }: { token: string }) {
         <section className="reveal-area">
           <p className="eyebrow">Toque em cada carta, na ordem</p>
           <h1>{order.reading?.spreadName || "Suas cartas"}</h1>
-          <div className="reveal-grid">
+          <div className={`reveal-grid reveal-grid-${Math.min(order.cards!.length,12)}`}>
             {order.cards!.map((card, index) => (
               <button
                 key={card.id}
