@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Chama Sofia AstroTarot',
+    name: 'Chama Sofia Tarot',
     short_name: 'Chama Sofia',
-    description: 'Mapa Astral Express, céu atual e Tarot em uma análise personalizada.',
+    description: 'Tarot completo com 78 cartas, diferentes métodos de tiragem e leitura personalizada.',
     start_url: '/consulta',
     display: 'standalone',
     background_color: '#0b0610',
