@@ -54,6 +54,17 @@ export type AstroTarotLayer = {
   };
   reflection: string;
   precisionNote: string;
+  provider?: {
+    core: 'local';
+    enrichment?: 'prokerala';
+    enrichmentStatus?: 'ok' | 'unavailable';
+    attributionRequired?: boolean;
+  };
+  advanced?: {
+    houses: Array<{ number: number; startDegree?: number; endDegree?: number; sign?: string }>;
+    planets: Array<{ name: string; sign: string; degree?: number; longitude?: number; house?: number; retrograde?: boolean }>;
+    aspects: Array<{ planetOne: string; planetTwo: string; type: string; orb?: number }>;
+  };
 };
 
 export type BirthInput = {
