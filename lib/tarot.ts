@@ -55,22 +55,99 @@ export const MAJOR_ARCANA = seeds.map((card) => ({
   interpretationByCategory: Object.fromEntries(CATEGORIES.map((category) => [category, categoryAngle(card, category)])) as Record<Category, string>,
 }));
 
-export type TarotCard = typeof MAJOR_ARCANA[number];
+type SuitConfig = {
+  id: "wands" | "cups" | "swords" | "pentacles";
+  name: string;
+  symbol: string;
+  element: string;
+  theme: string;
+  constructive: string;
+  alert: string;
+};
 
-export function drawThreeCards() {
-  const deck = [...MAJOR_ARCANA];
+const SUITS: SuitConfig[] = [
+  { id:"wands", name:"Paus", symbol:"♜", element:"fogo", theme:"ação, desejo e iniciativa", constructive:"coragem para agir com intenção", alert:"pressa, desgaste ou agir sem direção" },
+  { id:"cups", name:"Copas", symbol:"♢", element:"água", theme:"emoções, vínculos e sensibilidade", constructive:"escuta emocional e reciprocidade", alert:"idealização, dependência ou excesso de expectativa" },
+  { id:"swords", name:"Espadas", symbol:"⚔", element:"ar", theme:"pensamento, verdade e decisões", constructive:"clareza mental e conversas honestas", alert:"ansiedade, conflito ou rigidez de pensamento" },
+  { id:"pentacles", name:"Ouros", symbol:"◈", element:"terra", theme:"recursos, corpo e realidade material", constructive:"constância, segurança e construção prática", alert:"apego, lentidão ou preocupação material excessiva" },
+];
+
+const RANKS = [
+  { id:"ace", number:1, name:"Ás", keywords:["início","potencial"], general:"Uma semente de possibilidade se apresenta e pede presença para ganhar forma." },
+  { id:"two", number:2, name:"Dois", keywords:["dualidade","escolha"], general:"Duas forças precisam ser percebidas e relacionadas antes do próximo passo." },
+  { id:"three", number:3, name:"Três", keywords:["expansão","expressão"], general:"Algo começa a sair do campo individual e ganhar movimento, troca ou crescimento." },
+  { id:"four", number:4, name:"Quatro", keywords:["estrutura","estabilidade"], general:"O momento pede base, limites e atenção ao que sustenta a situação." },
+  { id:"five", number:5, name:"Cinco", keywords:["tensão","mudança"], general:"Uma instabilidade revela o que precisa ser revisto, negociado ou fortalecido." },
+  { id:"six", number:6, name:"Seis", keywords:["harmonia","travessia"], general:"Há possibilidade de reorganização e passagem para uma condição mais equilibrada." },
+  { id:"seven", number:7, name:"Sete", keywords:["avaliação","estratégia"], general:"Nem tudo está evidente; observe padrões, escolhas e o que merece energia." },
+  { id:"eight", number:8, name:"Oito", keywords:["movimento","domínio"], general:"A situação ganha intensidade e pede uso consciente de habilidade, ritmo e direção." },
+  { id:"nine", number:9, name:"Nove", keywords:["maturidade","limiar"], general:"Você está perto de compreender ou concluir uma etapa, mas ainda há um ajuste importante." },
+  { id:"ten", number:10, name:"Dez", keywords:["culminação","ciclo"], general:"Um ciclo mostra seus resultados e convida a reconhecer tanto conquistas quanto excessos." },
+  { id:"page", number:11, name:"Pajem", keywords:["curiosidade","mensagem"], general:"Uma notícia, aprendizado ou postura mais aberta pode renovar sua relação com o tema." },
+  { id:"knight", number:12, name:"Cavaleiro", keywords:["movimento","busca"], general:"Há impulso para avançar; o desafio é alinhar velocidade, intenção e consequência." },
+  { id:"queen", number:13, name:"Rainha", keywords:["maturidade","presença"], general:"A resposta pede domínio interno, percepção e expressão madura desta energia." },
+  { id:"king", number:14, name:"Rei", keywords:["liderança","responsabilidade"], general:"A situação pede responsabilidade, decisão e capacidade de sustentar o que você escolhe." },
+] as const;
+
+const MINOR_ARCANA = SUITS.flatMap((suit) =>
+  RANKS.map((rank) => {
+    const seed: CardSeed = {
+      id: `${suit.id}-${rank.id}`,
+      number: rank.number,
+      name: `${rank.name} de ${suit.name}`,
+      symbol: suit.symbol,
+      keywords: [rank.keywords[0], rank.keywords[1], suit.element],
+      general: `${rank.general} No naipe de ${suit.name}, isso se manifesta por meio de ${suit.theme}.`,
+      constructive: `${rank.name} de ${suit.name} favorece ${suit.constructive}.`,
+      alert: `${rank.name} de ${suit.name} alerta para ${suit.alert}.`,
+    };
+    return {
+      ...seed,
+      arcana: "minor" as const,
+      suit: suit.name,
+      rank: rank.name,
+      image: `/api/tarot/card/${seed.id}`,
+      interpretationByCategory: Object.fromEntries(
+        CATEGORIES.map((category) => [category, categoryAngle(seed, category)]),
+      ) as Record<Category, string>,
+    };
+  }),
+);
+
+export const TAROT_DECK = [
+  ...MAJOR_ARCANA.map((card) => ({ ...card, arcana: "major" as const })),
+  ...MINOR_ARCANA,
+];
+
+export type TarotCard = typeof TAROT_DECK[number];
+
+export function drawCards(count = 3) {
+  const deck = [...TAROT_DECK];
   for (let i = deck.length - 1; i > 0; i -= 1) {
     const values = new Uint32Array(1);
     crypto.getRandomValues(values);
     const limit = Math.floor(0x100000000 / (i + 1)) * (i + 1);
     let value = values[0];
-    while (value >= limit) { crypto.getRandomValues(values); value = values[0]; }
+    while (value >= limit) {
+      crypto.getRandomValues(values);
+      value = values[0];
+    }
     const j = value % (i + 1);
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-  return deck.slice(0, 3);
+  return deck.slice(0, Math.max(1, Math.min(count, deck.length)));
+}
+
+export function drawThreeCards() {
+  return drawCards(3);
 }
 
 export function getCards(ids: string[]) {
-  return ids.map((id) => MAJOR_ARCANA.find((card) => card.id === id)).filter(Boolean) as TarotCard[];
+  return ids
+    .map((id) => TAROT_DECK.find((card) => card.id === id))
+    .filter(Boolean) as TarotCard[];
+}
+
+export function getCard(id: string) {
+  return TAROT_DECK.find((card) => card.id === id);
 }
