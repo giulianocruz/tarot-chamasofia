@@ -33,5 +33,6 @@ declare namespace Cloudflare {
     RECOVERY_FIRST_DELAY_MINUTES?: string;
     RECOVERY_SECOND_DELAY_MINUTES?: string;
     RECOVERY_RETRY_DELAY_MINUTES?: string;
+    NATALCHART_API_KEY?: string;
   }
 }

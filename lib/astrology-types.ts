@@ -41,6 +41,9 @@ export type AstroTarotLayer = {
     saturn?: AstroPlanet;
     ascendantSign?: string;
     ascendantDegree?: number;
+    midheavenSign?: string;
+    midheavenDegree?: number;
+    houseCusps?: Array<{ number: number; cusp: number; sign: string }>;
   };
   current: {
     ascendant?: string;
@@ -80,6 +83,9 @@ export type FreeNatalPreview = {
     mars?: AstroPlanet;
     ascendantSign?: string;
     ascendantDegree?: number;
+    midheavenSign?: string;
+    midheavenDegree?: number;
+    houseCusps?: Array<{ number: number; cusp: number; sign: string }>;
   };
   precisionNote: string;
 };
