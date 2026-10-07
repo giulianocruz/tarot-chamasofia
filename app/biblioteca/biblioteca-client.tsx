@@ -171,7 +171,7 @@ export default function BibliotecaClient() {
         <p className="eyebrow">Quer uma resposta para o seu momento?</p>
         <h2>Mapa Astral Express + Tarot por R$ 9,90</h2>
         <p>Use seu mapa natal, os trânsitos atuais e três cartas para olhar uma pergunta específica por vários ângulos.</p>
-        <a className="primary-button" href="/consulta">COMEÇAR MINHA ANÁLISE <span>→</span></a>
+        <a className="primary-button" href="/astrotarot">COMEÇAR MINHA ANÁLISE <span>→</span></a>
       </section>
     </main>
   );
