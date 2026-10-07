@@ -3,6 +3,8 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { CATEGORIES, TAROT_DECK, getCards } from '../lib/tarot.ts';
 import { TAROT_SPREADS } from '../lib/spreads.ts';
+import { createReading } from '../lib/reading.ts';
+import { createReadingPdf } from '../lib/pdf.ts';
 import { createReadingEn } from '../lib/reading-en.ts';
 
 test('baralho principal possui 78 cartas únicas', () => {
@@ -39,4 +41,24 @@ test('leitura em inglês aceita arcanos menores sem conteúdo indefinido', () =>
   assert.equal(reading.cardReadings.length,3);
   assert.match(reading.cardReadings[0].cardName,/Ace of Cups/);
   assert.doesNotMatch(JSON.stringify(reading),/undefined/);
+});
+
+
+test('Mandala de 12 gera leitura e PDF completos sem rótulos indefinidos', async () => {
+  const spread=TAROT_SPREADS.find((item)=>item.id==='mandala-12')!;
+  const cards=TAROT_DECK.slice(0,spread.count);
+  const reading=createReading('O que preciso compreender sobre meu ciclo atual?','Vida pessoal',cards,spread.id);
+  assert.equal(reading.cardReadings.length,12);
+  assert.equal(reading.cardReadings[0].position,'Essência');
+  assert.equal(reading.cardReadings[11].position,'Mundo interior');
+  assert.doesNotMatch(JSON.stringify(reading),/undefined/);
+  const pdf=await createReadingPdf({
+    order_number:'TESTE12',
+    customer_name:'Teste',
+    category:'Vida pessoal',
+    question:'O que preciso compreender sobre meu ciclo atual?',
+    created_at:'2026-10-07T12:00:00.000Z',
+  },cards,reading);
+  assert.ok(pdf.length>10000);
+  assert.equal(new TextDecoder().decode(pdf.slice(0,4)),'%PDF');
 });
