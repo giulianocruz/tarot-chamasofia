@@ -172,7 +172,9 @@ export default function LandingClient() {
   const start = () => {
     track("cta_click");
     track("tarot_started");
-    window.location.assign(`/consulta${window.location.search}`);
+    const query = new URLSearchParams(window.location.search);
+    query.set("offer", "astro-tarot");
+    window.location.assign(`/consulta?${query.toString()}`);
   };
   function continueToContact() {
     setError("");
@@ -227,7 +229,7 @@ export default function LandingClient() {
           EM UMA LEITURA SÓ
         </h1>
         <p className="hero-copy">
-          Comece com uma pergunta e 3 cartas. Após o Pix, cruzamos seu Mapa Astral Express com os trânsitos atuais e o Tarot para criar uma orientação personalizada.
+          Comece com uma pergunta, escolha o método e percorra as 78 cartas do Tarot. Após o Pix, cruzamos sua tiragem com o Mapa Astral Express e os principais trânsitos do momento.
         </p>
         {bonusAvailable&&<p className="bonus-line">
           <span>✦</span> Tarot para Iniciantes incluído como bônus na leitura completa.
@@ -250,7 +252,7 @@ export default function LandingClient() {
           <b>✦</b> Mapa Astral Express
         </span>
         <span>
-          <b>◈</b> 3 cartas integradas ao seu momento
+          <b>◈</b> 78 cartas + método à sua escolha
         </span>
         <span>
           <b>⇩</b> PDF premium{bonusAvailable?" + e-book bônus":""}
@@ -262,7 +264,7 @@ export default function LandingClient() {
         <div className="step-grid">
           {[
             ["01", "Escolha seu tema"],
-            ["02", "Revele 3 cartas"],
+            ["02", "Escolha método + cartas"],
             ["03", "Cruze mapa + céu atual + cartas"],
           ].map(([n, label]) => (
             <div className="step" key={n}>
@@ -278,11 +280,11 @@ export default function LandingClient() {
           <h2>O que você gostaria de compreender?</h2>
           <p>
             A experiência guiada ajuda você a começar sem precisar escrever
-            muito. Escolha um tema, toque em uma pergunta pronta e revele três
-            cartas pela sua intuição.
+            muito. Escolha um tema, formule sua pergunta, escolha o método e percorra o
+            baralho completo pela sua intuição.
           </p>
           <ul>
-            <li>3 cartas sem repetição</li>
+            <li>78 cartas disponíveis para sua escolha</li>
             <li>Prévia antes do pagamento</li>
             <li>Resultado privado + PDF</li>
           </ul>
@@ -308,8 +310,9 @@ export default function LandingClient() {
           <div className="journey-flow" aria-label="Etapas da experiência">
             <span>1 · Tema</span><i aria-hidden="true">→</i>
             <span>2 · Pergunta</span><i aria-hidden="true">→</i>
-            <span>3 · Cartas</span><i aria-hidden="true">→</i>
-            <span>4 · Prévia</span>
+            <span>3 · Método</span><i aria-hidden="true">→</i>
+            <span>4 · Cartas</span><i aria-hidden="true">→</i>
+            <span>5 · Prévia</span>
           </div>
           <button type="button" className="primary-button form-submit" onClick={start}>
             COMEÇAR EXPERIÊNCIA GUIADA <span>→</span>
@@ -463,8 +466,8 @@ export default function LandingClient() {
             ["✦", "Livro completo", "Tarot para Iniciantes, edição digital com 276 páginas."],
             [
               "☾",
-              "Leitura bônus",
-              "Três cartas que conversam entre si e com sua pergunta.",
+              "Tarot completo",
+              "Escolha seu método e suas cartas entre as 78 do baralho.",
             ],
             [
               "⇩",
@@ -536,11 +539,11 @@ export default function LandingClient() {
           ],
           [
             "As cartas podem se repetir?",
-            "Não. O sorteio usa três cartas distintas entre os 22 Arcanos Maiores.",
+            "Não. Cada carta escolhida ocupa uma posição única da tiragem, e o baralho completo reúne os 22 Arcanos Maiores e os 56 Arcanos Menores.",
           ],
           [
             "O que estou comprando?",
-            `Você recebe Mapa Astral Express, principais trânsitos do momento, leitura de 3 cartas integrada à sua pergunta e PDF premium.${bonusAvailable?" O Tarot para Iniciantes entra como bônus.":""}`,
+            `Você recebe Mapa Astral Express, principais trânsitos do momento, sua tiragem escolhida entre os métodos disponíveis e PDF premium.${bonusAvailable?" O Tarot para Iniciantes entra como bônus.":""}`,
           ],
           [
             "Minha pergunta é pública?",
