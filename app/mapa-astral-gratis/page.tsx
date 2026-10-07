@@ -69,7 +69,7 @@ export default function FreeBirthChartPage(){
     </section>
     <section className={styles.nextStep}>
       <div><p className={styles.eyebrow}>DEPOIS DO MAPA</p><h2>Quer aplicar esses símbolos a uma pergunta real?</h2><p>O AstroTarot cruza sua pergunta com 3 cartas, seu mapa natal e o céu do momento. Você vê uma prévia da tiragem antes de decidir se quer liberar a análise completa.</p></div>
-      <Link href="/consulta?utm_source=organic&utm_medium=free_tool&utm_campaign=mapa_astral_gratis&utm_content=page_cta" className={styles.mainCta}>FAZER MINHA PERGUNTA <span>→</span></Link>
+      <Link href="/astrotarot?utm_source=organic&utm_medium=free_tool&utm_campaign=mapa_astral_gratis&utm_content=page_cta" className={styles.mainCta}>CRUZAR MAPA + TAROT <span>→</span></Link>
     </section>
     <section className={styles.faq}><p className={styles.eyebrow}>PERGUNTAS FREQUENTES</p><h2>Dúvidas sobre o mapa astral grátis</h2>
       {faq.map(([question,answer])=><details key={question}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}
@@ -79,6 +79,6 @@ export default function FreeBirthChartPage(){
       <Link href="/artigos/mapa-astral-2026"><span>Ciclos</span><strong>Como ler seu mapa em 2026 →</strong></Link>
       <Link href="/artigos/mapa-astral-sem-horario-de-nascimento"><span>Dados incompletos</span><strong>Mapa sem horário →</strong></Link>
     </div></section>
-    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
+    <footer className={styles.footer}><Link href="/artigos">Artigos</Link><Link href="/consulta">Tarot</Link><Link href="/astrotarot">AstroTarot</Link><Link href="/biblioteca">Biblioteca</Link><span>© {new Date().getFullYear()} Chama Sofia</span></footer>
   </main>;
 }
