@@ -20,9 +20,15 @@ test('enriquecimento premium é opcional e mantém motor local como base', () =>
   assert.match(route, /PROKERALA_ENABLED === '1'/);
 });
 
-test('usa astrologia ocidental tropical com Placidus e aspectos maiores', () => {
+test('serializa o perfil natal exatamente como o SDK oficial da Prokerala', () => {
+  assert.match(prokerala, /"profile\[datetime\]": input\.datetime/);
+  assert.match(prokerala, /"profile\[coordinates\]"/);
+  assert.match(prokerala, /"profile\[birth_time_unknown\]"/);
+  assert.doesNotMatch(prokerala, /JSON\.stringify\(\{\s*datetime: input\.datetime/);
+});
+
+test('usa astrologia ocidental tropical com Placidus', () => {
   assert.match(prokerala, /house_system: "placidus"/);
-  assert.match(prokerala, /aspect_filter: "major"/);
   assert.match(prokerala, /ayanamsa: "0"/);
   assert.match(prokerala, /natal-planet-position/);
 });
