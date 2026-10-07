@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release/tarot-hardening-20260906
+      - feature/tarot-ritual-premium-20261006
 
 jobs:
   test-build:
