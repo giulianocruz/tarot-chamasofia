@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { CATEGORIES, getCards, type Category } from "@/lib/tarot";
+import { DEFAULT_SPREAD_ID, getSpread } from "@/lib/spreads";
 import {
   addEvent,
   checkRateLimit,
@@ -41,15 +42,16 @@ export async function POST(request: Request) {
   const whatsapp = normalizeBrazilPhone(body.whatsapp);
   const category = cleanText(body.category, 50) as Category;
   const question = cleanText(body.question, 500);
+  const spread = getSpread(cleanText(body.spreadId, 40) || DEFAULT_SPREAD_ID);
   const cardIds = Array.isArray(body.cardIds)
-    ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 3)
+    ? body.cardIds.map((id: unknown) => cleanText(id, 40)).slice(0, 10)
     : [];
   const selectedCards =
-    cardIds.length === 3 && new Set(cardIds).size === 3 ? getCards(cardIds) : [];
+    cardIds.length === spread.count && new Set(cardIds).size === spread.count ? getCards(cardIds) : [];
   const offer = cleanText(body.offer || body.offerCode, 40);
   const requestedBook = offer === "ebook" ? getBook(cleanText(body.productSlug, 40)) : undefined;
   const deliveryChannel = cleanText(body.deliveryChannel, 20) === "whatsapp" ? "whatsapp" : "email";
-  const isConsultaOffer = ["consulta", "consulta-990", "astro-tarot"].includes(offer) && selectedCards.length === 3;
+  const isConsultaOffer = ["consulta", "consulta-990", "astro-tarot"].includes(offer) && selectedCards.length === spread.count;
   const isEbookOffer = offer === "ebook" && Boolean(requestedBook);
   const orderCategory = isEbookOffer ? "Biblioteca" : category;
   const orderQuestion = isEbookOffer && requestedBook ? `Compra de e-book: ${requestedBook.title}` : question;
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
     (!isEbookOffer && (question.length < 10 || !CATEGORIES.includes(category))) ||
     (!email && !whatsapp) ||
     (deliveryChannel === "whatsapp" && !whatsapp) ||
-    (cardIds.length > 0 && selectedCards.length !== 3) ||
+    (cardIds.length > 0 && selectedCards.length !== spread.count) ||
     (["consulta", "consulta-990", "astro-tarot"].includes(offer) && !isConsultaOffer) ||
     (offer === "ebook" && !requestedBook)
   ) {
@@ -151,10 +153,10 @@ export async function POST(request: Request) {
   const orderId = Number(result.meta.last_row_id);
   const leadToken = cleanText(body.leadToken, 80);
 
-  if (selectedCards.length === 3) {
+  if (selectedCards.length === spread.count) {
     await getD1()
       .prepare("UPDATE orders SET cards_json=? WHERE id=?")
-      .bind(JSON.stringify(cardIds), result.meta.last_row_id)
+      .bind(JSON.stringify({ spreadId: spread.id, cardIds }), result.meta.last_row_id)
       .run();
   }
 
@@ -202,6 +204,8 @@ export async function POST(request: Request) {
       offer: isEbookOffer ? "ebook" : (isConsultaOffer ? (offer === "astro-tarot" ? "astro-tarot" : "consulta") : (offer || "legacy")),
       product_slug: requestedBook?.slug,
       delivery_channel: deliveryChannel,
+      spread_id: spread.id,
+      card_count: spread.count,
     }),
   );
   return Response.json(
