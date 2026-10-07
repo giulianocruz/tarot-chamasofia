@@ -2,6 +2,7 @@ import calculateAstrology from 'natalengine/astrology';
 import type { Category, TarotCard } from './tarot';
 import type { AstroPlanet, AstroTarotLayer, AstroTransitHighlight, BirthInput } from './astrology-types';
 import { localizeAstrologyEn } from './astrology-en';
+import { fetchProkeralaNatalEnrichment, type ProkeralaCredentials } from './prokerala';
 
 type EnginePosition = { sign?: { name?: string }; longitude?: number; degree?: string };
 type EngineChart = {
@@ -144,7 +145,13 @@ function chartNow(place:Place){
   const now=new Date(),date=now.toISOString().slice(0,10),hour=now.getUTCHours()+now.getUTCMinutes()/60;
   return {chart:engineChart(date,hour,0,place.latitude,place.longitude),date};
 }
-export async function createAstroTarotLayer(input:BirthInput,question:string,category:Category,cards:TarotCard[],locale='pt-BR'):Promise<AstroTarotLayer>{
+function offsetIso(hours:number){
+  const sign=hours>=0?'+':'-'; const total=Math.round(Math.abs(hours)*60); const hh=String(Math.floor(total/60)).padStart(2,'0'); const mm=String(total%60).padStart(2,'0');
+  return `${sign}${hh}:${mm}`;
+}
+type AstrologyOptions={ prokerala?: ProkeralaCredentials };
+
+export async function createAstroTarotLayer(input:BirthInput,question:string,category:Category,cards:TarotCard[],locale='pt-BR',options:AstrologyOptions={}):Promise<AstroTarotLayer>{
   const birth=validateBirthInput(input),place=await resolveBirthLocation(birth.place),birthData=chartForBirth(birth,place),current=chartNow(place);
   const chart=birthData.chart,highlights=currentHighlights(chart,current.chart);
   const natal={
@@ -163,6 +170,27 @@ export async function createAstroTarotLayer(input:BirthInput,question:string,cat
       ? 'Cálculo local com efemérides astronômicas, coordenadas do local e fuso histórico IANA. O Ascendente usa o horário informado; esta versão não atribui casas natais sem uma cúspide de casas explicitamente calculada.'
       : 'Como o horário de nascimento não foi informado, usamos 12:00 como referência apenas para posições planetárias. Ascendente e casas são omitidos para não fabricar precisão.',
   };
+  layer.provider={core:'local'};
+  if(options.prokerala&&birth.timeKnown){
+    try{
+      const date=`${birth.year}-${String(birth.month).padStart(2,'0')}-${String(birth.day).padStart(2,'0')}`;
+      const time=`${String(birth.hour).padStart(2,'0')}:${String(birth.min).padStart(2,'0')}:00`;
+      const enrichment=await fetchProkeralaNatalEnrichment(options.prokerala,{
+        datetime:`${date}T${time}${offsetIso(birthData.offset)}`,
+        latitude:place.latitude,longitude:place.longitude,timeKnown:birth.timeKnown,
+      });
+      layer.advanced={houses:enrichment.houses,planets:enrichment.planets,aspects:enrichment.aspects};
+      layer.provider={core:'local',enrichment:'prokerala',enrichmentStatus:'ok',attributionRequired:true};
+      const byName=new Map(enrichment.planets.map((planet)=>[planet.name.toLowerCase(),planet]));
+      for(const [key,name] of [['sun','Sun'],['moon','Moon'],['mercury','Mercury'],['venus','Venus'],['mars','Mars'],['jupiter','Jupiter'],['saturn','Saturn']] as const){
+        const premium=byName.get(name.toLowerCase()); const currentPlanet=layer.natal[key];
+        if(premium&&currentPlanet){currentPlanet.house=premium.house;currentPlanet.retrograde=premium.retrograde;}
+      }
+      layer.precisionNote='Cálculo local com efemérides astronômicas e enriquecimento de casas e aspectos pelo Prokerala Astrology API (sistema Placidus).';
+    }catch{
+      layer.provider={core:'local',enrichmentStatus:'unavailable'};
+    }
+  }
   return locale.toLowerCase().startsWith('en')?localizeAstrologyEn(layer,cards,category):layer;
 }
 export async function createFreeNatalPreview(input:BirthInput){
