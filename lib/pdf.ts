@@ -79,14 +79,13 @@ function insightPanel(page: PDFPage, label: string, card: TarotCard, description
   textBlock(page, description, x + 14, y + 28, width - 28, regular, 6.6, C.muted, 9);
 }
 
-function cardTile(page: PDFPage, card: TarotCard, index: number, x: number, y: number, width: number, regular: PDFFont, bold: PDFFont) {
-  const positions = ['SITUA\u00c7\u00c3O ATUAL', 'INFLU\u00caNCIAS', 'TEND\u00caNCIA / CONSELHO'];
+function cardTile(page: PDFPage, card: TarotCard, positionLabel: string, x: number, y: number, width: number, regular: PDFFont, bold: PDFFont) {
   panel(page, x, y, width, 150, C.panel2);
   page.drawText(String(card.number).padStart(2, '0'), { x: x + 15, y: y + 118, font: bold, size: 26, color: C.goldSoft });
-  page.drawText(positions[index], { x: x + 15, y: y + 100, font: bold, size: 6.5, color: C.gold });
-  page.drawText(card.name, { x: x + 15, y: y + 73, font: bold, size: 13, color: C.cream });
-  const keyword = card.keywords.slice(0, 2).join(' \u00b7 ');
-  textBlock(page, keyword, x + 15, y + 51, width - 30, regular, 8, C.muted, 11);
+  page.drawText((positionLabel || 'Carta').toUpperCase().slice(0, 30), { x: x + 15, y: y + 100, font: bold, size: 6.5, color: C.gold });
+  page.drawText(card.name || 'Carta', { x: x + 15, y: y + 73, font: bold, size: 13, color: C.cream });
+  const keyword = card.keywords.slice(0, 2).join(' · ');
+  textBlock(page, keyword || 'Tarot', x + 15, y + 51, width - 30, regular, 8, C.muted, 11);
   page.drawLine({ start: { x: x + 15, y: y + 34 }, end: { x: x + width - 15, y: y + 34 }, thickness: 0.5, color: C.gold, opacity: 0.3 });
   page.drawText('CHAMA SOFIA', { x: x + 15, y: y + 17, font: bold, size: 6.5, color: C.goldSoft });
 }
