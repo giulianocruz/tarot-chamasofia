@@ -74,3 +74,21 @@ test('Mandala de 12 gera leitura e PDF completos sem rótulos indefinidos', asyn
     await vite.close();
   }
 });
+
+
+test('produto principal não regride para a antiga proposta AstroTarot de três cartas', () => {
+  const consulta=readFileSync(new URL('../app/consulta/page.tsx', import.meta.url),'utf8');
+  const layout=readFileSync(new URL('../app/layout.tsx', import.meta.url),'utf8');
+  const manifest=readFileSync(new URL('../app/manifest.ts', import.meta.url),'utf8');
+  const pdfRoute=readFileSync(new URL('../app/api/pdf/[token]/route.ts', import.meta.url),'utf8');
+  const readingClient=readFileSync(new URL('../app/leitura/[token]/reading-client.tsx', import.meta.url),'utf8');
+
+  assert.match(consulta,/78 cartas/);
+  assert.match(consulta,/8 métodos/);
+  assert.doesNotMatch(consulta,/Mapa Astral Express|três cartas/i);
+  assert.match(layout,/Tarot Chama Sofia/);
+  assert.doesNotMatch(layout,/Mapa Astral Express \+ Tarot/);
+  assert.match(manifest,/Chama Sofia Tarot/);
+  assert.match(pdfRoute,/leitura-tarot-chama-sofia/);
+  assert.match(readingClient,/shareTitle.*astro-tarot/s);
+});
