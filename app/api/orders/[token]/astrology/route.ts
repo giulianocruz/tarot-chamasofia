@@ -38,10 +38,10 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   let cardIds: string[] = [];
   try {
     const raw = JSON.parse(String(order.cards_json));
-    if (Array.isArray(raw)) cardIds = raw.map((item) => typeof item === 'string' ? item : String(item?.id || '')).filter(Boolean).slice(0,3);
+    if (Array.isArray(raw)) cardIds = raw.map((item) => typeof item === 'string' ? item : String(item?.id || '')).filter(Boolean).slice(0,10);
   } catch { cardIds = []; }
   const cards = getCards(cardIds);
-  if (cards.length !== 3) return Response.json({ error: isEnglish ? 'We could not recover all three cards.' : 'Não foi possível recuperar as três cartas.' }, { status: 409 });
+  if (cards.length < 1) return Response.json({ error: isEnglish ? 'We could not recover the selected cards.' : 'Não foi possível recuperar as cartas escolhidas.' }, { status: 409 });
   try {
     const layer = await createAstroTarotLayer(input, String(order.question), String(order.category) as Category, cards, String(order.locale || 'pt-BR'));
     const now = new Date().toISOString();
@@ -51,9 +51,11 @@ export async function POST(request: Request, context: { params: Promise<{ token:
     await addEvent('astrology_profile_completed', Number(order.id), order.anonymous_id ? String(order.anonymous_id) : null, { offer: String(order.offer_code || ''), time_known: input.timeKnown, locale:String(order.locale||'pt-BR'), currency:String(order.currency||'BRL') });
     return Response.json({ ok: true, astrology: layer }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    const message = isEnglish ? 'We could not calculate your birth chart right now. Please review your birthplace and try again.' : (error instanceof Error ? error.message : 'Não foi possível calcular seu mapa agora.');
+    const message = isEnglish
+      ? 'The astrology module is temporarily unavailable. Your Tarot reading is already unlocked and you can try the birth chart again later.'
+      : (error instanceof Error ? error.message : 'O módulo astrológico está temporariamente indisponível. Sua leitura de Tarot continua liberada.');
     await getD1().prepare(`UPDATE orders SET astrology_status='failed' WHERE id=?`).bind(order.id).run();
     await addEvent('astrology_failed', Number(order.id), order.anonymous_id ? String(order.anonymous_id) : null, { message: message.slice(0,160) });
-    return Response.json({ error: message }, { status: 502 });
+    return Response.json({ error: message, recoverable: true, tarotAvailable: true }, { status: 502 });
   }
 }
