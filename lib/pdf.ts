@@ -110,7 +110,7 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
   cover.drawText('CHAMA SOFIA', { x: 229, y: 632, font: bold, size: 10, color: C.goldSoft });
   cover.drawText('SUA LEITURA', { x: 128, y: 555, font: bold, size: 35, color: C.cream });
   cover.drawText('DE TAROT', { x: 195, y: 514, font: bold, size: 35, color: C.goldSoft });
-  cover.drawText('Uma leitura simb\u00f3lica criada a partir da sua pergunta e das tr\u00eas cartas escolhidas.', { x: 92, y: 475, font: regular, size: 10, color: C.muted });
+  cover.drawText(`Uma leitura simbólica criada a partir da sua pergunta e das ${cards.length} ${cards.length === 1 ? 'carta escolhida' : 'cartas escolhidas'}.`, { x: 92, y: 475, font: regular, size: 10, color: C.muted });
   panel(cover, 70, 310, 455, 118, rgb(0.075, 0.034, 0.095));
   cover.drawText('SUA PERGUNTA', { x: 92, y: 398, font: bold, size: 7.5, color: C.gold });
   textBlock(cover, `"${order.question}"`, 92, 374, 410, italic, 14, C.cream, 20);
