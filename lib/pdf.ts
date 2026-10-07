@@ -165,7 +165,7 @@ export async function createReadingPdf(order: PdfOrder, cards: TarotCard[], read
     const card = cards[index];
     const page = pdf.addPage(PAGE);
     background(page); header(page, bold, logo);
-    page.drawText(`0${index + 1}`, { x: 40, y: 716, font: bold, size: 54, color: C.goldSoft });
+    page.drawText(String(index + 1).padStart(2, '0'), { x: 40, y: 716, font: bold, size: 54, color: C.goldSoft });
     page.drawText(item.position.toUpperCase(), { x: 124, y: 744, font: bold, size: 7.5, color: C.gold });
     page.drawText(card.name, { x: 124, y: 704, font: bold, size: 29, color: C.cream });
     page.drawText(card.keywords.join('  \u00b7  '), { x: 124, y: 680, font: regular, size: 8.5, color: C.muted });
