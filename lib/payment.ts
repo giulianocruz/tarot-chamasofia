@@ -3,7 +3,8 @@ import { notifyReadingReady } from './notifications';
 import { sendMetaPurchase } from './meta';
 import { createReading } from './reading';
 import { createReadingEn } from './reading-en';
-import { drawThreeCards, getCards, type Category } from './tarot';
+import { drawCards, getCards, type Category } from './tarot';
+import { DEFAULT_SPREAD_ID, getSpread, type TarotSpreadId } from './spreads';
 import { analyticsMetadata, contextFromOrder } from './analytics-context';
 
 export async function completePayment(orderNumber: string, transactionId?: string, gateway = 'manual', forceRegenerate = false) {
@@ -37,16 +38,38 @@ export async function completePayment(orderNumber: string, transactionId?: strin
     await getD1().prepare('UPDATE orders SET notification_status=?,notification_error=? WHERE id=?').bind(notificationStatus,notificationError,order.id).run();
     return { ok:true as const, token:String(order.public_token), delivery, meta };
   }
-  let cards = drawThreeCards();
-  if (order.cards_json) { try { const ids = JSON.parse(String(order.cards_json)); if (Array.isArray(ids) && ids.length === 3 && ids.every((id) => typeof id === "string")) { const chosen = getCards(ids); if (chosen.length === 3) cards = chosen; } } catch {} }
-  const reading = String(order.locale || '').toLowerCase().startsWith('en')
+  let spreadId: TarotSpreadId = DEFAULT_SPREAD_ID;
+  let spread = getSpread(spreadId);
+  let cards = drawCards(spread.count);
+  if (order.cards_json) {
+    try {
+      const raw = JSON.parse(String(order.cards_json));
+      let ids: string[] = [];
+      if (Array.isArray(raw)) {
+        ids = raw.map((item) => typeof item === "string" ? item : String(item?.id || "")).filter(Boolean);
+        const inferred = raw.length === 1 ? "single" : raw.length === 5 ? "love" : raw.length === 7 ? "horseshoe" : raw.length === 10 ? "celtic-cross" : DEFAULT_SPREAD_ID;
+        spreadId = inferred as TarotSpreadId;
+      } else if (raw && typeof raw === "object") {
+        spreadId = String(raw.spreadId || DEFAULT_SPREAD_ID) as TarotSpreadId;
+        if (Array.isArray(raw.cardIds)) ids = raw.cardIds.map((item: unknown) => String(item || "")).filter(Boolean);
+      }
+      spread = getSpread(spreadId);
+      const chosen = getCards(ids.slice(0, spread.count));
+      if (chosen.length === spread.count) cards = chosen;
+      else cards = drawCards(spread.count);
+    } catch {
+      spread = getSpread(DEFAULT_SPREAD_ID);
+      cards = drawCards(spread.count);
+    }
+  }
+  const reading = String(order.locale || '').toLowerCase().startsWith('en') && cards.length === 3
     ? createReadingEn(String(order.question), String(order.category) as Category, cards)
-    : createReading(String(order.question), String(order.category) as Category, cards);
+    : createReading(String(order.question), String(order.category) as Category, cards, spread.id);
   const analyticsContext = contextFromOrder(order);
   const firstPayment = order.payment_status !== 'paid';
   const now = new Date().toISOString();
   await getD1().prepare("UPDATE orders SET payment_status='paid',reading_status='reading_generated',cards_json=?,reading_json=?,paid_at=COALESCE(paid_at,?),generated_at=?,gateway_name=?,gateway_transaction_id=COALESCE(?,gateway_transaction_id) WHERE id=?")
-    .bind(JSON.stringify(cards.map(({id,name,number,symbol,image,keywords,general,constructive,alert})=>({id,name,number,symbol,image,keywords,general,constructive,alert}))),JSON.stringify(reading),now,now,gateway,transactionId||null,order.id).run();
+    .bind(JSON.stringify(cards.map(({id,name,number,symbol,image,keywords,general,constructive,alert,arcana})=>({id,name,number,symbol,image,keywords,general,constructive,alert,arcana}))),JSON.stringify(reading),now,now,gateway,transactionId||null,order.id).run();
   if (firstPayment) await addEvent('payment_confirmed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext,{gateway,transactionId}));
   await addEvent('reading_generated',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
   await addEvent('reading_completed',Number(order.id),analyticsContext.anonymous_id,analyticsMetadata(analyticsContext));
