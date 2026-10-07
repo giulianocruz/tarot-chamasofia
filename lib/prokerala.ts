@@ -65,6 +65,10 @@ type RawNatalResponse = {
   };
 };
 
+const SIGN_PT: Record<string,string> = { Aries:'Áries',Taurus:'Touro',Gemini:'Gêmeos',Cancer:'Câncer',Leo:'Leão',Virgo:'Virgem',Libra:'Libra',Scorpio:'Escorpião',Sagittarius:'Sagitário',Capricorn:'Capricórnio',Aquarius:'Aquário',Pisces:'Peixes' };
+const PLANET_PT: Record<string,string> = { Sun:'Sol',Moon:'Lua',Mercury:'Mercúrio',Venus:'Vênus',Mars:'Marte',Jupiter:'Júpiter',Saturn:'Saturno',Uranus:'Urano',Neptune:'Netuno',Pluto:'Plutão' };
+const ASPECT_PT: Record<string,string> = { Conjunction:'Conjunção',Opposition:'Oposição',Square:'Quadratura',Trine:'Trígono',Sextile:'Sextil' };
+
 let tokenCache: { token: string; expiresAt: number } | null = null;
 
 async function getAccessToken(credentials: ProkeralaCredentials) {
@@ -145,20 +149,20 @@ export async function fetchProkeralaNatalEnrichment(
       number: Number(house.number || 0),
       startDegree: Number.isFinite(Number(house.start_cusp?.degree)) ? Number(house.start_cusp?.degree) : undefined,
       endDegree: Number.isFinite(Number(house.end_cusp?.degree)) ? Number(house.end_cusp?.degree) : undefined,
-      sign: house.start_cusp?.zodiac?.name,
+      sign: SIGN_PT[String(house.start_cusp?.zodiac?.name || '')] || house.start_cusp?.zodiac?.name,
     })).filter((house) => house.number > 0),
     planets: (data.planet_positions || []).map((planet) => ({
-      name: String(planet.name || ""),
-      sign: String(planet.zodiac?.name || ""),
+      name: PLANET_PT[String(planet.name || '')] || String(planet.name || ""),
+      sign: SIGN_PT[String(planet.zodiac?.name || '')] || String(planet.zodiac?.name || ""),
       degree: Number.isFinite(Number(planet.degree)) ? Number(planet.degree) : undefined,
       longitude: Number.isFinite(Number(planet.longitude)) ? Number(planet.longitude) : undefined,
       house: Number.isFinite(Number(planet.house_number)) ? Number(planet.house_number) : undefined,
       retrograde: Boolean(planet.is_retrograde),
     })).filter((planet) => planet.name),
     aspects: (data.aspects || []).map((aspect) => ({
-      planetOne: String(aspect.planet_one?.name || ""),
-      planetTwo: String(aspect.planet_two?.name || ""),
-      type: String(aspect.aspect?.name || ""),
+      planetOne: PLANET_PT[String(aspect.planet_one?.name || '')] || String(aspect.planet_one?.name || ""),
+      planetTwo: PLANET_PT[String(aspect.planet_two?.name || '')] || String(aspect.planet_two?.name || ""),
+      type: ASPECT_PT[String(aspect.aspect?.name || '')] || String(aspect.aspect?.name || ""),
       orb: Number.isFinite(Number(aspect.orb)) ? Number(aspect.orb) : undefined,
     })).filter((aspect) => aspect.planetOne && aspect.planetTwo && aspect.type),
   };
