@@ -34,6 +34,6 @@ test('usa astrologia ocidental tropical com Placidus', () => {
 });
 
 test('nenhum segredo real é versionado no arquivo de exemplo', () => {
-  assert.match(env, /PROKERALA_CLIENT_ID=\n/);
-  assert.match(env, /PROKERALA_CLIENT_SECRET=\n/);
+  assert.match(env, /PROKERALA_CLIENT_ID=\r?\n/);
+  assert.match(env, /PROKERALA_CLIENT_SECRET=\r?\n/);
 });
