@@ -92,3 +92,22 @@ test('produto principal não regride para a antiga proposta AstroTarot de três 
   assert.match(pdfRoute,/leitura-tarot-chama-sofia/);
   assert.match(readingClient,/shareTitle.*astro-tarot/s);
 });
+
+
+test('AstroTarot preserva oferta própria e usa o ritual premium de 78 cartas', () => {
+  const astroPage=readFileSync(new URL('../app/astrotarot/page.tsx', import.meta.url),'utf8');
+  const landing=readFileSync(new URL('../app/landing-client.tsx', import.meta.url),'utf8');
+  const consultaPage=readFileSync(new URL('../app/consulta/page.tsx', import.meta.url),'utf8');
+  const consultaClient=readFileSync(new URL('../app/consulta/consulta-client.tsx', import.meta.url),'utf8');
+
+  assert.match(astroPage,/78 do Tarot|Tarot completo/);
+  assert.match(astroPage,/offer=astro-tarot/);
+  assert.doesNotMatch(astroPage,/três cartas reunidos/i);
+  assert.match(landing,/query\.set\("offer", "astro-tarot"\)/);
+  assert.match(landing,/pricing\?offer=astro-tarot/);
+  assert.doesNotMatch(landing,/legacy-question-section/);
+  assert.match(landing,/78 cartas/);
+  assert.match(consultaPage,/offerMode/);
+  assert.match(consultaClient,/offer: offerMode/);
+  assert.match(consultaClient,/isAstroTarot/);
+});
