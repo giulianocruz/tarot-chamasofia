@@ -8,7 +8,6 @@ import {
   getCurrentPrice,
   getD1,
 } from "@/lib/database";
-import { createPixPayload } from "@/lib/pix";
 import { createMercadoPagoPix } from "@/lib/mercado-pago";
 import { cleanText, randomToken, sameOrigin, sha256 } from "@/lib/security";
 import {
@@ -24,6 +23,14 @@ import { normalizeBrazilPhone } from "@/lib/phone";
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {
     return Response.json({ error: "Origem inválida." }, { status: 403 });
+  }
+  // Um Pix só pode ser emitido quando existe conciliação automática autenticada.
+  // Bloqueia também o fallback legado baseado exclusivamente em PIX_KEY.
+  if (!env.MERCADO_PAGO_ACCESS_TOKEN || !env.MERCADO_PAGO_WEBHOOK_SECRET) {
+    return Response.json(
+      { error: "Pagamento temporariamente indisponível. Nenhum Pix foi gerado." },
+      { status: 503 },
+    );
   }
   const ip =
     request.headers.get("cf-connecting-ip") ||
@@ -91,15 +98,7 @@ export async function POST(request: Request) {
     : isConsultaOffer ? consultationPrice() : await getCurrentPrice();
   const orderNumber = `CS${new Date().toISOString().slice(2, 10).replace(/-/g, "")}${randomToken(5).slice(0, 7).toUpperCase()}`;
   const publicToken = randomToken(32);
-  let pixPayload = env.PIX_KEY
-    ? createPixPayload(
-        env.PIX_KEY,
-        env.PIX_RECEIVER_NAME || "CHAMA SOFIA",
-        env.PIX_RECEIVER_CITY || "SAO PAULO",
-        price.cents,
-        orderNumber,
-      )
-    : "";
+  let pixPayload = "";
   const fallbackId = `order:${orderNumber}`;
   const anonymousId = cleanText(body.anonymous_id || body.anonymousId, 100) || fallbackId;
   const sessionId = cleanText(body.session_id || body.sessionId, 100) || fallbackId;
