@@ -23,3 +23,15 @@ test('webhook exige assinatura e confere valor antes de liberar uma leitura', ()
   assert.match(webhook, /Number\(order\.price\)/);
   assert.match(webhook, /completePayment\(/);
 });
+
+test('checkout exige Mercado Pago e webhook assinado, sem Pix estático alternativo', () => {
+  assert.match(checkout, /!env\.MERCADO_PAGO_ACCESS_TOKEN \|\| !env\.MERCADO_PAGO_WEBHOOK_SECRET/);
+  assert.doesNotMatch(checkout, /createPixPayload/);
+  assert.match(checkout, /Nenhum Pix foi gerado/);
+});
+
+test('health só declara checkout pronto com token e webhook configurados', () => {
+  const health = readFileSync(new URL('../app/api/health/route.ts', import.meta.url), 'utf8');
+  assert.match(health, /paymentConfigured: Boolean\(env\.MERCADO_PAGO_ACCESS_TOKEN && env\.MERCADO_PAGO_WEBHOOK_SECRET\)/);
+  assert.doesNotMatch(health, /paymentConfigured:[^\n]*env\.PIX_KEY/);
+});
