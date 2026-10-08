@@ -11,7 +11,8 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
   const token = cleanText(rawToken, 80);
   await ensureSchema();
   const order = await getD1().prepare('SELECT * FROM orders WHERE public_token=?').bind(token).first<Record<string, unknown>>();
-  if (!order || !order.reading_json || !order.cards_json) return Response.json({ error: 'Leitura ainda não liberada.' }, { status: 403 });
+  // O pagamento confirmado é obrigatório mesmo que existam JSONs de leitura no banco.
+  if (!order || order.payment_status !== 'paid' || !order.reading_json || !order.cards_json) return Response.json({ error: 'Leitura ainda não liberada.' }, { status: 403 });
   const cardData = JSON.parse(String(order.cards_json)) as Array<{id:string}>;
   const cards = getCards(cardData.map((card) => card.id));
   let logoBytes: Uint8Array | undefined;
