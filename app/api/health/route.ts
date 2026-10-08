@@ -14,7 +14,7 @@ export async function GET() {
       env.PROKERALA_CLIENT_ID &&
       env.PROKERALA_CLIENT_SECRET,
     ),
-    paymentConfigured: Boolean(env.MERCADO_PAGO_ACCESS_TOKEN || env.PIX_KEY),
+    paymentConfigured: Boolean(env.MERCADO_PAGO_ACCESS_TOKEN && env.MERCADO_PAGO_WEBHOOK_SECRET),
   };
 
   try {
