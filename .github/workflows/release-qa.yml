@@ -1,0 +1,34 @@
+name: Tarot premium release QA
+
+on:
+  push:
+    branches:
+      - release/tarot-premium-final-20261008
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tarot-release-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Test and build (Node 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Automated regression suite
+        run: npm test
+      - name: Release build
+        run: npm run build
+      - name: Record commit
+        run: echo "Verified commit ${GITHUB_SHA}"
