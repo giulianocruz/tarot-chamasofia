@@ -69,10 +69,10 @@ const SIGN_PT: Record<string,string> = { Aries:'Áries',Taurus:'Touro',Gemini:'G
 const PLANET_PT: Record<string,string> = { Sun:'Sol',Moon:'Lua',Mercury:'Mercúrio',Venus:'Vênus',Mars:'Marte',Jupiter:'Júpiter',Saturn:'Saturno',Uranus:'Urano',Neptune:'Netuno',Pluto:'Plutão' };
 const ASPECT_PT: Record<string,string> = { Conjunction:'Conjunção',Opposition:'Oposição',Square:'Quadratura',Trine:'Trígono',Sextile:'Sextil' };
 
-let tokenCache: { token: string; expiresAt: number } | null = null;
+let tokenCache: { token: string; expiresAt: number; clientId: string } | null = null;
 
-async function getAccessToken(credentials: ProkeralaCredentials) {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + 60_000) return tokenCache.token;
+async function getAccessToken(credentials: ProkeralaCredentials, forceRefresh = false) {
+  if (!forceRefresh && tokenCache && tokenCache.clientId === credentials.clientId && tokenCache.expiresAt > Date.now() + 60_000) return tokenCache.token;
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -93,7 +93,8 @@ async function getAccessToken(credentials: ProkeralaCredentials) {
 
   tokenCache = {
     token: payload.access_token,
-    expiresAt: Date.now() + Math.max(60, Number(payload.expires_in || 3600)) * 1000,
+    clientId: credentials.clientId,
+    expiresAt: Date.now() + Math.max(0, Number(payload.expires_in ?? 3600)) * 1000,
   };
   return payload.access_token;
 }
@@ -107,7 +108,7 @@ export async function fetchProkeralaNatalEnrichment(
     timeKnown: boolean;
   },
 ): Promise<ProkeralaNatalEnrichment> {
-  const token = await getAccessToken(credentials);
+  let token = await getAccessToken(credentials);
   const params = new URLSearchParams({
     "profile[datetime]": input.datetime,
     "profile[coordinates]": `${input.latitude},${input.longitude}`,
@@ -119,13 +120,21 @@ export async function fetchProkeralaNatalEnrichment(
     la: "en",
   });
 
-  const response = await fetch(`https://api.prokerala.com/v2/astrology/natal-planet-position?${params.toString()}`, {
+  const fetchNatal = (accessToken: string) => fetch(`https://api.prokerala.com/v2/astrology/natal-planet-position?${params.toString()}`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
     },
     signal: AbortSignal.timeout(12_000),
   });
+
+  let response = await fetchNatal(token);
+  if (response.status === 401) {
+    // Um token revogado ou expirado não deve bloquear o cálculo pelo tempo restante do cache.
+    if (tokenCache?.token === token) tokenCache = null;
+    token = await getAccessToken(credentials, true);
+    response = await fetchNatal(token);
+  }
 
   if (response.status === 402 || response.status === 429) {
     throw new Error("Cota do provedor astrológico premium indisponível.");
@@ -135,7 +144,10 @@ export async function fetchProkeralaNatalEnrichment(
   }
 
   const payload = await response.json() as RawNatalResponse;
-  const data = payload.data || {};
+  const data = payload.data;
+  if (!data || !Array.isArray(data.planet_positions) || data.planet_positions.length === 0) {
+    throw new Error("O provedor premium retornou um mapa natal incompleto.");
+  }
 
   return {
     provider: "prokerala",
