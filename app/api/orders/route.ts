@@ -181,12 +181,16 @@ export async function POST(request: Request) {
         )
         .run();
     } catch {
-      if (!pixPayload) {
-        return Response.json(
-          { error: "Não foi possível gerar o Pix. Tente novamente em instantes." },
-          { status: 502 },
-        );
-      }
+      // Quando o gateway automático está ativado, nunca entregar Pix estático
+      // sem conciliação: o pagamento poderia ocorrer sem liberar a leitura.
+      await getD1()
+        .prepare("UPDATE orders SET payment_status='cancelled',pix_payload=NULL WHERE id=? AND payment_status='pending'")
+        .bind(orderId)
+        .run();
+      return Response.json(
+        { error: "Não foi possível gerar o Pix automático. Nenhuma cobrança foi concluída. Tente novamente." },
+        { status: 502 },
+      );
     }
   }
 
